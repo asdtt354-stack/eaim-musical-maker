@@ -306,6 +306,31 @@ async function addGroupUI(){
   if(!name){ alert('반/모둠 이름을 입력하세요!'); return; }
   await addGroup(name); input.value='';
 }
+async function bulkAddGroups(){
+  const gradeEl=document.getElementById('bulkGrade'), countEl=document.getElementById('bulkCount');
+  const grade=gradeEl.value.trim();
+  const count=parseInt(countEl.value,10);
+  if(!grade){ alert('학년을 입력하세요! (예: 1학년)'); return; }
+  if(!count || count<1){ alert('반 수를 1 이상으로 입력하세요!'); return; }
+  if(count>20){ alert('한 번에 최대 20개까지 만들 수 있어요!'); return; }
+  const existing=new Set(groups.map(g=>g.name));
+  const toAdd=[];
+  for(let i=1;i<=count;i++){
+    const name=`${grade} ${i}반`;
+    if(!existing.has(name)) toAdd.push(name);
+  }
+  if(!toAdd.length){ showToast('이미 모두 만들어져 있어요'); return; }
+  try{
+    const batch=db.batch();
+    toAdd.forEach(name=>{
+      const ref=groupsColRef(teacherUid).doc();
+      batch.set(ref,{name, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+    await batch.commit();
+    gradeEl.value=''; countEl.value='';
+    showToast(`✅ ${toAdd.length}개 반 생성 완료!`);
+  }catch(e){ showToast('❌ 일괄 생성 실패: '+e.message); }
+}
 async function deleteGroupUI(id){
   if(!confirm('이 반/모둠을 삭제할까요?')) return;
   await deleteGroupFn(id);
@@ -412,6 +437,14 @@ function renderDashContent(){
       </div>
     </div>
     <div class="card"><div class="card-title">🏷️ 반/모둠 이름 관리</div>
+      <div style="font-size:.7rem;color:var(--sub);letter-spacing:.05em;margin-bottom:6px">📦 일괄 생성</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <input type="text" class="t-input" id="bulkGrade" placeholder="학년 (예: 1학년)" style="flex:1;margin-bottom:0">
+        <input type="number" class="t-input" id="bulkCount" placeholder="반 수" min="1" max="20" style="width:80px;margin-bottom:0">
+        <button class="main-btn" style="width:auto;padding:0 16px" onclick="bulkAddGroups()">생성</button>
+      </div>
+      <div style="font-size:.68rem;color:var(--sub);margin-bottom:14px">예: "1학년" + 5 입력 → 1학년 1반~1학년 5반 자동 생성</div>
+      <div style="font-size:.7rem;color:var(--sub);letter-spacing:.05em;margin-bottom:6px">✏️ 하나씩 추가</div>
       <div style="display:flex;gap:6px;margin-bottom:8px">
         <input type="text" class="t-input" id="newGroupName" placeholder="예: 3반 뮤지컬반" style="flex:1;margin-bottom:0">
         <button class="main-btn" style="width:auto;padding:0 18px" onclick="addGroupUI()">추가</button>
@@ -490,12 +523,14 @@ const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디',
 const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
 const CONFLICT_TYPES=['내적 갈등 (인물 내면)','인물 간 갈등','사회·구조적 갈등','운명·환경적 갈등'];
 const SCRIPT_LENGTHS=[
-  {id:'short',label:'짧게',desc:'4~6줄',lines:'4~6줄'},
-  {id:'medium',label:'보통',desc:'8~12줄',lines:'8~12줄'},
-  {id:'long',label:'길게',desc:'18~25줄',lines:'18~25줄'},
+  {id:'10',label:'10분',lines:'15~20줄'},
+  {id:'20',label:'20분',lines:'30~40줄'},
+  {id:'30',label:'30분',lines:'45~60줄'},
+  {id:'40',label:'40분',lines:'60~80줄'},
+  {id:'60',label:'1시간',lines:'90~120줄'},
 ];
 let bgGenre='',moodGenre='',castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
-let expertMode=false,conflictType='',toneStyle='',refStyle='',scriptLength='medium';
+let expertMode=false,conflictType='',toneStyle='',refStyle='',scriptLength='20';
 const root=document.getElementById('root');
 
 function renderStudent(){
@@ -544,7 +579,7 @@ function renderStudentInput(){
     <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
       <input class="edit-box" type="text" id="setting" placeholder="예: 현대 중학교, 봄학기" style="min-height:auto;resize:none;"></div>
     <div style="margin-bottom:16px"><div class="edit-label">대본 분량 (막당 대사·지문)</div>
-      <div class="act-btns" id="length-btns">${SCRIPT_LENGTHS.map(l=>`<button class="act-btn ${scriptLength===l.id?'on':''}" onclick="selLength(this,'${l.id}')">${l.label}<br><span style="font-size:.62rem;opacity:.7">${l.desc}</span></button>`).join('')}</div></div>
+      <div class="act-btns" id="length-btns">${SCRIPT_LENGTHS.map(l=>`<button class="act-btn ${scriptLength===l.id?'on':''}" onclick="selLength(this,'${l.id}')">${l.label}<br><span style="font-size:.62rem;opacity:.7">${l.lines}</span></button>`).join('')}</div></div>
     ${expertMode?`<div class="expert-fields">
       <div class="edit-label" style="margin-top:0">중심 갈등 구조 *</div>
       <div class="genre-tags" id="conflict-tags">${CONFLICT_TYPES.map(c=>`<div class="gtag" onclick="selConflict(this,'${c}')">${c}</div>`).join('')}</div>
@@ -583,7 +618,7 @@ async function callGemini(prompt){
   const key=settings.apiKey||'';
   if(!key)throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
   const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key.trim()}`;
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:6000}})});
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:8192}})});
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`오류 ${res.status}`);}
   const data=await res.json();return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
 }
@@ -635,25 +670,25 @@ JSON만 응답:
     setStep(2,'오프닝 코러스 작성 중...');
     const s2=await callGemini(`뮤지컬 "${struct.title}" 오프닝 코러스.
 줄거리:${struct.synopsis} | 인물:${charsStr} | 장르:${genre}
-JSON만:{"songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+JSON만:{"songTitle":"넘버제목","singer":"이 넘버를 부르는 인물(들). 예: '전체 합창', '민준 솔로', '민준·서아 듀엣'","lyrics":"가사 4-6줄(줄바꿈)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const opening=parseJSON(s2);
     setStep(3,'장면 작성 중...');
     const scenes=[];
     for(const act of struct.acts){
       setStep(3,`${act.actNum}막 "${act.title}" 작성 중...`);
-      const lenSpec = SCRIPT_LENGTHS.find(l=>l.id===scriptLength)?.lines || '8~12줄';
+      const lenSpec = SCRIPT_LENGTHS.find(l=>l.id===scriptLength)?.lines || '30~40줄';
       const scriptField = expertMode
         ? `,"script":"이 막의 정식 대본. 인물명: 대사 형식과 (지문)을 섞어 ${lenSpec} 내외로 작성. 극적 기능(${act.function||''}), 목표(${act.objective||''}), 장애물(${act.obstacle||''})이 드러나야 함"`
         : `,"script":"이 막의 대본. 인물명: 대사 형식과 (지문)을 섞어 ${lenSpec} 내외로, 중학생이 이해하기 쉬운 자연스러운 말투로 작성"`;
       const sn=await callGemini(`뮤지컬 "${struct.title}" ${act.actNum}막.
 내용:${act.summary} | 감정:${act.emotion} | 인물:${charsStr}${expertMode?` | 갈등:${conflictType} | 톤:${toneVal||'자유'}`:''}
-JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"${scriptField}}`);
+JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","singer":"이 넘버를 부르는 인물(들). 예: '민준 솔로', '민준·서아 듀엣', '전체 합창'","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"${scriptField}}`);
       scenes.push(parseJSON(sn));
     }
     setStep(4,'커튼콜 작성 중...');
     const s4=await callGemini(`뮤지컬 "${struct.title}" 커튼콜.
 오프닝가사:${opening.lyrics} | 줄거리:${struct.synopsis}
-JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
+JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","singer":"이 넘버를 부르는 인물(들). 보통 '전체 합창'","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const curtain=parseJSON(s4);
     setStep(5,'완성 정리 중...');
     generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength};
@@ -685,13 +720,13 @@ function buildFullText(d){
   let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  ${d.genre}${d.expertMode?'  [전문가 과정]':''}\n${'═'.repeat(48)}\n\n`;
   t+=`📖 줄거리\n${d.synopsis}\n\n👥 등장인물\n  ${(d.characters||[]).join('\n  ')}\n\n`;
   if(d.expertMode && d.conflictType) t+=`🎭 중심 갈등: ${d.conflictType}${d.toneStyle?` · 톤: ${d.toneStyle}`:''}\n\n`;
-  t+=`【 오프닝 코러스 】\n${'─'.repeat(36)}\n♪ ${d.opening.songTitle}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
+  t+=`【 오프닝 코러스 】\n${'─'.repeat(36)}\n♪ ${d.opening.songTitle}${d.opening.singer?` (${d.opening.singer})`:''}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
   (d.scenes||[]).forEach((s,i)=>{
     t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n`;
     if(s.script) t+=`\n[대본]\n${s.script}\n`;
-    t+=`\n♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;
+    t+=`\n♪ ${s.songTitle}${s.singer?` (${s.singer})`:''}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;
   });
-  t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
+  t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}${d.curtain.singer?` (${d.curtain.singer})`:''}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
   return t;
 }
 
@@ -723,15 +758,18 @@ function renderResult(){
 function renderSceneCard(id,label,tagClass,icon,data,idx){
   return `<div class="scene-card">
     <div class="scene-header open" onclick="toggleScene('${id}')">
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span class="scene-tag ${tagClass}">${icon} ${label}</span>
         <span style="font-size:.85rem;font-weight:700;color:var(--text)">♪ ${data.songTitle||''}</span>
+        ${data.singer?`<span style="font-size:.72rem;color:var(--pink);background:rgba(199,120,221,0.1);border:1px solid rgba(199,120,221,0.25);border-radius:20px;padding:2px 10px">🎤 ${data.singer}</span>`:''}
       </div>
       <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-${id}">▲</span>
     </div>
     <div class="scene-body" id="body-${id}">
       ${data.script!==undefined?`<div class="edit-label" style="margin-top:0">🎓 대본 (대사·지문)</div>
       <textarea class="edit-box" id="script-${id}" rows="7" style="font-family:monospace;font-size:.82rem">${data.script||''}</textarea>`:''}
+      <div class="edit-label" style="margin-top:0">🎤 부르는 사람</div>
+      <input class="edit-box" type="text" id="singer-${id}" value="${data.singer||''}" placeholder="예: 민준 솔로, 민준·서아 듀엣, 전체 합창" style="min-height:auto;resize:none;">
       <div class="edit-label">가사</div>
       <textarea class="edit-box" id="lyrics-${id}" rows="6">${data.lyrics||''}</textarea>
       <div class="prompt-grid">
@@ -770,12 +808,12 @@ function scheduleAutoSave(){
 function collectEdits(){
   if(!generatedData)return;
   const getVal=id=>document.getElementById(id)?.value||'';
-  generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');
+  generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');generatedData.opening.singer=getVal('singer-opening');
   (generatedData.scenes||[]).forEach((_,i)=>{
-    generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);
+    generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);generatedData.scenes[i].singer=getVal(`singer-scene-${i}`);
     if(generatedData.scenes[i].script!==undefined) generatedData.scenes[i].script=getVal(`script-scene-${i}`);
   });
-  generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');
+  generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');generatedData.curtain.singer=getVal('singer-curtain');
 }
 
 function downloadAll(){
