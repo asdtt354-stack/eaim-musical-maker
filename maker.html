@@ -307,17 +307,29 @@ async function addGroupUI(){
   await addGroup(name); input.value='';
 }
 async function bulkAddGroups(){
-  const gradeEl=document.getElementById('bulkGrade'), countEl=document.getElementById('bulkCount');
+  const gradeEl=document.getElementById('bulkGrade'), countEl=document.getElementById('bulkCount'), groupCountEl=document.getElementById('bulkGroupCount');
   const grade=gradeEl.value.trim();
   const count=parseInt(countEl.value,10);
+  const groupCount=parseInt(groupCountEl.value,10);
   if(!grade){ alert('학년을 입력하세요! (예: 1학년)'); return; }
   if(!count || count<1){ alert('반 수를 1 이상으로 입력하세요!'); return; }
-  if(count>20){ alert('한 번에 최대 20개까지 만들 수 있어요!'); return; }
+  if(count>20){ alert('반 수는 한 번에 최대 20개까지 만들 수 있어요!'); return; }
+  const hasGroups = !!groupCount && groupCount>=1;
+  if(hasGroups && groupCount>20){ alert('모둠 수는 반당 최대 20개까지 만들 수 있어요!'); return; }
+  const totalCount = hasGroups ? count*groupCount : count;
+  if(totalCount>80){ alert('한 번에 최대 80개까지만 만들 수 있어요. 반 수 또는 모둠 수를 줄여주세요!'); return; }
   const existing=new Set(groups.map(g=>g.name));
   const toAdd=[];
   for(let i=1;i<=count;i++){
-    const name=`${grade} ${i}반`;
-    if(!existing.has(name)) toAdd.push(name);
+    if(hasGroups){
+      for(let j=1;j<=groupCount;j++){
+        const name=`${grade} ${i}반 ${j}모둠`;
+        if(!existing.has(name)) toAdd.push(name);
+      }
+    } else {
+      const name=`${grade} ${i}반`;
+      if(!existing.has(name)) toAdd.push(name);
+    }
   }
   if(!toAdd.length){ showToast('이미 모두 만들어져 있어요'); return; }
   try{
@@ -327,8 +339,8 @@ async function bulkAddGroups(){
       batch.set(ref,{name, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
     });
     await batch.commit();
-    gradeEl.value=''; countEl.value='';
-    showToast(`✅ ${toAdd.length}개 반 생성 완료!`);
+    gradeEl.value=''; countEl.value=''; groupCountEl.value='';
+    showToast(`✅ ${toAdd.length}개 반/모둠 생성 완료!`);
   }catch(e){ showToast('❌ 일괄 생성 실패: '+e.message); }
 }
 async function deleteGroupUI(id){
@@ -438,12 +450,16 @@ function renderDashContent(){
     </div>
     <div class="card"><div class="card-title">🏷️ 반/모둠 이름 관리</div>
       <div style="font-size:.7rem;color:var(--sub);letter-spacing:.05em;margin-bottom:6px">📦 일괄 생성</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px">
-        <input type="text" class="t-input" id="bulkGrade" placeholder="학년 (예: 1학년)" style="flex:1;margin-bottom:0">
+      <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+        <input type="text" class="t-input" id="bulkGrade" placeholder="학년 (예: 1학년)" style="flex:1;min-width:100px;margin-bottom:0">
         <input type="number" class="t-input" id="bulkCount" placeholder="반 수" min="1" max="20" style="width:80px;margin-bottom:0">
+        <input type="number" class="t-input" id="bulkGroupCount" placeholder="모둠 수(선택)" min="1" max="20" style="width:110px;margin-bottom:0">
         <button class="main-btn" style="width:auto;padding:0 16px" onclick="bulkAddGroups()">생성</button>
       </div>
-      <div style="font-size:.68rem;color:var(--sub);margin-bottom:14px">예: "1학년" + 5 입력 → 1학년 1반~1학년 5반 자동 생성</div>
+      <div style="font-size:.68rem;color:var(--sub);margin-bottom:14px">
+        모둠 수를 비워두면 "1학년 1반~N반"만 생성돼요.<br>
+        모둠 수를 넣으면(예: 반 수 3 + 모둠 수 4) "1학년 1반 1모둠"~"1학년 3반 4모둠"까지 한 번에 생성돼요.
+      </div>
       <div style="font-size:.7rem;color:var(--sub);letter-spacing:.05em;margin-bottom:6px">✏️ 하나씩 추가</div>
       <div style="display:flex;gap:6px;margin-bottom:8px">
         <input type="text" class="t-input" id="newGroupName" placeholder="예: 3반 뮤지컬반" style="flex:1;margin-bottom:0">
