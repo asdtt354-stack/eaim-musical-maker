@@ -151,7 +151,7 @@ input[type=range].fader::-webkit-slider-thumb{width:22px;height:10px;border-radi
 </div>
 
 <div id="preset-palette">
-  <div class="palette-label">&#127917; &#48516;&#50948;&#44592; &#54532;&#47532;&#49352; &#8212; &#53364;&#47548;&#54616;&#50668; &#51989;&#49884; &#51201;&#50857;</div>
+  <div class="palette-label">&#127917; 분위기 프리셋 — 클릭하여 즉시 적용</div>
 </div>
 
 <div class="console">
@@ -162,9 +162,9 @@ input[type=range].fader::-webkit-slider-thumb{width:22px;height:10px;border-radi
       <input class="ch-name-input" value="BGM 배경음악" id="name-bgm">
       <div class="led" id="led-bgm"></div>
     </div>
-    <div class="upload-zone" id="zone-bgm"><input type="file" id="file-bgm" accept="audio/*" onchange="loadFile('bgm',this)"><div class="upload-icon">&#127925;</div><div class="upload-label">MP3 / WAV &#50629;&#47196;&#46300;</div><div class="upload-filename" id="fname-bgm"></div></div>
+    <div class="upload-zone" id="zone-bgm"><input type="file" id="file-bgm" accept="audio/*" onchange="loadFile('bgm',this)"><div class="upload-icon">&#127925;</div><div class="upload-label">MP3 / WAV 업로드</div><div class="upload-filename" id="fname-bgm"></div></div>
     <button class="rec-btn" id="rec-btn-bgm" onclick="openRecModal('bgm')">🎤 바로 녹음하기</button>
-    <div class="url-row"><input class="url-input" id="url-bgm" placeholder="&#46608;&#45716; URL &#51077;&#47141;..."><button class="url-load-btn" onclick="loadUrl('bgm')">&#47196;&#46300;</button></div>
+    <div class="url-row"><input class="url-input" id="url-bgm" placeholder="오디오 URL 입력..."><button class="url-load-btn" onclick="loadUrl('bgm')">로드</button></div>
     <div class="time-display" id="time-bgm">00:00 / 00:00</div>
     <div class="eq-display"><canvas id="eq-canvas-bgm"></canvas><div class="eq-label">EQ</div></div>
     <div class="fx-row" id="fx-bgm"></div>
@@ -191,9 +191,9 @@ input[type=range].fader::-webkit-slider-thumb{width:22px;height:10px;border-radi
       <input class="ch-name-input" value="넘버 MR" id="name-mr">
       <div class="led" id="led-mr"></div>
     </div>
-    <div class="upload-zone" id="zone-mr"><input type="file" id="file-mr" accept="audio/*" onchange="loadFile('mr',this)"><div class="upload-icon">&#127932;</div><div class="upload-label">MR / &#48152;&#51452; &#50629;&#47196;&#46300;</div><div class="upload-filename" id="fname-mr"></div></div>
+    <div class="upload-zone" id="zone-mr"><input type="file" id="file-mr" accept="audio/*" onchange="loadFile('mr',this)"><div class="upload-icon">&#127932;</div><div class="upload-label">MR / 반주 업로드</div><div class="upload-filename" id="fname-mr"></div></div>
     <button class="rec-btn" id="rec-btn-mr" onclick="openRecModal('mr')">🎤 바로 녹음하기</button>
-    <div class="url-row"><input class="url-input" id="url-mr" placeholder="&#46608;&#45716; URL &#51077;&#47141;..."><button class="url-load-btn" onclick="loadUrl('mr')">&#47196;&#46300;</button></div>
+    <div class="url-row"><input class="url-input" id="url-mr" placeholder="오디오 URL 입력..."><button class="url-load-btn" onclick="loadUrl('mr')">로드</button></div>
     <div class="time-display" id="time-mr">00:00 / 00:00</div>
     <div class="eq-display"><canvas id="eq-canvas-mr"></canvas><div class="eq-label">EQ</div></div>
     <div class="fx-row" id="fx-mr"></div>
@@ -222,7 +222,7 @@ input[type=range].fader::-webkit-slider-thumb{width:22px;height:10px;border-radi
     </div>
     <div class="upload-zone" id="zone-sfx2"><input type="file" id="file-sfx2" accept="audio/*" onchange="loadFile('sfx2',this)"><div class="upload-icon">&#127754;</div><div class="upload-label">앰비언스 / 나레이션 업로드</div><div class="upload-filename" id="fname-sfx2"></div></div>
     <button class="rec-btn" id="rec-btn-sfx2" onclick="openRecModal('sfx2')">🎤 바로 녹음하기</button>
-    <div class="url-row"><input class="url-input" id="url-sfx2" placeholder="&#46608;&#45716; URL &#51077;&#47141;..."><button class="url-load-btn" onclick="loadUrl('sfx2')">&#47196;&#46300;</button></div>
+    <div class="url-row"><input class="url-input" id="url-sfx2" placeholder="오디오 URL 입력..."><button class="url-load-btn" onclick="loadUrl('sfx2')">로드</button></div>
     <div class="time-display" id="time-sfx2">00:00 / 00:00</div>
     <div class="eq-display"><canvas id="eq-canvas-sfx2"></canvas><div class="eq-label">EQ</div></div>
     <div class="fx-row" id="fx-sfx2"></div>
@@ -245,18 +245,18 @@ input[type=range].fader::-webkit-slider-thumb{width:22px;height:10px;border-radi
 
   <div class="right-col">
     <div class="sfx-board">
-      <div class="sfx-header"><span>&#9889; &#54952;&#44284;&#51020; &#54364;&#46300;</span><span style="font-size:9px;color:var(--subtext)">1~8&#53412;</span></div>
+      <div class="sfx-header"><span>&#9889; 효과음 패드</span><span style="font-size:9px;color:var(--subtext)">1~8키</span></div>
       <div class="sfx-grid" id="sfx-grid"></div>
     </div>
     <div class="master-strip">
       <div class="master-title">&#128203; CUE LIST</div>
-      <select class="scene-select" id="scene-select" onchange="loadCue(this.value)"><option value="">-- &#53200; &#49440;&#53469; --</option></select>
+      <select class="scene-select" id="scene-select" onchange="loadCue(this.value)"><option value="">-- 큐 선택 --</option></select>
       <div class="scene-cue-list" id="cue-list"></div>
       <div class="save-row">
-        <button class="save-btn save" onclick="saveCue()">&#128190; &#53200; &#51200;&#51109;</button>
-        <button class="save-btn load" onclick="loadCueFromStorage()">&#128194; &#48520;&#47084;&#50724;&#44592;</button>
+        <button class="save-btn save" onclick="saveCue()">&#128190; 큐 저장</button>
+        <button class="save-btn load" onclick="loadCueFromStorage()">&#128194; 불러오기</button>
       </div>
-      <button onclick="saveAllCues()" style="margin-top:6px;width:100%;padding:7px;border-radius:6px;cursor:pointer;background:rgba(206,147,216,.1);border:1px solid var(--purple);color:var(--purple);font-family:inherit;font-size:11px">&#128313; JSON &#45236;&#48372;&#45236;&#44592;</button>
+      <button onclick="saveAllCues()" style="margin-top:6px;width:100%;padding:7px;border-radius:6px;cursor:pointer;background:rgba(206,147,216,.1);border:1px solid var(--purple);color:var(--purple);font-family:inherit;font-size:11px">&#128313; JSON 내보내기</button>
       <button onclick="downloadMix()" style="margin-top:6px;width:100%;padding:7px;border-radius:6px;cursor:pointer;background:rgba(105,240,174,.1);border:1px solid var(--green);color:var(--green);font-family:inherit;font-size:11px;font-weight:bold">⬇️ 믹싱 결과 다운로드 (WAV)</button>
     </div>
   </div>
