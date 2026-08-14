@@ -624,7 +624,8 @@ function buildCover() {
 function buildScene(scene, idx) {
   const C=getColor(scene.emotion);
   const lyricLines=(scene.lyrics||'').split('\n').filter(Boolean);
-  const chars=(scene.characters||'').split(/[,，、]/).filter(Boolean);
+  const charsRaw = Array.isArray(scene.characters) ? scene.characters.join(', ') : (scene.characters||'');
+  const chars=charsRaw.split(/[,，、]/).filter(Boolean);
   const div=document.createElement('div');
   div.id=`scene-slide-${idx}`; div.className='slide hidden';
   div.style.background=`linear-gradient(135deg,${C.from},${C.to})`;

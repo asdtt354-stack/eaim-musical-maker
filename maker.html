@@ -841,9 +841,10 @@ function downloadAll(){
 
 function launchSlideshow(){
   collectEdits();const d=generatedData;if(!d)return;
+  const toCharStr = c => Array.isArray(c) ? c.join(', ') : (c||'');
   const scenes=[
-    {type:'opening',title:'오프닝 코러스',songTitle:d.opening.songTitle,lyrics:d.opening.lyrics,imagePrompt:d.opening.bgPrompt,characters:(d.characters||[]).join(', '),emotion:'설렘',musicMood:d.opening.mood},
-    ...(d.scenes||[]).map(s=>({title:s.sceneTitle,songTitle:s.songTitle,lyrics:s.lyrics,imagePrompt:s.bgPrompt,characters:s.characters,emotion:s.emotion,musicMood:s.mood})),
+    {type:'opening',title:'오프닝 코러스',songTitle:d.opening.songTitle,lyrics:d.opening.lyrics,imagePrompt:d.opening.bgPrompt,characters:toCharStr(d.characters),emotion:'설렘',musicMood:d.opening.mood},
+    ...(d.scenes||[]).map(s=>({title:s.sceneTitle,songTitle:s.songTitle,lyrics:s.lyrics,imagePrompt:s.bgPrompt,characters:toCharStr(s.characters),emotion:s.emotion,musicMood:s.mood})),
   ];
   localStorage.setItem('eaim_musical_data',JSON.stringify({
     title:d.title, scenes,
