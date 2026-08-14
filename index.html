@@ -5,43 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EAIM Musical Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --bg:#0a0810;--gold:#d4a843;--gold2:#f0c96a;
   --purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;
   --green:#52c27a;--text:#f0e8ff;--sub:#9a8aaa;
-  --border:rgba(212,168,67,0.15);--media:#ff6b9d;
+  --border:rgba(212,168,67,0.15);
 }
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
   background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,0.2) 0%,transparent 50%),
   radial-gradient(ellipse at 80% 100%,rgba(93,173,226,0.12) 0%,transparent 50%),
   radial-gradient(ellipse at 50% 50%,rgba(212,168,67,0.04) 0%,transparent 70%);}
 
-.header{background:linear-gradient(180deg,#3d0a14 0%,#5c1121 60%,transparent 100%);border-bottom:2px solid var(--gold);padding:20px 32px 16px;text-align:center;position:relative;}
+.header{background:linear-gradient(180deg,#3d0a14 0%,#5c1121 60%,transparent 100%);border-bottom:2px solid var(--gold);padding:20px 32px 16px;text-align:center;}
 .header-logo{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;color:var(--gold);letter-spacing:.15em;text-shadow:0 0 30px rgba(212,168,67,0.4);}
 .header-sub{font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:.3em;text-transform:uppercase;margin-top:4px;}
-.header-teacher-btn{position:absolute;top:50%;right:24px;transform:translateY(-50%);padding:7px 16px;border-radius:10px;background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.35);color:var(--gold);font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .2s;}
-.header-teacher-btn:hover{background:rgba(212,168,67,0.25);}
 
 main{max-width:960px;margin:0 auto;padding:48px 24px 80px;}
-.welcome{text-align:center;margin-bottom:48px;}
+.welcome{text-align:center;margin-bottom:36px;}
 .welcome-title{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:8px;}
 .welcome-sub{font-size:.82rem;color:var(--sub);line-height:1.8;}
 
-.class-banner{background:rgba(82,194,122,0.08);border:1px solid rgba(82,194,122,0.3);border-radius:14px;padding:14px 20px;margin-bottom:28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
-.class-banner.off{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.2);}
-.class-banner-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.dot-on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite;}
-.dot-off{background:rgba(255,255,255,.2);}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.class-banner-info{flex:1;}
-.class-banner-status{font-size:.78rem;font-weight:700;color:var(--green);}
-.class-banner-status.off{color:rgba(255,255,255,.3);}
-.class-code-display{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:700;color:var(--gold);letter-spacing:.2em;}
-.class-banner-sub{font-size:.68rem;color:var(--sub);margin-top:2px;}
+.info-note{background:rgba(212,168,67,0.06);border:1px solid rgba(212,168,67,0.2);border-radius:14px;padding:16px 20px;margin-bottom:32px;font-size:.8rem;color:rgba(255,255,255,.55);line-height:1.8;text-align:center;}
+.info-note strong{color:var(--gold);}
 
 .app-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:40px;}
 @media(max-width:580px){.app-grid{grid-template-columns:1fr;}}
@@ -61,31 +48,20 @@ main{max-width:960px;margin:0 auto;padding:48px 24px 80px;}
 .card-guide{border-color:rgba(199,120,221,0.2);}
 .card-guide::before{background:radial-gradient(ellipse at 0% 0%,rgba(199,120,221,0.08) 0%,transparent 70%);}
 .card-guide:hover{border-color:rgba(199,120,221,0.5);box-shadow:0 8px 40px rgba(199,120,221,0.12);}
-.card-media{border-color:rgba(255,107,157,0.2);}
-.card-media::before{background:radial-gradient(ellipse at 0% 0%,rgba(255,107,157,0.08) 0%,transparent 70%);}
-.card-media:hover{border-color:rgba(255,107,157,0.5);box-shadow:0 8px 40px rgba(255,107,157,0.12);}
 .card-icon{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:16px;}
 .icon-maker{background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.25);}
 .icon-slide{background:rgba(93,173,226,0.12);border:1px solid rgba(93,173,226,0.25);}
 .icon-audio{background:rgba(105,240,174,0.1);border:1px solid rgba(105,240,174,0.2);}
 .icon-guide{background:rgba(199,120,221,0.1);border:1px solid rgba(199,120,221,0.2);}
-.icon-media{background:rgba(255,107,157,0.1);border:1px solid rgba(255,107,157,0.2);}
 .card-name{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;margin-bottom:4px;}
 .name-maker{color:var(--gold);}
 .name-slide{color:var(--blue);}
 .name-audio{color:#69f0ae;}
 .name-guide{color:var(--pink);}
-.name-media{color:var(--media);}
 .card-name-ko{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;}
 .card-desc{font-size:.82rem;color:rgba(255,255,255,.5);line-height:1.7;}
 .card-arrow{position:absolute;bottom:22px;right:22px;font-size:.8rem;color:rgba(255,255,255,.2);transition:all .3s;}
 .app-card:hover .card-arrow{color:rgba(255,255,255,.6);transform:translateX(3px);}
-.card-new{position:absolute;top:16px;right:16px;background:linear-gradient(135deg,var(--media),#c778dd);color:#fff;font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:1px;}
-.enter-btn{flex:1;padding:10px 8px;border-radius:10px;text-align:center;font-size:.82rem;font-weight:700;text-decoration:none;transition:all .2s;cursor:pointer;pointer-events:all;}
-.btn-teacher{background:rgba(212,168,67,0.15);color:var(--gold);border:1px solid rgba(212,168,67,0.35);}
-.btn-teacher:hover{background:rgba(212,168,67,0.28);transform:translateY(-1px);}
-.btn-student{background:rgba(82,194,122,0.12);color:#86efac;border:1px solid rgba(82,194,122,0.3);}
-.btn-student:hover{background:rgba(82,194,122,0.22);transform:translateY(-1px);}
 
 .flow-wrap{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:24px;margin-bottom:32px;}
 .flow-title{font-size:.68rem;color:var(--sub);letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px;text-align:center;}
@@ -98,604 +74,25 @@ main{max-width:960px;margin:0 auto;padding:48px 24px 80px;}
 .footer{text-align:center;padding:20px;font-size:.65rem;color:rgba(255,255,255,.15);letter-spacing:.1em;}
 .fade-in{animation:fadeIn .5s ease-out;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
-.modal-overlay.open{display:flex;}
-.modal-box{background:linear-gradient(135deg,#13111f,#1a0a2e);border:1px solid rgba(212,168,67,0.25);border-radius:20px;padding:28px;width:100%;max-width:560px;margin:auto;}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
-.modal-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold);}
-.modal-close{background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;padding:4px;}
-
-.ct-section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px;margin-bottom:14px;}
-.ct-label{font-size:.68rem;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
-.ct-input{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);color:var(--text);border-radius:10px;width:100%;padding:11px 14px;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:8px;}
-.ct-input:focus{border-color:var(--gold);}
-.ct-input::placeholder{color:rgba(255,255,255,.2);}
-.ct-btn{padding:11px 20px;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;border:none;}
-.ct-btn-primary{background:linear-gradient(135deg,var(--gold),#e8a020);color:#000;width:100%;}
-.ct-btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(212,168,67,.3);}
-.ct-btn-secondary{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--sub);}
-.ct-btn-secondary:hover{background:rgba(255,255,255,.12);color:var(--text);}
-.ct-btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
-.ct-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:rgba(0,0,0,.2);border-radius:10px;border:1px solid rgba(255,255,255,.07);}
-.ct-toggle-track{width:50px;height:26px;border-radius:13px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
-.ct-toggle-track.on{background:rgba(82,194,122,0.5);border:1px solid var(--green);}
-.ct-toggle-thumb{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.4);position:absolute;top:3px;left:3px;transition:all .3s;}
-.ct-toggle-track.on .ct-toggle-thumb{left:27px;background:var(--green);box-shadow:0 0 6px var(--green);}
-
-.code-display-big{background:rgba(0,0,0,.4);border:2px solid rgba(212,168,67,.4);border-radius:14px;padding:20px;text-align:center;margin:12px 0;}
-.code-big{font-family:'Cormorant Garamond',serif;font-size:3rem;font-weight:700;color:var(--gold);letter-spacing:.3em;text-shadow:0 0 20px rgba(212,168,67,.4);}
-.code-hint{font-size:.7rem;color:var(--sub);margin-top:6px;}
-.copy-code-btn{background:rgba(212,168,67,.15);border:1px solid rgba(212,168,67,.4);color:var(--gold);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.82rem;font-family:inherit;margin-top:8px;transition:all .2s;}
-.copy-code-btn:hover{background:rgba(212,168,67,.28);}
-
-.student-list{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;}
-.student-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid rgba(255,255,255,.07);}
-.student-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;}
-.student-name{font-size:.88rem;font-weight:700;flex:1;}
-.student-app{font-size:.7rem;color:var(--sub);}
-.student-time{font-size:.65rem;color:rgba(255,255,255,.2);}
-.student-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.status-active{background:var(--green);box-shadow:0 0 6px var(--green);}
-.status-idle{background:var(--gold);}
-.empty-students{text-align:center;padding:24px;color:rgba(255,255,255,.2);font-size:.82rem;}
-
-.work-item{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
-.work-item.approved{border-left:3px solid var(--green);}
-.work-title{font-weight:700;font-size:.9rem;color:var(--gold);}
-.work-meta{font-size:.68rem;color:rgba(255,255,255,.3);margin-top:2px;}
-.work-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-.w-btn{padding:4px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);font-family:inherit;transition:all .2s;}
-.w-btn:hover{background:rgba(255,255,255,.12);color:var(--text);}
-.w-btn.approve-on{border-color:var(--green);color:var(--green);}
-.w-btn.danger{border-color:rgba(239,68,68,.3);color:#fca5a5;}
-.err-msg{font-size:.72rem;color:#fca5a5;min-height:18px;margin-bottom:6px;}
-
-.modal-tabs{display:flex;background:rgba(0,0,0,.3);border-radius:10px;padding:4px;margin-bottom:18px;gap:4px;}
-.modal-tab{flex:1;padding:9px;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
-.modal-tab.on{background:rgba(212,168,67,.15);color:var(--gold);}
-
-.student-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:1001;align-items:center;justify-content:center;padding:20px;}
-.student-modal.open{display:flex;}
-.student-box{background:linear-gradient(135deg,#13111f,#0a1f2e);border:1px solid rgba(82,194,122,.25);border-radius:20px;padding:32px;width:100%;max-width:380px;text-align:center;}
-.student-box-title{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:#86efac;margin-bottom:6px;}
-.student-box-sub{font-size:.78rem;color:var(--sub);margin-bottom:22px;}
-.student-locked{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:14px;margin-bottom:14px;}
-
-#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.9);color:#000;display:none;pointer-events:none;}
 </style>
 </head>
 <body>
-<div id="root"></div>
-<div id="toast"></div>
 
-<div class="modal-overlay" id="teacher-modal">
-  <div class="modal-box fade-in">
-    <div class="modal-header">
-      <div class="modal-title">🎓 교사 컨트롤타워</div>
-      <button class="modal-close" onclick="closeTeacher()">✕</button>
-    </div>
-
-    <div class="modal-tabs">
-      <button class="modal-tab on" onclick="setCtTab('settings',this)">⚙️ 설정</button>
-      <button class="modal-tab" onclick="setCtTab('students',this)">👥 학생현황</button>
-      <button class="modal-tab" onclick="setCtTab('works',this)">📋 결과물</button>
-    </div>
-
-    <div id="ct-settings">
-      <div id="ct-login-section">
-        <div class="ct-section">
-          <div class="ct-label">🔒 교사 비밀번호</div>
-          <input class="ct-input" type="password" id="ct-pw-input" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doTeacherLogin()">
-          <div class="err-msg" id="ct-pw-err"></div>
-          <button class="ct-btn ct-btn-primary" onclick="doTeacherLogin()">로그인</button>
-        </div>
-      </div>
-
-      <div id="ct-settings-content" style="display:none">
-
-        <div class="ct-section">
-          <div class="ct-label">📡 수업 상태</div>
-          <div class="ct-toggle-row">
-            <div>
-              <div style="font-weight:700;font-size:.95rem" id="ct-class-status-txt">수업 종료</div>
-              <div style="font-size:.72rem;color:var(--sub);margin-top:3px" id="ct-class-status-sub">학생 접속이 차단됩니다</div>
-            </div>
-            <div class="ct-toggle-track" id="ct-toggle" onclick="toggleClassroom()"><div class="ct-toggle-thumb"></div></div>
-          </div>
-
-          <div class="code-display-big" id="ct-code-box" style="display:none">
-            <div class="code-big" id="ct-code-display">----</div>
-            <div class="code-hint">학생들에게 이 코드를 알려주세요</div>
-            <button class="copy-code-btn" onclick="copyCode()">📋 코드 복사</button>
-          </div>
-        </div>
-
-        <div class="ct-section">
-          <div class="ct-label">🔑 Gemini API 키</div>
-          <input class="ct-input" type="password" id="ct-api-input" placeholder="AIza... (학생에게 노출되지 않아요)" oninput="saveCtApi(this.value)">
-          <div id="ct-api-status" style="font-size:.72rem;color:#86efac;margin-top:2px;display:none">✅ API 키 저장됨</div>
-        </div>
-
-        <div class="ct-section">
-          <div class="ct-label">🔒 비밀번호 변경</div>
-          <input class="ct-input" type="password" id="ct-cur-pw" placeholder="현재 비밀번호">
-          <input class="ct-input" type="password" id="ct-new-pw" placeholder="새 비밀번호 (4자 이상)">
-          <div class="err-msg" id="ct-pw-change-err"></div>
-          <button class="ct-btn ct-btn-secondary" onclick="changeCtPw()">변경하기</button>
-        </div>
-
-        <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.12);border-radius:10px;padding:14px;font-size:.75rem;color:rgba(255,255,255,.4);line-height:1.9">
-          💡 <strong style="color:rgba(255,255,255,.6)">사용 순서</strong><br>
-          1. API 키 입력 → 2. 수업 ON → 3. 코드 공유<br>
-          학생은 코드 입력 후 이름만 적으면 입장해요
-        </div>
-      </div>
-    </div>
-
-    <div id="ct-students" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:.75rem;color:var(--sub)">실시간 현황 <span id="student-count" style="color:var(--green)">0명</span></div>
-        <button class="ct-btn ct-btn-secondary" style="padding:5px 12px;font-size:.72rem" onclick="refreshStudents()">🔄 새로고침</button>
-      </div>
-      <div class="student-list" id="student-list">
-        <div class="empty-students">🎭 학생들이 입장하면 여기에 표시됩니다</div>
-      </div>
-      <div style="font-size:.65rem;color:rgba(255,255,255,.2);margin-top:10px;text-align:center" id="student-sync-note">* Firebase 연동 시 모든 기기의 학생이 실시간으로 표시돼요</div>
-    </div>
-
-    <div id="ct-works" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:.75rem;color:var(--sub)">총 <span id="works-count" style="color:var(--gold)">0</span>개</div>
-        <button class="ct-btn ct-btn-danger" style="padding:5px 12px;font-size:.72rem" onclick="clearAllWorks()">전체 삭제</button>
-      </div>
-      <div id="ct-works-list">
-        <div class="empty-students">📋 학생 결과물이 없어요</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="student-modal" id="student-modal">
-  <div class="student-box fade-in">
-    <div style="font-size:2rem;margin-bottom:8px">🎒</div>
-    <div class="student-box-title">학생 입장</div>
-    <div class="student-box-sub">교실 코드와 이름을 입력하세요</div>
-
-    <div id="student-locked-box" class="student-locked" style="display:none">
-      <div style="font-size:1.2rem;margin-bottom:4px">🔒</div>
-      <div style="font-size:.82rem;color:#fca5a5">선생님이 아직 수업을 열지 않았어요</div>
-    </div>
-
-    <input class="ct-input" id="student-code-input" placeholder="교실 코드 (예: EAIM-7K2P)" style="text-align:center;letter-spacing:.2em;font-size:1rem;text-transform:uppercase" maxlength="9" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')checkStudentCode()">
-    <input class="ct-input" id="student-name-input" placeholder="이름 입력" onkeydown="if(event.key==='Enter')checkStudentCode()">
-    <div class="err-msg" id="student-err"></div>
-    <button class="ct-btn ct-btn-primary" style="background:linear-gradient(135deg,#52c27a,#27ae60)" onclick="checkStudentCode()">입장하기</button>
-    <button class="ct-btn ct-btn-secondary" style="margin-top:8px;width:100%" onclick="closeStudentModal()">취소</button>
-  </div>
-</div>
-
-<script>
-'use strict';
-const LS={
-  get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},
-  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
-};
-
-// 비밀번호는 mm_teacher_pw로 통일 — maker.html의 로그인과 반드시 같은 키를 써야
-// 인덱스에서 설정한 비밀번호로 maker.html에도 로그인할 수 있습니다.
-const KEY_PW='mm_teacher_pw', KEY_API='mm_teacher_api', KEY_CLASS='mm_class_on',
-      KEY_CODE='eaim_class_code', KEY_WORKS='mm_works', KEY_SESSION='mm_session',
-      KEY_STUDENTS='eaim_students';
-
-// ══════════════════════════
-// 🔥 Firebase 설정
-// ══════════════════════════
-// 미디어픽쳐 플랫폼에서 만드셨던 Firebase 프로젝트를 그대로 재사용하셔도 됩니다.
-// (같은 프로젝트 안에 컬렉션만 새로 생기는 것이라 문제 없어요)
-// Firebase 콘솔 → 프로젝트 설정 → 내 앱 → SDK 설정에서 복사
-const firebaseConfig = {
-  apiKey: "AIzaSyBaLg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
-  authDomain: "eaim-classroom.firebaseapp.com",
-  projectId: "eaim-classroom",
-  storageBucket: "eaim-classroom.firebasestorage.app",
-  messagingSenderId: "294479576192",
-  appId: "1:294479576192:web:c60e994e319dbd2f11ba65"
-};
-let db = null, firebaseReady = false;
-try {
-  if (!firebaseConfig.apiKey.startsWith('여기에')) {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    firebaseReady = true;
-  }
-} catch(e) { console.error('Firebase 초기화 실패', e); }
-
-const CLASSROOM_DOC = () => db.collection('eaim_classroom').doc('state');
-const STUDENTS_COL = () => CLASSROOM_DOC().collection('students');
-const WORKS_COL = () => CLASSROOM_DOC().collection('works');
-
-let classOn=LS.get(KEY_CLASS,false);
-let classCode=LS.get(KEY_CODE,'');
-let works=LS.get(KEY_WORKS,[]);
-let students=LS.get(KEY_STUDENTS,[]);
-let teacherLoggedIn=false;
-let ctTab='settings';
-let unsubClassroom=null, unsubStudents=null, unsubWorks=null;
-
-// Firestore 실시간 구독 — 다른 기기에서 바뀐 수업 상태/학생/결과물이 여기로도 반영됩니다
-function startFirebaseSync(){
-  if(!firebaseReady) return;
-  unsubClassroom = CLASSROOM_DOC().onSnapshot(doc=>{
-    const data = doc.data();
-    if(!data) return;
-    classOn = !!data.classOn;
-    classCode = data.classCode || '';
-    LS.set(KEY_CLASS, classOn);   // maker.html이 로컬에서 읽으므로 캐시도 갱신
-    LS.set(KEY_CODE, classCode);
-    syncCtUI();
-  }, err=>console.warn('교실 상태 동기화 오류', err));
-
-  unsubStudents = STUDENTS_COL().onSnapshot(snap=>{
-    students = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    LS.set(KEY_STUDENTS, students);
-    refreshStudents();
-  }, err=>console.warn('학생현황 동기화 오류', err));
-
-  unsubWorks = WORKS_COL().orderBy('createdAt','desc').onSnapshot(snap=>{
-    works = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    LS.set(KEY_WORKS, works);
-    updateCtWorksTab();
-  }, err=>console.warn('결과물 동기화 오류', err));
-}
-
-function generateCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code='EAIM-';
-  for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
-  return code;
-}
-
-function openTeacher(){
-  document.getElementById('teacher-modal').classList.add('open');
-  const pwSet=!!LS.get(KEY_PW);
-  if(!pwSet){
-    document.getElementById('ct-login-section').style.display='block';
-    document.getElementById('ct-pw-input').placeholder='새 비밀번호 설정 (4자 이상)';
-    document.getElementById('ct-settings-content').style.display='none';
-  } else if(teacherLoggedIn){
-    document.getElementById('ct-login-section').style.display='none';
-    document.getElementById('ct-settings-content').style.display='block';
-    syncCtUI();
-  } else {
-    document.getElementById('ct-login-section').style.display='block';
-    document.getElementById('ct-settings-content').style.display='none';
-  }
-  updateCtWorksTab();
-}
-function closeTeacher(){ document.getElementById('teacher-modal').classList.remove('open'); }
-
-function doTeacherLogin(){
-  const pw=document.getElementById('ct-pw-input').value;
-  const stored=LS.get(KEY_PW);
-  const err=document.getElementById('ct-pw-err');
-  if(!stored){
-    if(pw.length<4){err.textContent='비밀번호는 4자 이상이어야 해요';return;}
-    LS.set(KEY_PW,pw);
-  } else {
-    if(pw!==stored){err.textContent='비밀번호가 틀렸어요';return;}
-  }
-  teacherLoggedIn=true;
-  document.getElementById('ct-login-section').style.display='none';
-  document.getElementById('ct-settings-content').style.display='block';
-  document.getElementById('ct-pw-err').textContent='';
-  const apiKey=LS.get(KEY_API,'');
-  if(apiKey){ document.getElementById('ct-api-input').value=apiKey; document.getElementById('ct-api-status').style.display='block'; }
-  syncCtUI();
-}
-
-function syncCtUI(){
-  const toggle=document.getElementById('ct-toggle');
-  const statusTxt=document.getElementById('ct-class-status-txt');
-  const statusSub=document.getElementById('ct-class-status-sub');
-  const codeBox=document.getElementById('ct-code-box');
-  if(classOn){
-    toggle.classList.add('on');
-    statusTxt.textContent='수업 진행 중';
-    statusTxt.style.color='#86efac';
-    statusSub.textContent='학생들이 접속할 수 있어요';
-    codeBox.style.display='block';
-    document.getElementById('ct-code-display').textContent=classCode;
-  } else {
-    toggle.classList.remove('on');
-    statusTxt.textContent='수업 종료';
-    statusTxt.style.color='';
-    statusSub.textContent='학생 접속이 차단됩니다';
-    codeBox.style.display='none';
-  }
-  updateHomeBanner();
-}
-
-function toggleClassroom(){
-  const nextOn=!classOn;
-  const nextCode=nextOn?generateCode():'';
-  if(firebaseReady){
-    CLASSROOM_DOC().set({classOn:nextOn, classCode:nextCode, updatedAt:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true})
-      .then(()=>{ if(nextOn) clearStudentsFirestore(); })
-      .catch(e=>showToast('❌ Firebase 저장 실패: '+e.message));
-    // onSnapshot이 classOn/classCode/UI를 자동 갱신합니다
-  } else {
-    classOn=nextOn; classCode=nextCode;
-    LS.set(KEY_CODE,classCode); LS.set(KEY_CLASS,classOn);
-    if(classOn){students=[];LS.set(KEY_STUDENTS,[]);}
-    syncCtUI();
-  }
-  showToast(nextOn?'✅ 수업 시작! 코드를 학생들에게 공유하세요':'⏹ 수업 종료');
-}
-async function clearStudentsFirestore(){
-  if(!firebaseReady) return;
-  try{
-    const snap=await STUDENTS_COL().get();
-    const batch=db.batch();
-    snap.docs.forEach(d=>batch.delete(d.ref));
-    await batch.commit();
-  }catch(e){console.warn(e);}
-}
-
-function saveCtApi(v){ LS.set(KEY_API,v); document.getElementById('ct-api-status').style.display=v?'block':'none'; }
-
-function copyCode(){
-  navigator.clipboard.writeText(classCode).then(()=>showToast('📋 코드 복사됨: '+classCode));
-}
-
-function changeCtPw(){
-  const cur=document.getElementById('ct-cur-pw').value,
-        nw=document.getElementById('ct-new-pw').value,
-        err=document.getElementById('ct-pw-change-err');
-  if(cur!==LS.get(KEY_PW)){err.textContent='현재 비밀번호가 틀렸어요';return;}
-  if(nw.length<4){err.textContent='새 비밀번호는 4자 이상이어야 해요';return;}
-  LS.set(KEY_PW,nw);
-  err.style.color='#86efac';err.textContent='✅ 변경되었어요';
-  setTimeout(()=>{err.textContent='';err.style.color='#fca5a5';},2500);
-}
-
-function setCtTab(tab,btn){
-  ctTab=tab;
-  ['settings','students','works'].forEach(t=>{
-    const el=document.getElementById('ct-'+t);
-    if(el) el.style.display=t===tab?'block':'none';
-  });
-  document.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  if(tab==='students') refreshStudents();
-  if(tab==='works') updateCtWorksTab();
-}
-
-const APP_NAMES={'maker.html':'🎭 뮤지컬메이커','slideshow.html':'🎬 슬라이드쇼','audio-mixer.html':'🎵 오디오믹서','media-picture.html':'🎨 미디어픽쳐','index.html':'🏠 허브'};
-const COLORS=['#d4a843','#5DADE2','#52c27a','#c778dd','#ff6b9d','#ff9f43','#70b0f0'];
-
-function refreshStudents(){
-  if(!firebaseReady) students=LS.get(KEY_STUDENTS,[]);
-  const list=document.getElementById('student-list');
-  const count=document.getElementById('student-count');
-  if(!list)return;
-  count.textContent=students.length+'명';
-  if(!students.length){
-    list.innerHTML='<div class="empty-students">🎭 학생들이 입장하면 여기에 표시됩니다</div>';
-    return;
-  }
-  const now=Date.now();
-  list.innerHTML=students.map((s,i)=>{
-    const lastSeen = (s.lastSeen && s.lastSeen.toMillis) ? s.lastSeen.toMillis() : (s.lastSeen||now);
-    const active=(now-lastSeen)<120000;
-    const appName=APP_NAMES[s.app]||s.app||'🏠 허브';
-    const color=COLORS[i%COLORS.length];
-    const elapsed=Math.round((now-lastSeen)/1000);
-    const timeStr=elapsed<60?elapsed+'초 전':Math.round(elapsed/60)+'분 전';
-    return `<div class="student-item">
-      <div class="student-avatar" style="background:${color}22;border:1.5px solid ${color}66;color:${color}">${s.name[0]||'?'}</div>
-      <div style="flex:1;min-width:0">
-        <div class="student-name">${s.name}</div>
-        <div class="student-app">${appName}</div>
-      </div>
-      <div class="student-time">${timeStr}</div>
-      <div class="student-status ${active?'status-active':'status-idle'}"></div>
-    </div>`;
-  }).join('');
-}
-
-function registerStudent(name, app){
-  if(firebaseReady){
-    STUDENTS_COL().doc(name).set({name, app, lastSeen:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true})
-      .catch(e=>console.warn('학생 등록 실패', e));
-    // 즉시 로컬 캐시도 갱신 (오프라인 대비)
-    students=LS.get(KEY_STUDENTS,[]);
-    const idx=students.findIndex(s=>s.name===name);
-    const entry={name,app,lastSeen:Date.now()};
-    if(idx>=0) students[idx]=entry; else students.push(entry);
-    LS.set(KEY_STUDENTS,students);
-  } else {
-    students=LS.get(KEY_STUDENTS,[]);
-    const idx=students.findIndex(s=>s.name===name);
-    const entry={name,app,lastSeen:Date.now()};
-    if(idx>=0) students[idx]=entry; else students.push(entry);
-    LS.set(KEY_STUDENTS,students);
-  }
-}
-
-function updateCtWorksTab(){
-  if(!firebaseReady) works=LS.get(KEY_WORKS,[]);
-  const el=document.getElementById('ct-works-list');
-  const cnt=document.getElementById('works-count');
-  if(!el)return;
-  cnt.textContent=works.length;
-  if(!works.length){el.innerHTML='<div class="empty-students">📋 학생 결과물이 없어요</div>';return;}
-  el.innerHTML=works.map(w=>`<div class="work-item ${w.approved?'approved':''}" id="wi-${w.id}">
-    <div style="display:flex;gap:6px;align-items:flex-start">
-      <div style="width:6px;height:6px;border-radius:50%;margin-top:6px;background:${w.approved?'var(--green)':'var(--gold)'};flex-shrink:0"></div>
-      <div style="flex:1">
-        <div class="work-title">${w.title||'(제목없음)'}</div>
-        <div class="work-meta">${w.student} · ${w.genre||''} · ${w.acts||''}막 · ${w.time||''}</div>
-      </div>
-    </div>
-    <div class="work-actions">
-      <button class="w-btn ${w.approved?'approve-on':''}" onclick="approveWork('${w.id}')">✓ ${w.approved?'승인됨':'승인'}</button>
-      <button class="w-btn" onclick="downloadWork('${w.id}')">📥 다운로드</button>
-      <button class="w-btn danger" onclick="deleteWork('${w.id}')">삭제</button>
-    </div>
-  </div>`).join('');
-}
-function findWork(id){ return works.find(w=>String(w.id)===String(id)); }
-function approveWork(id){
-  const w=findWork(id); if(!w) return;
-  if(firebaseReady){
-    WORKS_COL().doc(String(id)).set({approved:!w.approved},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
-  } else {
-    works=works.map(x=>String(x.id)===String(id)?{...x,approved:!x.approved}:x);LS.set(KEY_WORKS,works);updateCtWorksTab();
-  }
-}
-function deleteWork(id){
-  if(!confirm('삭제할까요?'))return;
-  if(firebaseReady){
-    WORKS_COL().doc(String(id)).delete().catch(e=>showToast('❌ 삭제 실패: '+e.message));
-  } else {
-    works=works.filter(x=>String(x.id)!==String(id));LS.set(KEY_WORKS,works);updateCtWorksTab();
-  }
-}
-async function clearAllWorks(){
-  if(!confirm('모든 결과물을 삭제할까요?'))return;
-  if(firebaseReady){
-    try{ const snap=await WORKS_COL().get(); const batch=db.batch(); snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit(); }
-    catch(e){showToast('❌ 삭제 실패: '+e.message);}
-  } else {
-    works=[];LS.set(KEY_WORKS,works);updateCtWorksTab();
-  }
-}
-function downloadWork(id){
-  const w=findWork(id);if(!w)return;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([w.fullText||w.preview],{type:'text/plain;charset=utf-8'}));
-  a.download=`${w.title||'뮤지컬'}_${w.student}.txt`;a.click();
-}
-
-function updateHomeBanner(){
-  const banner=document.getElementById('home-banner');
-  const dot=document.getElementById('banner-dot');
-  const statusTxt=document.getElementById('banner-status');
-  const codeTxt=document.getElementById('banner-code');
-  const sub=document.getElementById('banner-sub');
-  if(!banner)return;
-  if(classOn){
-    banner.className='class-banner';
-    dot.className='class-banner-dot dot-on';
-    statusTxt.className='class-banner-status';
-    statusTxt.textContent='수업 진행 중';
-    codeTxt.textContent=classCode;
-    codeTxt.style.display='block';
-    sub.textContent='학생들에게 위 코드를 알려주세요';
-  } else {
-    banner.className='class-banner off';
-    dot.className='class-banner-dot dot-off';
-    statusTxt.className='class-banner-status off';
-    statusTxt.textContent='수업 종료';
-    codeTxt.style.display='none';
-    sub.textContent='교사 컨트롤타워에서 수업을 시작하세요';
-  }
-}
-
-function openStudentModal(){
-  document.getElementById('student-modal').classList.add('open');
-  document.getElementById('student-locked-box').style.display='none';
-  document.getElementById('student-err').textContent='';
-}
-function closeStudentModal(){ document.getElementById('student-modal').classList.remove('open'); }
-
-function checkStudentCode(){
-  const code=document.getElementById('student-code-input').value.trim().toUpperCase();
-  const name=document.getElementById('student-name-input').value.trim();
-  const err=document.getElementById('student-err');
-  if(!name){err.textContent='이름을 입력해주세요';return;}
-  if(!classOn){
-    document.getElementById('student-locked-box').style.display='block';
-    err.textContent='선생님이 아직 수업을 열지 않았어요';return;
-  }
-  if(code!==classCode){
-    err.textContent='교실 코드가 맞지 않아요';return;
-  }
-  localStorage.setItem('eaim_student_name',name);
-  localStorage.setItem('mm_session','student');
-  registerStudent(name,'index.html');
-  closeStudentModal();
-  showToast('🎉 '+name+'님 입장! 아래 앱을 선택해요');
-  document.getElementById('student-entry-bar').style.display='flex';
-  document.getElementById('student-name-display').textContent=name+'님';
-}
-
-function setRole(role){
-  const name=localStorage.getItem('eaim_student_name')||'';
-  if(role==='student'&&!name){
-    openStudentModal();return false;
-  }
-  localStorage.setItem('mm_entry_role',role);
-  if(name) registerStudent(name,'maker.html');
-}
-
-function checkStudentSession(){
-  const name=localStorage.getItem('eaim_student_name')||'';
-  const session=localStorage.getItem('mm_session');
-  if(name&&session==='student'){
-    document.getElementById('student-entry-bar').style.display='flex';
-    document.getElementById('student-name-display').textContent=name+'님';
-  }
-}
-function studentLogout(){
-  localStorage.removeItem('eaim_student_name');
-  localStorage.removeItem('mm_session');
-  document.getElementById('student-entry-bar').style.display='none';
-  showToast('👋 나가기 완료');
-}
-
-let toastT;
-function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',2800);}
-
-document.getElementById('teacher-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeTeacher();});
-document.getElementById('student-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeStudentModal();});
-
-updateHomeBanner();
-checkStudentSession();
-startFirebaseSync();
-</script>
-
-<script>
-document.getElementById('root').innerHTML=`
 <div class="header">
   <div class="header-logo">🎭 EAIM</div>
   <div class="header-sub">Musical Platform · Powered by Gemini AI</div>
-  <button class="header-teacher-btn" onclick="openTeacher()">🎓 교사 컨트롤타워</button>
 </div>
 
 <main class="fade-in">
 
-  <div class="class-banner off" id="home-banner" style="margin-top:32px">
-    <div class="class-banner-dot dot-off" id="banner-dot"></div>
-    <div class="class-banner-info">
-      <div class="class-banner-status off" id="banner-status">수업 종료</div>
-      <div class="code-class-display" id="banner-code" style="display:none"></div>
-      <div style="font-size:.68rem;color:var(--sub)" id="banner-sub">교사 컨트롤타워에서 수업을 시작하세요</div>
-    </div>
-    <button onclick="openTeacher()" style="padding:6px 14px;border-radius:8px;background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.3);color:var(--gold);font-size:.75rem;cursor:pointer;font-family:inherit;white-space:nowrap">설정 →</button>
-  </div>
-
-  <div id="student-entry-bar" style="display:none;background:rgba(82,194,122,.07);border:1px solid rgba(82,194,122,.25);border-radius:12px;padding:10px 18px;margin-top:10px;align-items:center;gap:10px;flex-wrap:wrap">
-    <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite"></div>
-    <div style="flex:1;font-size:.82rem;color:#86efac;font-weight:700" id="student-name-display"></div>
-    <div style="font-size:.72rem;color:var(--sub)">입장 완료 — 아래 앱을 선택하세요</div>
-    <button onclick="studentLogout()" style="padding:4px 10px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.4);font-size:.72rem;cursor:pointer;font-family:inherit">나가기</button>
-  </div>
-
-  <div class="welcome" style="margin-top:36px">
+  <div class="welcome" style="margin-top:16px">
     <div class="welcome-title">어떤 앱을 사용할까요?</div>
     <div class="welcome-sub">대본 만들기 → 슬라이드쇼 → 오디오 믹싱 순서로 사용하세요</div>
+  </div>
+
+  <div class="info-note">
+    🎓 <strong>교사</strong>는 <strong>뮤지컬 메이커</strong>에서 구글 계정으로 로그인해 반/모둠과 API 키를 설정하세요.<br>
+    🎒 <strong>학생</strong>은 선생님이 공유한 초대 링크(QR)로 뮤지컬 메이커에 바로 입장하면 돼요.
   </div>
 
   <div class="flow-wrap">
@@ -725,18 +122,15 @@ document.getElementById('root').innerHTML=`
 
   <div class="app-grid">
 
-    <div class="app-card card-maker" style="cursor:default;pointer-events:none;">
+    <a href="maker.html" class="app-card card-maker">
       <div class="card-icon icon-maker">🎭</div>
       <div class="card-name name-maker">Musical Maker</div>
       <div class="card-name-ko">뮤지컬 메이커</div>
-      <div class="card-desc">주제와 장르만 입력하면 AI가 대본·가사·Suno 프롬프트·배경 프롬프트를 자동 생성해요.</div>
-      <div style="display:flex;gap:10px;margin-top:18px;pointer-events:all;">
-        <a href="maker.html?role=teacher" class="enter-btn btn-teacher" onclick="setRole('teacher')">🎓 선생님</a>
-        <button class="enter-btn btn-student" onclick="setRole('student');if(localStorage.getItem('eaim_student_name'))location.href='maker.html?role=student'">🎒 학생</button>
-      </div>
-    </div>
+      <div class="card-desc">주제와 장르만 입력하면 AI가 대본·가사·Suno 프롬프트·배경 프롬프트를 자동 생성해요. 일반 과정과 예술중고·준전문가용 전문가 과정을 고를 수 있어요.</div>
+      <div class="card-arrow">→</div>
+    </a>
 
-    <a href="slideshow.html" class="app-card card-slide" onclick="if(localStorage.getItem('eaim_student_name'))registerStudent(localStorage.getItem('eaim_student_name'),'slideshow.html')">
+    <a href="slideshow.html" class="app-card card-slide">
       <div class="card-icon icon-slide">🎬</div>
       <div class="card-name name-slide">Slideshow</div>
       <div class="card-name-ko">슬라이드쇼 플레이어</div>
@@ -744,7 +138,7 @@ document.getElementById('root').innerHTML=`
       <div class="card-arrow">→</div>
     </a>
 
-    <a href="audio-mixer.html" class="app-card card-audio" onclick="if(localStorage.getItem('eaim_student_name'))registerStudent(localStorage.getItem('eaim_student_name'),'audio-mixer.html')">
+    <a href="audio-mixer.html" class="app-card card-audio">
       <div class="card-icon icon-audio">🎵</div>
       <div class="card-name name-audio">Audio Mixer</div>
       <div class="card-name-ko">오디오 믹서</div>
@@ -752,7 +146,7 @@ document.getElementById('root').innerHTML=`
       <div class="card-arrow">→</div>
     </a>
 
-    <a href="guide.html" class="app-card card-guide" style="grid-column:1/-1;">
+    <a href="guide.html" class="app-card card-guide">
       <div class="card-icon icon-guide">📖</div>
       <div class="card-name name-guide">Guide</div>
       <div class="card-name-ko">사용 가이드</div>
@@ -763,10 +157,7 @@ document.getElementById('root').innerHTML=`
   </div>
 
   <div class="footer">EAIM Musical Platform · Emotion · Artscape · Interactive · Musicalization</div>
-</main>`;
+</main>
 
-updateHomeBanner();
-checkStudentSession();
-</script>
 </body>
 </html>
