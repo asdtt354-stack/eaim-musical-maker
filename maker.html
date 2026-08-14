@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -23,9 +25,6 @@ body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);mi
 .login-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;}
 .login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;text-shadow:0 0 30px rgba(212,168,67,0.4);}
 .login-sub{font-size:0.68rem;color:var(--sub);text-align:center;letter-spacing:0.25em;margin-bottom:28px;}
-.login-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:10px;padding:4px;margin-bottom:22px;gap:4px;}
-.login-tab{flex:1;padding:10px;border-radius:7px;font-size:0.85rem;font-weight:700;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
-.login-tab.on{background:rgba(212,168,67,0.15);color:var(--gold);}
 .field-label{font-size:0.7rem;color:var(--sub);margin-bottom:6px;letter-spacing:.1em;}
 .t-input{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:0.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;}
 .t-input:focus{border-color:var(--gold);}
@@ -133,7 +132,6 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .w-btn.approve-on{border-color:var(--green);color:var(--green);}
 .w-btn.danger{border-color:rgba(239,68,68,.3);color:#fca5a5;background:rgba(239,68,68,.08);}
 .w-preview{margin-top:10px;padding:12px;background:rgba(0,0,0,.3);border-radius:8px;font-size:.78rem;color:rgba(255,255,255,.55);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Noto Serif KR',serif;display:none;}
-.chpw-form{display:flex;flex-direction:column;gap:8px;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:rgba(212,168,67,.25);border-radius:2px;}
@@ -142,135 +140,294 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 #toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.9);color:#000;display:none;pointer-events:none;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:580px){.row2{grid-template-columns:1fr;}}
+
+/* ══ 교사 구글 로그인 / 학생 반모둠 입장 / 대시보드 추가 스타일 ══ */
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:none;border-radius:12px;font-weight:700;font-size:.95rem;padding:14px;width:100%;cursor:pointer;font-family:inherit;}
+.google-icon{width:20px;height:20px;flex-shrink:0;}
+.teacher-chip{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:16px;text-align:left;}
+.teacher-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
+.invite-box{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;font-size:.7rem;color:rgba(255,255,255,.55);word-break:break-all;font-family:monospace;margin-top:8px;text-align:left;}
+.invite-qr-box{background:#fff;border-radius:10px;padding:14px;display:inline-block;margin-top:12px;text-align:center;}
+.invite-qr-caption{font-size:.62rem;color:rgba(255,255,255,.35);margin-top:6px;letter-spacing:.05em;}
+.locked-notice{background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;font-size:.82rem;color:#fca5a5;}
+.no-teacher-wrap,.loading-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--sub);}
+.group-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.82rem;color:rgba(255,255,255,.7);text-align:left;}
+.group-del{background:none;border:none;color:#fca5a5;cursor:pointer;font-size:.75rem;}
+.hub-link{font-size:.7rem;color:rgba(255,255,255,.25);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,.1);border-radius:6px;}
+
+/* ══ 전문가 과정 ══ */
+.mode-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:12px;padding:5px;margin-bottom:18px;gap:5px;}
+.mode-tab{flex:1;padding:12px 8px;border-radius:8px;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
+.mode-tab .mt-title{font-size:.88rem;font-weight:700;}
+.mode-tab .mt-sub{font-size:.62rem;margin-top:2px;opacity:.7;}
+.mode-tab.on{background:rgba(212,168,67,0.15);color:var(--gold);}
+.mode-tab.on.expert{background:rgba(124,58,237,0.18);color:var(--pink);}
+.expert-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.35);color:var(--pink);border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:700;letter-spacing:.05em;}
+.expert-fields{background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.18);border-radius:12px;padding:16px;margin-bottom:16px;}
 </style>
 </head>
 <body>
+
+<div class="loading-wrap" id="loadingOverlay">✦ 불러오는 중...</div>
+
+<div class="no-teacher-wrap" id="noTeacherOverlay" style="display:none">
+  <div>
+    <div style="font-size:1.6rem;margin-bottom:10px">🔗</div>
+    <div style="font-size:.95rem;margin-bottom:8px">선생님께 받은 초대 링크로 접속해주세요</div>
+    <div style="font-size:.75rem;color:var(--sub)">이 링크에는 우리 반 정보가 담겨 있어요</div>
+  </div>
+</div>
+
+<div id="teacherGoogleOverlay" class="login-wrap" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">🎭 EAIM 음악미디어</div>
+    <div class="login-sub">교사 로그인</div>
+    <div class="err-msg" id="googleLoginErr" style="text-align:center"></div>
+    <button class="google-btn" onclick="googleLogin()">
+      <svg class="google-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.3 0 10.2-2 13.8-5.4l-6.4-5.4C29.3 34.9 26.8 35.8 24 35.8c-5.3 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.8l6.4 5.4C40.6 36.4 44 30.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      구글 계정으로 로그인
+    </button>
+    <a href="index.html" style="display:block;text-align:center;font-size:.7rem;color:rgba(255,255,255,.25);margin-top:16px;text-decoration:none;">← 허브로 돌아가기</a>
+  </div>
+</div>
+
+<div id="studentLoginOverlay" class="login-wrap" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">🎭 EAIM 음악미디어</div>
+    <div class="login-sub">학생 입장</div>
+    <div class="locked-notice" id="lockedNotice" style="display:none">🔒 선생님이 아직 수업을 열지 않았어요</div>
+    <div class="field-label">이름</div>
+    <input class="t-input" type="text" id="sni" placeholder="이름 입력" onkeydown="if(event.key==='Enter')sN()">
+    <div class="field-label">반/모둠</div>
+    <select class="t-input" id="sclass" style="text-align:left">
+      <option value="">반/모둠 선택</option>
+    </select>
+    <div class="err-msg" id="login-err"></div>
+    <button class="main-btn" id="sNBtn" onclick="sN()">입장하기</button>
+  </div>
+</div>
+
+<div id="teacherPanel" style="display:none">
+  <div class="app-header"><div class="header-inner">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="index.html" class="hub-link">🏠 허브</a>
+      <div class="logo-t">🎭 Musical Maker</div>
+    </div>
+    <div class="header-right"><span class="mode-badge badge-teacher">TEACHER</span><button class="logout-btn" onclick="teacherLogout()">로그아웃</button></div>
+  </div></div>
+  <div class="tab-bar">
+    <button class="tab-btn on" id="dashTabSettings" onclick="setDashTab('settings')">⚙️ 설정</button>
+    <button class="tab-btn" id="dashTabWorks" onclick="setDashTab('works')">📋 결과물<span class="badge-count" id="worksCountBadge" style="display:none"></span></button>
+  </div>
+  <main class="fade-in"><div id="dash-content"></div></main>
+</div>
+
 <div id="root"></div>
 <div id="toast"></div>
+
 <script>
 'use strict';
 const LS = {
   get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d;}catch{return d;}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 };
-const TEACHER_PW='mm_teacher_pw',TEACHER_API='mm_teacher_api',CLASS_ON='mm_class_on',WORKS_KEY='mm_works',SESSION='mm_session',DRAFT_KEY='mm_draft';
+const DRAFT_KEY='mm_draft';
 
 // ══════════════════════════
-// 🔥 Firebase 설정 — index.html과 반드시 똑같은 값을 넣어주세요
-// (같은 프로젝트를 써야 결과물이 두 화면에서 같이 보여요)
+// 🔥 Firebase — teachers/{uid}/... 구조 (국어·과학 놀이터와 같은 프로젝트)
+// (API 키 오타 수정: BaLg → Balg)
 // ══════════════════════════
-const firebaseConfig = {
-  apiKey: "AIzaSyBaLg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
   authDomain: "eaim-classroom.firebaseapp.com",
   projectId: "eaim-classroom",
   storageBucket: "eaim-classroom.firebasestorage.app",
   messagingSenderId: "294479576192",
   appId: "1:294479576192:web:c60e994e319dbd2f11ba65"
 };
-let db = null, firebaseReady = false;
-try {
-  if (!firebaseConfig.apiKey.startsWith('여기에')) {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    firebaseReady = true;
+let db=null, auth=null, firebaseReady=false;
+try{
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db=firebase.firestore(); auth=firebase.auth(); firebaseReady=true;
+}catch(e){ console.error('Firebase 초기화 실패', e); firebaseReady=false; }
+
+const teacherDocRef  = (uid) => db.collection('teachers').doc(uid);
+const settingsDocRef = (uid) => teacherDocRef(uid).collection('meta').doc('settings');
+const groupsColRef   = (uid) => teacherDocRef(uid).collection('groups');
+const worksColRef    = (uid) => teacherDocRef(uid).collection('works');
+
+let currentUser=null, teacherUid=null, isStudentMode=false;
+let stuName='', stuClass='';
+let settings = { apiKey:'', classOn:false };
+let groups=[], works=[];
+let dashTab='settings';
+let unsubSettings=null, unsubGroups=null, unsubWorks=null;
+
+function subscribeSettings(uid, cb){
+  if(unsubSettings) unsubSettings();
+  unsubSettings = settingsDocRef(uid).onSnapshot(snap=>{
+    settings = snap.exists ? snap.data() : {apiKey:'', classOn:false};
+    cb && cb();
+  }, err=>{ console.warn('설정 동기화 오류', err); cb && cb(); });
+}
+function setSettings(uid, fields){
+  settings = {...settings, ...fields};
+  settingsDocRef(uid).set(fields,{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+async function addGroup(name){
+  try{ await groupsColRef(teacherUid).add({name, createdAt: firebase.firestore.FieldValue.serverTimestamp()}); }
+  catch(e){ showToast('❌ 저장 실패: '+e.message); }
+}
+async function deleteGroupFn(id){
+  try{ await groupsColRef(teacherUid).doc(id).delete(); }
+  catch(e){ showToast('❌ 삭제 실패: '+e.message); }
+}
+function subscribeGroups(uid){
+  if(unsubGroups) unsubGroups();
+  unsubGroups = groupsColRef(uid).orderBy('createdAt','asc').onSnapshot(snap=>{
+    groups = snap.docs.map(d=>({id:d.id, name:d.data().name}));
+    if(isStudentMode) populateClassSelect();
+    else if(dashTab==='settings') renderDashContent();
+  }, err=>console.warn('그룹 동기화 오류', err));
+}
+function populateClassSelect(){
+  const sel=document.getElementById('sclass'); if(!sel) return;
+  sel.innerHTML='<option value="">반/모둠 선택</option>';
+  if(!groups.length){
+    const opt=document.createElement('option'); opt.disabled=true; opt.textContent='(선생님이 아직 반/모둠을 만들지 않았어요)';
+    sel.appendChild(opt);
+  } else {
+    groups.forEach(g=>{ const opt=document.createElement('option'); opt.value=g.name; opt.textContent=g.name; sel.appendChild(opt); });
   }
-} catch(e) { console.error('Firebase 초기화 실패', e); }
-const WORKS_COL = () => db.collection('eaim_classroom').doc('state').collection('works');
-let unsubMakerWorks = null;
-function subscribeMakerWorks(){
-  if(!firebaseReady || unsubMakerWorks) return;
-  unsubMakerWorks = WORKS_COL().orderBy('createdAt','desc').onSnapshot(snap=>{
+}
+async function addGroupUI(){
+  const input=document.getElementById('newGroupName');
+  const name=input.value.trim();
+  if(!name){ alert('반/모둠 이름을 입력하세요!'); return; }
+  await addGroup(name); input.value='';
+}
+async function deleteGroupUI(id){
+  if(!confirm('이 반/모둠을 삭제할까요?')) return;
+  await deleteGroupFn(id);
+}
+
+function subscribeWorks(uid){
+  if(unsubWorks) unsubWorks();
+  unsubWorks = worksColRef(uid).orderBy('createdAt','desc').onSnapshot(snap=>{
     works = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    LS.set(WORKS_KEY, works);
-    if(session==='teacher') renderTeacher();
+    const badge=document.getElementById('worksCountBadge');
+    if(badge){ badge.style.display=works.length?'inline-block':'none'; badge.textContent=works.length; }
+    if(dashTab==='works') renderDashContent();
   }, err=>console.warn('결과물 동기화 오류', err));
 }
 
-const BG_GENRES=['🏫 학교','🏠 가정','🌿 자연·환경','🏯 역사','🚀 우주·미래','🏙️ 도시','🌊 바다·섬','🧚 마법세계'];
-const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디','🗺️ 모험','💛 사랑·가족','🔍 미스터리','💪 도전·극복'];
-const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
-let session=LS.get(SESSION),classOn=LS.get(CLASS_ON,false),teacherApi=LS.get(TEACHER_API,''),works=LS.get(WORKS_KEY,[]),studentName='',dashTab='settings';
-let bgGenre='',moodGenre='',castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
-const root=document.getElementById('root');
-
-function render(){if(!session){renderLogin();return;}if(session==='teacher'){renderTeacher();return;}renderStudent();}
-
-function renderLogin(tab=null){
-  if(!tab){const role=new URLSearchParams(window.location.search).get('role')||localStorage.getItem('mm_entry_role');tab=(role==='student')?'student':'teacher';}
-  const pwSet=!!LS.get(TEACHER_PW);
-  root.innerHTML=`<div class="login-wrap fade-in"><div class="login-box">
-    <a href="index.html" style="display:block;text-align:center;font-size:.7rem;color:rgba(255,255,255,.25);margin-bottom:16px;text-decoration:none;">← 허브로 돌아가기</a>
-    <div class="login-logo">🎭 EAIM 음악미디어</div><div class="login-sub">음악미디어</div>
-    <div class="login-tabs">
-      <button class="login-tab ${tab==='teacher'?'on':''}" onclick="renderLogin('teacher')">🎓 선생님</button>
-      <button class="login-tab ${tab==='student'?'on':''}" onclick="renderLogin('student')">🎒 학생</button>
-    </div>
-    ${tab==='teacher'?`<div class="field-label">${pwSet?'비밀번호':'비밀번호 설정 (최초 1회)'}</div>
-      <input class="t-input" type="password" id="pw-input" placeholder="${pwSet?'비밀번호 입력':'새 비밀번호 (4자 이상)'}" onkeydown="if(event.key==='Enter')doLogin('teacher')">
-    `:`${!classOn?`<div class="notice-box"><div style="font-size:1.5rem;margin-bottom:4px">🔒</div><div style="font-size:.82rem;color:#fca5a5">선생님이 아직 수업을 열지 않았어요</div></div>`:''}<div class="field-label">이름</div>
-      <input class="t-input" type="text" id="sname-input" placeholder="이름 입력" onkeydown="if(event.key==='Enter')doLogin('student')">`}
-    <div class="err-msg" id="login-err"></div>
-    <button class="main-btn" onclick="doLogin('${tab}')" ${tab==='student'&&!classOn?'disabled':''}>${tab==='teacher'?(pwSet?'로그인':'시작하기'):'입장하기'}</button>
-  </div></div>`;
+function hideAllOverlays(){
+  ['loadingOverlay','noTeacherOverlay','teacherGoogleOverlay','studentLoginOverlay'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  document.getElementById('teacherPanel').style.display='none';
+  document.getElementById('root').style.display='none';
+}
+function renderNoTeacherLink(){ hideAllOverlays(); document.getElementById('noTeacherOverlay').style.display='flex'; }
+function renderTeacherGoogleGate(err){
+  hideAllOverlays();
+  document.getElementById('teacherGoogleOverlay').style.display='flex';
+  document.getElementById('googleLoginErr').textContent = err||'';
+}
+function renderStudentLoginGate(){
+  hideAllOverlays();
+  document.getElementById('studentLoginOverlay').style.display='flex';
+  document.getElementById('lockedNotice').style.display = settings.classOn? 'none':'block';
+  document.getElementById('sNBtn').disabled = !settings.classOn;
+  populateClassSelect();
+}
+function enterTeacherDashboard(){
+  hideAllOverlays();
+  document.getElementById('teacherPanel').style.display='block';
+  subscribeGroups(teacherUid);
+  subscribeWorks(teacherUid);
+  renderDashContent();
+}
+function enterStudentApp(){
+  hideAllOverlays();
+  document.getElementById('root').style.display='block';
+  renderStudent();
 }
 
-function doLogin(tab){
+function googleLogin(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>{ document.getElementById('googleLoginErr').textContent='로그인 실패: '+e.message; });
+}
+function teacherLogout(){
+  if(unsubSettings){unsubSettings();unsubSettings=null;}
+  if(unsubGroups){unsubGroups();unsubGroups=null;}
+  if(unsubWorks){unsubWorks();unsubWorks=null;}
+  auth.signOut(); teacherUid=null;
+  renderTeacherGoogleGate();
+}
+function studentLogout(){
+  if(unsubSettings){unsubSettings();unsubSettings=null;}
+  if(unsubGroups){unsubGroups();unsubGroups=null;}
+  stuName=''; stuClass='';
+  renderStudentLoginGate();
+}
+function sN(){
+  const n=document.getElementById('sni').value.trim();
+  const c=document.getElementById('sclass').value;
   const err=document.getElementById('login-err');
-  if(tab==='teacher'){
-    const pw=document.getElementById('pw-input').value,stored=LS.get(TEACHER_PW);
-    if(!stored){if(pw.length<4){err.textContent='비밀번호는 4자 이상이어야 해요';return;}LS.set(TEACHER_PW,pw);}
-    else{if(pw!==stored){err.textContent='비밀번호가 틀렸어요';return;}}
-    session='teacher';LS.set(SESSION,'teacher');
-  }else{
-    const name=document.getElementById('sname-input')?.value.trim();
-    if(!name){err.textContent='이름을 입력해주세요';return;}
-    if(!classOn){err.textContent='선생님이 수업을 열지 않았어요';return;}
-    studentName=name;session='student';LS.set(SESSION,'student');
-  }
-  render();
+  if(!settings.classOn){ err.textContent='선생님이 아직 수업을 열지 않았어요'; return; }
+  if(!n){ err.textContent='이름을 입력해주세요'; return; }
+  if(!c){ err.textContent='반/모둠을 선택해주세요'; return; }
+  err.textContent='';
+  stuName=n; stuClass=c;
+  enterStudentApp();
 }
 
-function renderTeacher(){
-  subscribeMakerWorks();
-  root.innerHTML=`<div class="app-header"><div class="header-inner">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <a href="index.html" style="font-size:.7rem;color:rgba(255,255,255,.25);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,.1);border-radius:6px;">🏠 허브</a>
-      <div class="logo-t">🎭 Musical Maker</div>
-    </div>
-    <div class="header-right"><span class="mode-badge badge-teacher">TEACHER</span><button class="logout-btn" onclick="logout()">로그아웃</button></div>
-  </div></div>
-  <div class="tab-bar">
-    <button class="tab-btn ${dashTab==='settings'?'on':''}" onclick="setDashTab('settings')">⚙️ 설정</button>
-    <button class="tab-btn ${dashTab==='works'?'on':''}" onclick="setDashTab('works')">📋 결과물${works.length?`<span class="badge-count">${works.length}</span>`:''}</button>
-  </div>
-  <main class="fade-in"><div id="dash-content"></div></main>`;
+function setDashTab(tab){
+  dashTab=tab;
+  document.getElementById('dashTabSettings').classList.toggle('on', tab==='settings');
+  document.getElementById('dashTabWorks').classList.toggle('on', tab==='works');
   renderDashContent();
 }
 
-function setDashTab(tab){dashTab=tab;renderTeacher();}
-
 function renderDashContent(){
-  const el=document.getElementById('dash-content');if(!el)return;
+  const el=document.getElementById('dash-content'); if(!el) return;
   if(dashTab==='settings'){
+    const inviteUrl = `${location.origin}${location.pathname}?role=student&teacher=${teacherUid||''}`;
     el.innerHTML=`
-    <div class="card"><div class="card-title">🎓 수업 상태</div>
-      <div class="toggle-row"><div><div style="font-weight:700;font-size:.95rem">${classOn?'수업 진행 중':'수업 종료'}</div>
-        <div style="font-size:.72rem;color:var(--sub);margin-top:3px">${classOn?'학생들이 접속할 수 있어요':'학생 접속이 차단됩니다'}</div></div>
-        <div class="toggle-track ${classOn?'on':''}" onclick="toggleClass()"><div class="toggle-thumb"></div></div>
-      </div></div>
-    <div class="card"><div class="card-title">🔑 Gemini API 키</div>
-      <input class="t-input" type="password" id="api-input" value="${teacherApi}" placeholder="AIza... (학생에게 노출되지 않아요)" oninput="saveApi(this.value)">
-      ${teacherApi?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>API 키 저장됨</div>`:''}
+    <div class="teacher-chip">
+      <img class="teacher-avatar" src="${currentUser?.photoURL||''}" onerror="this.style.display='none'">
+      <div style="font-size:.8rem">${currentUser?.displayName||''} · ${currentUser?.email||''}</div>
     </div>
-    <div class="card"><div class="card-title">🔒 비밀번호 변경</div>
-      <div class="chpw-form">
-        <input class="t-input" type="password" id="cur-pw" placeholder="현재 비밀번호">
-        <input class="t-input" type="password" id="new-pw" placeholder="새 비밀번호 (4자 이상)">
-        <div class="err-msg" id="pw-err"></div>
-        <button class="btn-sec" onclick="changePw()">변경하기</button>
-      </div></div>
+    <div class="card"><div class="card-title">🎓 수업 상태</div>
+      <div class="toggle-row"><div><div style="font-weight:700;font-size:.95rem">${settings.classOn?'수업 진행 중':'수업 종료'}</div>
+        <div style="font-size:.72rem;color:var(--sub);margin-top:3px">${settings.classOn?'학생들이 접속할 수 있어요':'학생 접속이 차단됩니다'}</div></div>
+        <div class="toggle-track ${settings.classOn?'on':''}" onclick="toggleClass()"><div class="toggle-thumb"></div></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--sub);margin-top:12px;letter-spacing:.1em;text-transform:uppercase">학생 초대 링크</div>
+      <div class="invite-box">${inviteUrl}</div>
+      <button class="btn-sec" style="margin-top:8px;padding:7px 14px;font-size:.78rem" onclick="copyInvite('${inviteUrl}')">🔗 링크 복사</button>
+      <div><div class="invite-qr-box" id="inviteQr"></div>
+        <div class="invite-qr-caption">📱 학생들이 이 QR을 스캔하면 바로 접속돼요</div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">🏷️ 반/모둠 이름 관리</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input type="text" class="t-input" id="newGroupName" placeholder="예: 3반 뮤지컬반" style="flex:1;margin-bottom:0">
+        <button class="main-btn" style="width:auto;padding:0 18px" onclick="addGroupUI()">추가</button>
+      </div>
+      <div id="groupListDash">
+        ${groups.length? groups.map(g=>`<div class="group-item"><span>${g.name}</span><button class="group-del" onclick="deleteGroupUI('${g.id}')">삭제</button></div>`).join('')
+                       : '<p style="font-size:.8rem;color:var(--sub)">아직 만든 반/모둠이 없어요</p>'}
+      </div>
+    </div>
+    <div class="card"><div class="card-title">🔑 Gemini API 키</div>
+      <input class="t-input" type="password" id="api-input" value="${settings.apiKey||''}" placeholder="AIza... (학생에게 노출되지 않아요)" oninput="saveApi(this.value)">
+      ${settings.apiKey?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>API 키 저장됨</div>`:''}
+    </div>
     <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:16px;font-size:.78rem;color:rgba(255,255,255,.45);line-height:1.9">
-      💡 <strong style="color:rgba(255,255,255,.65)">사용 순서</strong><br>1. API 키 입력 → 2. 수업 ON → 3. 링크 공유<br>학생들은 이름만 입력하면 바로 대본 제작 가능해요.</div>`;
+      💡 <strong style="color:rgba(255,255,255,.65)">사용 순서</strong><br>1. API 키 입력 → 2. 반/모둠 추가 → 3. 수업 ON → 4. 초대 링크 공유<br>학생들은 이름+반/모둠 선택만 하면 바로 대본 제작이 가능해요.</div>`;
+    generateInviteQR(inviteUrl);
   }else{
     el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-size:.75rem;color:var(--sub)">총 ${works.length}개의 결과물</div>
@@ -280,8 +437,8 @@ function renderDashContent(){
       works.map(w=>`<div class="work-card ${w.approved?'approved':''}" id="wc-${w.id}">
         <div style="display:flex;align-items:flex-start;gap:8px">
           <div style="width:7px;height:7px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${w.approved?'var(--green)':'var(--gold)'};box-shadow:0 0 5px ${w.approved?'var(--green)':'var(--gold)'}"></div>
-          <div style="flex:1;min-width:0"><div class="w-title">${w.title||'(제목없음)'}</div>
-          <div class="w-meta">${w.student} · ${w.genre} · ${w.acts}막 · ${w.cast}명 · ${w.time}</div></div>
+          <div style="flex:1;min-width:0"><div class="w-title">${w.expertMode?'🎓 ':''}${w.title||'(제목없음)'}</div>
+          <div class="w-meta">${w.student} · ${w.group||''} · ${w.genre} · ${w.acts}막 · ${w.cast}명 · ${w.time}${w.expertMode&&w.conflictType?` · ${w.conflictType}`:''}</div></div>
         </div>
         <div class="w-actions">
           <button class="w-btn" onclick="toggleWPreview('${w.id}')">👁 미리보기</button>
@@ -294,33 +451,29 @@ function renderDashContent(){
   }
 }
 
-function toggleClass(){classOn=!classOn;LS.set(CLASS_ON,classOn);renderDashContent();}
-function saveApi(v){teacherApi=v;LS.set(TEACHER_API,v);}
-function changePw(){
-  const cur=document.getElementById('cur-pw').value,nw=document.getElementById('new-pw').value,err=document.getElementById('pw-err');
-  if(cur!==LS.get(TEACHER_PW)){err.textContent='현재 비밀번호가 틀렸어요';return;}
-  if(nw.length<4){err.textContent='새 비밀번호는 4자 이상이어야 해요';return;}
-  LS.set(TEACHER_PW,nw);err.style.color='#86efac';err.textContent='✅ 변경되었어요';
-  setTimeout(()=>{err.textContent='';err.style.color='#fca5a5';},2500);
+function toggleClass(){ setSettings(teacherUid, {classOn: !settings.classOn}); renderDashContent(); }
+function saveApi(v){ setSettings(teacherUid, {apiKey:v}); }
+function copyInvite(url){ navigator.clipboard.writeText(url).then(()=>showToast('✅ 초대 링크 복사됨!')); }
+function generateInviteQR(url){
+  const el=document.getElementById('inviteQr'); if(!el) return;
+  el.innerHTML='';
+  if(typeof QRCode==='undefined'){ el.textContent='QR 로딩 실패'; return; }
+  new QRCode(el, { text:url, width:140, height:140, colorDark:'#0a0810', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
 }
 function toggleWPreview(id){const el=document.getElementById(`wp-${id}`);el.style.display=el.style.display==='block'?'none':'block';}
 function findWork(id){ return works.find(w=>String(w.id)===String(id)); }
 function approveWork(id){
   const w=findWork(id); if(!w) return;
-  if(firebaseReady){ WORKS_COL().doc(String(id)).set({approved:!w.approved},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message)); }
-  else { works=works.map(x=>String(x.id)===String(id)?{...x,approved:!x.approved}:x);LS.set(WORKS_KEY,works);renderDashContent(); }
+  worksColRef(teacherUid).doc(String(id)).set({approved:!w.approved},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
 }
 function deleteWork(id){
   if(!confirm('이 결과물을 삭제할까요?'))return;
-  if(firebaseReady){ WORKS_COL().doc(String(id)).delete().catch(e=>showToast('❌ 삭제 실패: '+e.message)); }
-  else { works=works.filter(x=>String(x.id)!==String(id));LS.set(WORKS_KEY,works);renderDashContent(); }
+  worksColRef(teacherUid).doc(String(id)).delete().catch(e=>showToast('❌ 삭제 실패: '+e.message));
 }
 async function clearAllWorks(){
   if(!confirm('모든 결과물을 삭제할까요?'))return;
-  if(firebaseReady){
-    try{ const snap=await WORKS_COL().get(); const batch=db.batch(); snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit(); }
-    catch(e){ showToast('❌ 삭제 실패: '+e.message); }
-  } else { works=[];LS.set(WORKS_KEY,works);renderDashContent(); }
+  try{ const snap=await worksColRef(teacherUid).get(); const batch=db.batch(); snap.docs.forEach(d=>batch.delete(d.ref)); await batch.commit(); }
+  catch(e){ showToast('❌ 삭제 실패: '+e.message); }
 }
 function downloadWork(id){
   const w=findWork(id);if(!w)return;
@@ -329,10 +482,26 @@ function downloadWork(id){
   a.download=`${w.title||'뮤지컬'}_${w.student}.txt`;a.click();
 }
 
+// ══════════════════════════
+// 🎭 뮤지컬 생성 로직 (기존 기능 그대로 유지)
+// ══════════════════════════
+const BG_GENRES=['🏫 학교','🏠 가정','🌿 자연·환경','🏯 역사','🚀 우주·미래','🏙️ 도시','🌊 바다·섬','🧚 마법세계'];
+const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디','🗺️ 모험','💛 사랑·가족','🔍 미스터리','💪 도전·극복'];
+const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
+const CONFLICT_TYPES=['내적 갈등 (인물 내면)','인물 간 갈등','사회·구조적 갈등','운명·환경적 갈등'];
+const SCRIPT_LENGTHS=[
+  {id:'short',label:'짧게',desc:'4~6줄',lines:'4~6줄'},
+  {id:'medium',label:'보통',desc:'8~12줄',lines:'8~12줄'},
+  {id:'long',label:'길게',desc:'18~25줄',lines:'18~25줄'},
+];
+let bgGenre='',moodGenre='',castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
+let expertMode=false,conflictType='',toneStyle='',refStyle='',scriptLength='medium';
+const root=document.getElementById('root');
+
 function renderStudent(){
   root.innerHTML=`<div class="app-header"><div class="header-inner">
     <div class="logo-t">🎭 뮤지컬메이커</div>
-    <div class="header-right"><span class="mode-badge badge-student">STUDENT</span><button class="logout-btn" onclick="logout()">나가기</button></div>
+    <div class="header-right"><span class="mode-badge badge-student">${stuClass}</span><button class="logout-btn" onclick="studentLogout()">나가기</button></div>
   </div></div><main id="student-main" class="fade-in"></main>`;
   renderStudentInput();
 }
@@ -340,6 +509,16 @@ function renderStudent(){
 function renderStudentInput(){
   const main=document.getElementById('student-main');if(!main)return;
   main.innerHTML=`<div class="card"><div class="card-title">✦ 뮤지컬 만들기</div>
+    <div class="mode-tabs">
+      <button class="mode-tab ${!expertMode?'on':''}" onclick="setMode(false)">
+        <div class="mt-title">🎈 일반 모드</div><div class="mt-sub">누구나 쉽게</div>
+      </button>
+      <button class="mode-tab ${expertMode?'on expert':''}" onclick="setMode(true)">
+        <div class="mt-title">🎓 전문가 과정</div><div class="mt-sub">예술중고·준전문가용</div>
+      </button>
+    </div>
+    ${expertMode?`<div style="margin-bottom:16px"><span class="expert-badge">🎓 전문가 과정</span>
+      <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">대사·지문이 포함된 정식 대본 형식으로 생성돼요. 갈등 구조와 극작 톤을 직접 지정할 수 있어요.</p></div>`:''}
     <div style="margin-bottom:16px"><div class="edit-label">주제 / 이야기 *</div>
       <textarea class="edit-box" id="theme" rows="3" placeholder="예: 우정&#10;또는: 전학 온 아이가 음악을 통해 친구들과 하나가 되는 이야기"></textarea></div>
     <div style="margin-bottom:16px"><div class="edit-label">장르 * — 배경 → 분위기 순서로 선택</div>
@@ -364,9 +543,33 @@ function renderStudentInput(){
     </div>
     <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
       <input class="edit-box" type="text" id="setting" placeholder="예: 현대 중학교, 봄학기" style="min-height:auto;resize:none;"></div>
+    <div style="margin-bottom:16px"><div class="edit-label">대본 분량 (막당 대사·지문)</div>
+      <div class="act-btns" id="length-btns">${SCRIPT_LENGTHS.map(l=>`<button class="act-btn ${scriptLength===l.id?'on':''}" onclick="selLength(this,'${l.id}')">${l.label}<br><span style="font-size:.62rem;opacity:.7">${l.desc}</span></button>`).join('')}</div></div>
+    ${expertMode?`<div class="expert-fields">
+      <div class="edit-label" style="margin-top:0">중심 갈등 구조 *</div>
+      <div class="genre-tags" id="conflict-tags">${CONFLICT_TYPES.map(c=>`<div class="gtag" onclick="selConflict(this,'${c}')">${c}</div>`).join('')}</div>
+      <div class="edit-label">극작 톤 / 스타일 (선택)</div>
+      <input class="edit-box" type="text" id="toneStyle" placeholder="예: 사실주의, 브레히트풍 서사극, 부조리극 등" style="min-height:auto;resize:none;">
+      <div class="edit-label">참고 작품·스타일 (선택)</div>
+      <input class="edit-box" type="text" id="refStyle" placeholder="예: 스프링 어웨이크닝, 지킬 앤 하이드 같은 톤" style="min-height:auto;resize:none;">
+    </div>`:''}
     <div class="err-msg" id="s-err"></div>
     <button class="gen-btn" id="gen-btn" onclick="startGenerate()">✨ 뮤지컬 전체 생성</button>
   </div>`;
+}
+
+function setMode(expert){
+  expertMode=expert;
+  if(!expert){ conflictType=''; toneStyle=''; refStyle=''; }
+  renderStudentInput();
+}
+function selConflict(el,c){
+  document.querySelectorAll('#conflict-tags .gtag').forEach(t=>t.classList.remove('on-bg'));
+  el.classList.add('on-bg'); conflictType=c;
+}
+function selLength(el,id){
+  document.querySelectorAll('#length-btns .act-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); scriptLength=id;
 }
 
 function selBg(el,g){document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg'));el.classList.add('on-bg');bgGenre=g;document.getElementById('mood-step').style.opacity='1';document.getElementById('mood-step').style.pointerEvents='auto';updateGenreSummary();}
@@ -377,10 +580,10 @@ function changeCast(d){castCount=Math.min(20,Math.max(2,castCount+d));const el=d
 function selAct(el,n){document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');actCount=n;}
 
 async function callGemini(prompt){
-  const key=LS.get(TEACHER_API,'');
+  const key=settings.apiKey||'';
   if(!key)throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
   const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key.trim()}`;
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:4000}})});
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:6000}})});
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`오류 ${res.status}`);}
   const data=await res.json();return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
 }
@@ -391,12 +594,15 @@ async function startGenerate(){
   if(!theme){err.textContent='주제를 입력해주세요!';return;}
   if(!bgGenre){err.textContent='배경 장르를 선택해주세요!';return;}
   if(!moodGenre){err.textContent='분위기 장르를 선택해주세요!';return;}
+  if(expertMode && !conflictType){err.textContent='전문가 과정은 중심 갈등 구조를 선택해주세요!';return;}
   err.textContent='';
   const genre=`${bgGenre} + ${moodGenre}`;
+  const toneVal=document.getElementById('toneStyle')?.value.trim()||'';
+  const refVal=document.getElementById('refStyle')?.value.trim()||'';
   const main=document.getElementById('student-main');
   main.innerHTML=`<div class="prog-card show">
     <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:4px">🎭 뮤지컬을 만들고 있어요...</div>
-    <div style="font-size:.72rem;color:var(--sub);margin-bottom:0">잠시만 기다려주세요</div>
+    <div style="font-size:.72rem;color:var(--sub);margin-bottom:0">${expertMode?'전문가 과정 · 대사·지문 포함 정식 대본으로 작성 중':'잠시만 기다려주세요'}</div>
     <div class="prog-steps">
       <div class="prog-step" id="ps-1"><span class="sicon">🎬</span>제목 & 전체 구성 설계</div>
       <div class="prog-step" id="ps-2"><span class="sicon">🌅</span>오프닝 코러스 작성</div>
@@ -414,10 +620,17 @@ async function startGenerate(){
   };
   try{
     setStep(1,'전체 구성 설계 중...');
+    const expertBrief = expertMode ? `
+[전문가 과정 지침]
+- 중심 갈등: ${conflictType}
+- 극작 톤/스타일: ${toneVal||'작품 성격에 맞게 자유롭게'}
+- 참고 스타일: ${refVal||'없음'}
+- 각 막은 발단-전개-위기-절정-결말 중 해당 단계의 극적 기능을 분명히 갖도록 설계하세요.
+- 인물마다 뚜렷한 목표(objective)와 장애물(obstacle)을 부여하세요.` : '';
     const s1=await callGemini(`창작 뮤지컬 작가로서 아래 정보로 전체 구조를 설계하세요.
-주제: ${theme} | 장르: ${genre} | 등장인물: ${castCount}명 | 배경: ${setting} | 막 수: ${actCount}
+주제: ${theme} | 장르: ${genre} | 등장인물: ${castCount}명 | 배경: ${setting} | 막 수: ${actCount}${expertBrief}
 JSON만 응답:
-{"title":"뮤지컬 제목","characters":["이름(역할)" ${castCount}명 배열],"synopsis":"줄거리 2-3문장","acts":[{"actNum":1,"title":"막제목","summary":"내용 1문장","emotion":"감정"}]}`);
+{"title":"뮤지컬 제목","characters":["이름(역할)" ${castCount}명 배열],"synopsis":"줄거리 2-3문장","acts":[{"actNum":1,"title":"막제목","summary":"내용 1문장","emotion":"감정"${expertMode?',"function":"발단/전개/위기/절정/결말 중 이 막의 극적 기능","objective":"이 막에서 주인공이 원하는 것","obstacle":"이를 막는 장애물"':''}}]}`);
     const struct=parseJSON(s1),charsStr=struct.characters.join(', ');
     setStep(2,'오프닝 코러스 작성 중...');
     const s2=await callGemini(`뮤지컬 "${struct.title}" 오프닝 코러스.
@@ -428,9 +641,13 @@ JSON만:{"songTitle":"넘버제목","lyrics":"가사 4-6줄(줄바꿈)","sunoPro
     const scenes=[];
     for(const act of struct.acts){
       setStep(3,`${act.actNum}막 "${act.title}" 작성 중...`);
+      const lenSpec = SCRIPT_LENGTHS.find(l=>l.id===scriptLength)?.lines || '8~12줄';
+      const scriptField = expertMode
+        ? `,"script":"이 막의 정식 대본. 인물명: 대사 형식과 (지문)을 섞어 ${lenSpec} 내외로 작성. 극적 기능(${act.function||''}), 목표(${act.objective||''}), 장애물(${act.obstacle||''})이 드러나야 함"`
+        : `,"script":"이 막의 대본. 인물명: 대사 형식과 (지문)을 섞어 ${lenSpec} 내외로, 중학생이 이해하기 쉬운 자연스러운 말투로 작성"`;
       const sn=await callGemini(`뮤지컬 "${struct.title}" ${act.actNum}막.
-내용:${act.summary} | 감정:${act.emotion} | 인물:${charsStr}
-JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"}`);
+내용:${act.summary} | 감정:${act.emotion} | 인물:${charsStr}${expertMode?` | 갈등:${conflictType} | 톤:${toneVal||'자유'}`:''}
+JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사 4-6줄","characters":"등장인물","sunoPrompt":"영문 Suno(50단어이내)","bgPrompt":"영문 배경이미지, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","emotion":"${act.emotion}","mood":"분위기 한국어"${scriptField}}`);
       scenes.push(parseJSON(sn));
     }
     setStep(4,'커튼콜 작성 중...');
@@ -439,7 +656,7 @@ JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","lyrics":"가사
 JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const curtain=parseJSON(s4);
     setStep(5,'완성 정리 중...');
-    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain};
+    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength};
     LS.set(DRAFT_KEY,generatedData);saveWork(generatedData);
     await new Promise(r=>setTimeout(r,500));renderResult();
   }catch(e){
@@ -450,26 +667,30 @@ JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","lyrics":"가사 4-6줄(�
   }
 }
 
+let currentWorkId = null;
 function saveWork(d){
   const fullText=buildFullText(d);
-  const newId = firebaseReady ? WORKS_COL().doc().id : String(Date.now());
-  const work={id:newId,student:studentName||'익명',title:d.title,genre:d.genre,acts:actCount,cast:castCount,
+  const newId = worksColRef(teacherUid).doc().id;
+  currentWorkId = newId;
+  const work={student:stuName||'익명',group:stuClass||'',title:d.title,genre:d.genre,acts:actCount,cast:castCount,
+    expertMode:!!d.expertMode,conflictType:d.conflictType||'',scriptLength:d.scriptLength||'',
     time:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
-    approved:false,preview:`${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`,fullText};
-  works=[work,...works];LS.set(WORKS_KEY,works);
-  if(firebaseReady){
-    const {id, ...fields} = work;
-    WORKS_COL().doc(newId).set({...fields, createdAt:firebase.firestore.FieldValue.serverTimestamp()})
-      .catch(e=>showToast('❌ 결과물 클라우드 저장 실패: '+e.message));
-  }
+    approved:false,preview:`${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`,fullText,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  worksColRef(teacherUid).doc(newId).set(work).catch(e=>showToast('❌ 결과물 저장 실패: '+e.message));
 }
 
 function buildFullText(d){
   if(!d)return'';
-  let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  ${d.genre}\n${'═'.repeat(48)}\n\n`;
+  let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  ${d.genre}${d.expertMode?'  [전문가 과정]':''}\n${'═'.repeat(48)}\n\n`;
   t+=`📖 줄거리\n${d.synopsis}\n\n👥 등장인물\n  ${(d.characters||[]).join('\n  ')}\n\n`;
+  if(d.expertMode && d.conflictType) t+=`🎭 중심 갈등: ${d.conflictType}${d.toneStyle?` · 톤: ${d.toneStyle}`:''}\n\n`;
   t+=`【 오프닝 코러스 】\n${'─'.repeat(36)}\n♪ ${d.opening.songTitle}\n\n${d.opening.lyrics}\n\n[Suno] ${d.opening.sunoPrompt}\n[BG] ${d.opening.bgPrompt}\n\n`;
-  (d.scenes||[]).forEach((s,i)=>{t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;});
+  (d.scenes||[]).forEach((s,i)=>{
+    t+=`【 ${i+1}막: ${s.sceneTitle} 】\n${'─'.repeat(36)}\n등장: ${s.characters}\n`;
+    if(s.script) t+=`\n[대본]\n${s.script}\n`;
+    t+=`\n♪ ${s.songTitle}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;
+  });
   t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
   return t;
 }
@@ -481,8 +702,9 @@ function renderResult(){
     <div style="font-size:.68rem;color:var(--sub)">수정하면 자동으로 저장됩니다</div></div>
   <div class="r-header">
     <div style="font-size:.62rem;color:var(--sub);letter-spacing:.25em;margin-bottom:6px">✦ EAIM MUSICAL ✦</div>
+    ${d.expertMode?`<div style="margin-bottom:8px"><span class="expert-badge">🎓 전문가 과정</span></div>`:''}
     <div class="r-title">${d.title}</div>
-    <div class="r-sub">${d.genre} · ${actCount}막 · 등장인물 ${castCount}명</div>
+    <div class="r-sub">${d.genre} · ${actCount}막 · 등장인물 ${castCount}명${d.expertMode&&d.conflictType?` · ${d.conflictType}`:''}</div>
   </div>
   <div class="card" style="margin-bottom:14px"><div class="card-title" style="margin-bottom:10px">👥 등장인물</div>
     <div style="font-size:.82rem;color:rgba(255,255,255,.6);line-height:2">${(d.characters||[]).map(c=>`• ${c}`).join('<br>')}</div></div>
@@ -508,6 +730,8 @@ function renderSceneCard(id,label,tagClass,icon,data,idx){
       <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-${id}">▲</span>
     </div>
     <div class="scene-body" id="body-${id}">
+      ${data.script!==undefined?`<div class="edit-label" style="margin-top:0">🎓 대본 (대사·지문)</div>
+      <textarea class="edit-box" id="script-${id}" rows="7" style="font-family:monospace;font-size:.82rem">${data.script||''}</textarea>`:''}
       <div class="edit-label">가사</div>
       <textarea class="edit-box" id="lyrics-${id}" rows="6">${data.lyrics||''}</textarea>
       <div class="prompt-grid">
@@ -533,15 +757,11 @@ function scheduleAutoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(()=>{
     collectEdits();LS.set(DRAFT_KEY,generatedData);
-    const last=works[0];
-    if(last){
-      last.fullText=buildFullText(generatedData);
-      last.preview=`${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
-      LS.set(WORKS_KEY,works);
-      if(firebaseReady && last.id){
-        WORKS_COL().doc(String(last.id)).set({fullText:last.fullText, preview:last.preview},{merge:true})
-          .catch(e=>console.warn('자동저장 클라우드 반영 실패', e));
-      }
+    if(currentWorkId){
+      const fullText=buildFullText(generatedData);
+      const preview=`${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
+      worksColRef(teacherUid).doc(currentWorkId).set({fullText, preview},{merge:true})
+        .catch(e=>console.warn('자동저장 실패', e));
     }
     showToast('💾 자동저장 완료');
   },1500);
@@ -551,7 +771,10 @@ function collectEdits(){
   if(!generatedData)return;
   const getVal=id=>document.getElementById(id)?.value||'';
   generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');
-  (generatedData.scenes||[]).forEach((_,i)=>{generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);});
+  (generatedData.scenes||[]).forEach((_,i)=>{
+    generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);
+    if(generatedData.scenes[i].script!==undefined) generatedData.scenes[i].script=getVal(`script-scene-${i}`);
+  });
   generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');
 }
 
@@ -559,7 +782,7 @@ function downloadAll(){
   collectEdits();const text=buildFullText(generatedData);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
-  a.download=`${generatedData?.title||'뮤지컬'}_${studentName||'학생'}.txt`;a.click();
+  a.download=`${generatedData?.title||'뮤지컬'}_${stuName||'학생'}.txt`;a.click();
 }
 
 function launchSlideshow(){
@@ -575,6 +798,7 @@ function launchSlideshow(){
     curtainBgPrompt:d.curtain.bgPrompt,
     credits:[]
   }));
+  localStorage.setItem('mm_teacher_api', settings.apiKey||'');
   window.open('slideshow.html','_blank');
   showToast('🎬 슬라이드쇼로 전송!');
 }
@@ -582,15 +806,40 @@ function launchSlideshow(){
 function copyEl(id){const el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.value||el.textContent).then(()=>showToast('✅ 복사됨!'));}
 let toastT;
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>{el.style.display='none';},2000);}
-function logout(){session=null;LS.set(SESSION,null);render();}
 
+// ══════════════════════════
+// 진입점
+// ══════════════════════════
 (function(){
   const params=new URLSearchParams(window.location.search);
-  const role=params.get('role')||localStorage.getItem('mm_entry_role')||null;
-  if(role==='teacher'){if(LS.get(SESSION)==='teacher'){render();return;}session=null;render();return;}
-  if(role==='student'){classOn=LS.get(CLASS_ON,false);if(LS.get(SESSION)==='student'){render();return;}session=null;render();return;}
-  render();
+  const role=params.get('role');
+  const teacherParam=params.get('teacher');
+
+  if(!firebaseReady){
+    document.getElementById('loadingOverlay').textContent='⚠️ Firebase 설정이 필요해요';
+    return;
+  }
+
+  if(role==='student'){
+    isStudentMode=true;
+    if(!teacherParam){ renderNoTeacherLink(); return; }
+    teacherUid=teacherParam;
+    subscribeSettings(teacherUid, ()=>{ renderStudentLoginGate(); });
+    subscribeGroups(teacherUid);
+    return;
+  }
+
+  auth.onAuthStateChanged(user=>{
+    currentUser=user;
+    if(user){
+      teacherUid=user.uid;
+      subscribeSettings(teacherUid, ()=>{ enterTeacherDashboard(); });
+    } else {
+      renderTeacherGoogleGate();
+    }
+  });
 })();
 </script>
 </body>
 </html>
+

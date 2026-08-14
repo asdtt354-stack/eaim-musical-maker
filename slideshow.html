@@ -196,6 +196,27 @@ select.bubble-ctrl-btn{padding:5px 8px}
 
 @keyframes starTwinkle{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
 .star-particle{position:absolute;color:#fff;animation:starTwinkle ease-in-out infinite}
+
+/* ══════════════════════════
+   🗨 커서 호버 말풍선 툴팁
+   ══════════════════════════ */
+#hover-tooltip{
+  position:fixed;z-index:9998;pointer-events:none;
+  background:rgba(255,255,255,.96);color:#1a1a1a;
+  border-radius:14px;padding:8px 14px;
+  font-size:12px;font-weight:600;line-height:1.4;
+  max-width:200px;word-break:keep-all;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+  border:2px solid rgba(0,0,0,.06);
+  opacity:0;transform:translateY(6px) scale(.92);
+  transition:opacity .18s ease,transform .18s ease;
+  font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;
+}
+#hover-tooltip::after{
+  content:'';position:absolute;bottom:-9px;left:20px;
+  border:6px solid transparent;border-top-color:rgba(255,255,255,.96);border-bottom:none;
+}
+#hover-tooltip.show{opacity:1;transform:translateY(0) scale(1)}
 </style>
 </head>
 <body>
@@ -223,18 +244,20 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="rec-indicator"><div class="rec-dot"></div><span id="rec-text">녹화 중... 0:00</span></div>
 <div id="blackout"><div id="blackout-text"></div></div>
 
+<div id="hover-tooltip"></div>
+
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
-  <input id="char-url-input" placeholder="캐릭터 이미지 URL">
-  <select id="char-position-select">
+  <input id="char-url-input" data-tip="캐릭터로 쓸 이미지의 URL을 붙여넣어요" placeholder="캐릭터 이미지 URL">
+  <select id="char-position-select" data-tip="캐릭터가 무대의 어느 쪽에 설지 골라요">
     <option value="right">오른쪽</option>
     <option value="left">왼쪽</option>
     <option value="center">가운데</option>
   </select>
-  <button class="char-panel-btn" onclick="applyCharLayer()">✓ 적용</button>
-  <button class="char-panel-btn remove" onclick="removeCharLayer()">✕ 캐릭터 제거</button>
-  <button class="char-panel-btn anim" onclick="toggleAnimPanel()">🎬 애니메이션</button>
-  <button class="char-panel-btn" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
+  <button class="char-panel-btn" data-tip="입력한 이미지를 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ 적용</button>
+  <button class="char-panel-btn remove" data-tip="지금 올려진 캐릭터를 무대에서 지워요" onclick="removeCharLayer()">✕ 캐릭터 제거</button>
+  <button class="char-panel-btn anim" data-tip="캐릭터에게 움직임을 넣는 메뉴를 열어요" onclick="toggleAnimPanel()">🎬 애니메이션</button>
+  <button class="char-panel-btn" data-tip="캐릭터 패널을 닫아요" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
 </div>
 
 <div id="char-anim-panel">
@@ -242,76 +265,76 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <div class="anim-section">
     <div class="anim-section-title">✨ 등장</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" onclick="playCharAnim('slide-left')">← 왼쪽</button>
-      <button class="anim-btn" onclick="playCharAnim('slide-right')">→ 오른쪽</button>
-      <button class="anim-btn" onclick="playCharAnim('slide-up')">↑ 아래서</button>
-      <button class="anim-btn" onclick="playCharAnim('fade-in')">✦ 페이드인</button>
+      <button class="anim-btn" data-tip="왼쪽에서 미끄러지듯 등장해요" onclick="playCharAnim('slide-left')">← 왼쪽</button>
+      <button class="anim-btn" data-tip="오른쪽에서 미끄러지듯 등장해요" onclick="playCharAnim('slide-right')">→ 오른쪽</button>
+      <button class="anim-btn" data-tip="아래에서 위로 올라오며 등장해요" onclick="playCharAnim('slide-up')">↑ 아래서</button>
+      <button class="anim-btn" data-tip="서서히 나타나며 등장해요" onclick="playCharAnim('fade-in')">✦ 페이드인</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">🔄 상시효과</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" id="anim-float" onclick="toggleLoopAnim('float')">🌊 둥둥</button>
-      <button class="anim-btn" id="anim-breathe" onclick="toggleLoopAnim('breathe')">💨 숨쉬기</button>
-      <button class="anim-btn" id="anim-sway" onclick="toggleLoopAnim('sway')">🍃 흔들림</button>
-      <button class="anim-btn" onclick="stopLoopAnim()">⏹ 중지</button>
+      <button class="anim-btn" id="anim-float" data-tip="위아래로 둥둥 떠 있는 느낌을 줘요" onclick="toggleLoopAnim('float')">🌊 둥둥</button>
+      <button class="anim-btn" id="anim-breathe" data-tip="숨쉬듯 살짝 커졌다 작아졌다 해요" onclick="toggleLoopAnim('breathe')">💨 숨쉬기</button>
+      <button class="anim-btn" id="anim-sway" data-tip="좌우로 살랑살랑 흔들려요" onclick="toggleLoopAnim('sway')">🍃 흔들림</button>
+      <button class="anim-btn" data-tip="지금 켜진 상시 효과를 꺼요" onclick="stopLoopAnim()">⏹ 중지</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">💬 말할 때</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" onclick="playCharAnim('jump')">⬆ 점프</button>
-      <button class="anim-btn" onclick="playCharAnim('shake')">〰 흔들림</button>
+      <button class="anim-btn" data-tip="한 번 통통 튀는 동작이에요" onclick="playCharAnim('jump')">⬆ 점프</button>
+      <button class="anim-btn" data-tip="놀란 듯 짧게 흔들리는 동작이에요" onclick="playCharAnim('shake')">〰 흔들림</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">🚪 퇴장</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" onclick="playCharAnim('exit-right')">→ 퇴장</button>
-      <button class="anim-btn" onclick="playCharAnim('fade-out')">✦ 페이드아웃</button>
+      <button class="anim-btn" data-tip="오른쪽으로 미끄러지며 퇴장해요" onclick="playCharAnim('exit-right')">→ 퇴장</button>
+      <button class="anim-btn" data-tip="서서히 사라지며 퇴장해요" onclick="playCharAnim('fade-out')">✦ 페이드아웃</button>
     </div>
   </div>
-  <button class="anim-btn" onclick="toggleAnimPanel()" style="width:100%;margin-top:4px;color:rgba(255,255,255,.3)">닫기</button>
+  <button class="anim-btn" data-tip="애니메이션 패널을 닫아요" onclick="toggleAnimPanel()" style="width:100%;margin-top:4px;color:rgba(255,255,255,.3)">닫기</button>
 </div>
 
 <div id="bubble-panel">
-  <input id="bubble-name-input" placeholder="이름" maxlength="10">
-  <input id="bubble-text-input" placeholder="대사 입력..." maxlength="40">
-  <select class="bubble-ctrl-btn" id="bubble-tail">
+  <input id="bubble-name-input" data-tip="말풍선 위에 표시할 이름이에요 (선택)" placeholder="이름" maxlength="10">
+  <input id="bubble-text-input" data-tip="말풍선에 들어갈 대사를 입력해요" placeholder="대사 입력..." maxlength="40">
+  <select class="bubble-ctrl-btn" id="bubble-tail" data-tip="말풍선 꼬리 방향을 골라요">
     <option value="tail-left">꼬리 ↙</option>
     <option value="tail-right">꼬리 ↘</option>
     <option value="tail-top">꼬리 ↑</option>
   </select>
-  <button class="bubble-ctrl-btn" onclick="addBubble()">💬 추가</button>
-  <button class="bubble-ctrl-btn" onclick="clearBubbles()">🗑 전체삭제</button>
-  <button class="bubble-ctrl-btn" id="subtitle-toggle" onclick="toggleSubtitleEdit()">📝 자막</button>
-  <button class="bubble-ctrl-btn" onclick="toggleBubblePanel()" style="color:rgba(255,255,255,.4)">✕</button>
+  <button class="bubble-ctrl-btn" data-tip="입력한 대사로 말풍선을 무대에 추가해요" onclick="addBubble()">💬 추가</button>
+  <button class="bubble-ctrl-btn" data-tip="이 장면의 말풍선을 모두 지워요" onclick="clearBubbles()">🗑 전체삭제</button>
+  <button class="bubble-ctrl-btn" id="subtitle-toggle" data-tip="화면 하단 자막을 켜고 편집해요" onclick="toggleSubtitleEdit()">📝 자막</button>
+  <button class="bubble-ctrl-btn" data-tip="말풍선 패널을 닫아요" onclick="toggleBubblePanel()" style="color:rgba(255,255,255,.4)">✕</button>
 </div>
 
-<div id="subtitle-bar" onclick="editSubtitle()">자막을 클릭하여 편집</div>
+<div id="subtitle-bar" data-tip="클릭하면 자막 내용을 수정할 수 있어요" onclick="editSubtitle()">자막을 클릭하여 편집</div>
 
 <div id="stage"></div>
 
 <div id="fx-overlay"></div>
 <div id="fx-panel">
-  <button class="fx-effect-btn" onclick="toggleEffect('fog')">🌫️ 안개</button>
-  <button class="fx-effect-btn" onclick="toggleEffect('rain')">🌧️ 비</button>
-  <button class="fx-effect-btn" onclick="toggleEffect('lightning')">⚡ 번개</button>
-  <button class="fx-effect-btn" onclick="toggleEffect('light')">✨ 빛</button>
-  <button class="fx-effect-btn" onclick="toggleEffect('snow')">❄️ 눈</button>
-  <button class="fx-effect-btn" onclick="toggleEffect('star')">🌟 별</button>
-  <button class="fx-effect-btn" onclick="clearEffects()" style="border-color:#f44336;color:#f44336">✕ 끄기</button>
+  <button class="fx-effect-btn" data-tip="화면에 안개가 은은하게 깔려요" onclick="toggleEffect('fog')">🌫️ 안개</button>
+  <button class="fx-effect-btn" data-tip="비가 내리는 연출이에요" onclick="toggleEffect('rain')">🌧️ 비</button>
+  <button class="fx-effect-btn" data-tip="번쩍이는 번개 효과예요" onclick="toggleEffect('lightning')">⚡ 번개</button>
+  <button class="fx-effect-btn" data-tip="반짝이는 빛 입자가 떠올라요" onclick="toggleEffect('light')">✨ 빛</button>
+  <button class="fx-effect-btn" data-tip="눈이 내리는 연출이에요" onclick="toggleEffect('snow')">❄️ 눈</button>
+  <button class="fx-effect-btn" data-tip="별이 반짝이는 연출이에요" onclick="toggleEffect('star')">🌟 별</button>
+  <button class="fx-effect-btn" data-tip="켜져 있는 효과를 모두 꺼요" onclick="clearEffects()" style="border-color:#f44336;color:#f44336">✕ 끄기</button>
 </div>
 <div id="controls" style="display:none">
-  <button class="ctrl-btn" id="btn-exit">✕</button>
-  <button class="ctrl-btn" id="btn-prev">◀</button>
+  <button class="ctrl-btn" id="btn-exit" data-tip="메이커 화면으로 돌아가요">✕</button>
+  <button class="ctrl-btn" id="btn-prev" data-tip="이전 장면으로 이동해요">◀</button>
   <div class="dot-nav" id="dot-nav"></div>
-  <button class="ctrl-btn" id="btn-next">▶</button>
-  <button class="ctrl-btn" id="btn-auto">⏵</button>
-  <button class="ctrl-btn" id="btn-bubble" onclick="toggleBubblePanel()">💬</button>
-  <button class="ctrl-btn" id="btn-char" onclick="toggleCharPanel()">🎭</button>
-  <button class="ctrl-btn" id="btn-rec" onclick="toggleRecording()" title="화면 녹화">⏺</button>
-  <button class="ctrl-btn" onclick="toggleFxPanel()" title="배경 효과">🎆</button>
+  <button class="ctrl-btn" id="btn-next" data-tip="다음 장면으로 이동해요">▶</button>
+  <button class="ctrl-btn" id="btn-auto" data-tip="7초마다 자동으로 다음 장면 넘어가요">⏵</button>
+  <button class="ctrl-btn" id="btn-bubble" data-tip="말풍선 대사를 추가해요" onclick="toggleBubblePanel()">💬</button>
+  <button class="ctrl-btn" id="btn-char" data-tip="캐릭터 이미지를 무대에 올려요" onclick="toggleCharPanel()">🎭</button>
+  <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()" title="화면 녹화">⏺</button>
+  <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()" title="배경 효과">🎆</button>
 </div>
 <div id="key-hint">← → 키보드 | ESC 종료</div>
 <button id="back-btn" onclick="goBack()">↩ 처음으로</button>
@@ -333,6 +356,8 @@ if (!DATA) {
     ]
   };
 }
+// 뮤지컬메이커에서 넘어온 제목을 최우선으로 사용 (빈 문자열/공백만 있는 경우 대비)
+const SHOW_TITLE = (DATA.title && DATA.title.trim()) ? DATA.title.trim() : '뮤지컬 스토리보드';
 
 const EMOTION_COLORS = {
   default:{from:'#0D1B2A',to:'#16213e',accent:'#5DADE2',lyric:'#AED6F1'},
@@ -471,6 +496,7 @@ function applyCharLayer() {
   const img = document.createElement('img');
   img.className = `char-layer ${pos}`;
   img.src = url; img.alt = '캐릭터';
+  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 🎭 버튼에서 애니메이션을 넣을 수 있어요');
   img.onerror = () => { img.style.display='none'; showToast('⚠️ 이미지를 불러올 수 없어요'); };
   const container = slide.querySelector('.parallax-container');
   if (container) container.appendChild(img); else slide.appendChild(img);
@@ -587,7 +613,7 @@ function buildCover() {
     <div class="cover-inner">
       <div class="cover-emoji">🎭</div>
       <div class="cover-eyebrow">Musical Maker · EAIM</div>
-      <div class="cover-title">${DATA.title||'뮤지컬 스토리보드'}</div>
+      <div class="cover-title">${SHOW_TITLE}</div>
       <div class="cover-sub">${DATA.school||''}</div>
       <div class="cover-count">총 ${TOTAL}개 장면</div>
       <div class="cover-hint">▶ → 키보드로 시작</div>
@@ -882,6 +908,7 @@ function initSlideshow() {
   document.getElementById('controls').style.display='flex';
   showSlide(0);
   (async()=>{ for(let i=0;i<SCENES.length;i++) await loadBgImage(SCENES[i],i).catch(()=>{}); })();
+  attachHoverTooltips();
 }
 
 window.addEventListener('load',()=>{
@@ -976,6 +1003,52 @@ function clearEffects(){
   activeEffects.clear();
   document.getElementById('fx-overlay').innerHTML='';
   document.querySelectorAll('.fx-effect-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// ══════════════════════════
+// 🗨 커서 호버 말풍선 툴팁
+// data-tip 속성이 붙은 요소에 마우스를 올리면
+// 커서를 따라다니는 말풍선으로 설명을 보여줌
+// ══════════════════════════
+function attachHoverTooltips(){
+  const tip = document.getElementById('hover-tooltip');
+  if(!tip) return;
+  let hoverEl = null;
+
+  function positionTip(x, y){
+    const pad = 14;
+    let left = x + pad, top = y + pad;
+    const rect = tip.getBoundingClientRect();
+    if(left + rect.width > window.innerWidth - 8) left = x - rect.width - pad;
+    if(top + rect.height > window.innerHeight - 8) top = y - rect.height - pad;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if(!el || el === hoverEl) return;
+    hoverEl = el;
+    tip.textContent = el.getAttribute('data-tip');
+    tip.classList.add('show');
+    positionTip(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if(!hoverEl) return;
+    positionTip(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mouseout', e => {
+    if(!hoverEl) return;
+    const related = e.relatedTarget;
+    if(related && hoverEl.contains(related)) return;
+    if(!hoverEl.contains(e.target) && e.target !== hoverEl) {}
+    if(!e.target.closest('[data-tip]') || e.target.closest('[data-tip]') !== hoverEl){
+      tip.classList.remove('show');
+      hoverEl = null;
+    }
+  });
 }
 </script>
 </body>
