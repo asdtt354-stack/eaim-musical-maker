@@ -154,6 +154,10 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .group-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.82rem;color:rgba(255,255,255,.7);text-align:left;}
 .group-del{background:none;border:none;color:#fca5a5;cursor:pointer;font-size:.75rem;}
 .hub-link{font-size:.7rem;color:rgba(255,255,255,.25);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,.1);border-radius:6px;}
+.group-invite-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.group-invite-box{background:#12101a;border:1px solid var(--border);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center;}
+.group-invite-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:14px;font-weight:700;}
+.group-lock-badge{font-size:.72rem;color:#86efac;background:rgba(82,194,122,0.08);border:1px solid rgba(82,194,122,.25);border-radius:8px;padding:8px 10px;margin-bottom:10px;text-align:left;}
 
 /* ══ 전문가 과정 ══ */
 .mode-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:12px;padding:5px;margin-bottom:18px;gap:5px;}
@@ -199,11 +203,23 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
     <div class="field-label">이름</div>
     <input class="t-input" type="text" id="sni" placeholder="이름 입력" onkeydown="if(event.key==='Enter')sN()">
     <div class="field-label">반/모둠</div>
+    <div class="group-lock-badge" id="group-lock-badge" style="display:none"></div>
     <select class="t-input" id="sclass" style="text-align:left">
       <option value="">반/모둠 선택</option>
     </select>
     <div class="err-msg" id="login-err"></div>
     <button class="main-btn" id="sNBtn" onclick="sN()">입장하기</button>
+  </div>
+</div>
+
+<div id="groupInviteModal" class="group-invite-overlay" style="display:none" onclick="if(event.target===this)closeGroupInviteModal()">
+  <div class="group-invite-box">
+    <div class="group-invite-title" id="giTitle"></div>
+    <div class="invite-box" id="giLink"></div>
+    <button class="btn-sec" style="margin-top:8px;padding:7px 14px;font-size:.78rem" onclick="copyGroupInvite()">🔗 링크 복사</button>
+    <div><div class="invite-qr-box" id="giQr" style="margin-top:14px"></div>
+      <div class="invite-qr-caption">📱 이 QR은 해당 반/모둠 전용이에요</div></div>
+    <button class="btn-sec" style="margin-top:16px;width:100%" onclick="closeGroupInviteModal()">닫기</button>
   </div>
 </div>
 
@@ -257,8 +273,8 @@ const groupsColRef   = (uid) => teacherDocRef(uid).collection('groups');
 const worksColRef    = (uid) => teacherDocRef(uid).collection('works');
 
 let currentUser=null, teacherUid=null, isStudentMode=false;
-let stuName='', stuClass='';
-let settings = { apiKey:'', classOn:false };
+let stuName='', stuClass='', lockedGroupParam='';
+let settings = { apiKey:'', classOn:false, sheetUrl:'' };
 let groups=[], works=[];
 let dashTab='settings';
 let unsubSettings=null, unsubGroups=null, unsubWorks=null;
@@ -266,7 +282,7 @@ let unsubSettings=null, unsubGroups=null, unsubWorks=null;
 function subscribeSettings(uid, cb){
   if(unsubSettings) unsubSettings();
   unsubSettings = settingsDocRef(uid).onSnapshot(snap=>{
-    settings = snap.exists ? snap.data() : {apiKey:'', classOn:false};
+    settings = snap.exists ? {apiKey:'', classOn:false, sheetUrl:'', ...snap.data()} : {apiKey:'', classOn:false, sheetUrl:''};
     cb && cb();
   }, err=>{ console.warn('설정 동기화 오류', err); cb && cb(); });
 }
@@ -298,6 +314,14 @@ function populateClassSelect(){
     sel.appendChild(opt);
   } else {
     groups.forEach(g=>{ const opt=document.createElement('option'); opt.value=g.name; opt.textContent=g.name; sel.appendChild(opt); });
+  }
+  const badge=document.getElementById('group-lock-badge');
+  if(lockedGroupParam && groups.some(g=>g.name===lockedGroupParam)){
+    sel.value=lockedGroupParam; sel.disabled=true;
+    if(badge){ badge.style.display='block'; badge.textContent=`🔒 "${lockedGroupParam}" 전용 링크로 접속했어요`; }
+  } else {
+    sel.disabled=false;
+    if(badge) badge.style.display='none';
   }
 }
 async function addGroupUI(){
@@ -466,13 +490,19 @@ function renderDashContent(){
         <button class="main-btn" style="width:auto;padding:0 18px" onclick="addGroupUI()">추가</button>
       </div>
       <div id="groupListDash">
-        ${groups.length? groups.map(g=>`<div class="group-item"><span>${g.name}</span><button class="group-del" onclick="deleteGroupUI('${g.id}')">삭제</button></div>`).join('')
+        ${groups.length? groups.map(g=>`<div class="group-item"><span>${g.name}</span><div style="display:flex;gap:6px;align-items:center"><button class="w-btn" data-gname="${escapeAttr(g.name)}" onclick="showGroupInvite(this.dataset.gname)">🔗 QR</button><button class="group-del" onclick="deleteGroupUI('${g.id}')">삭제</button></div></div>`).join('')
                        : '<p style="font-size:.8rem;color:var(--sub)">아직 만든 반/모둠이 없어요</p>'}
       </div>
     </div>
     <div class="card"><div class="card-title">🔑 Gemini API 키</div>
       <input class="t-input" type="password" id="api-input" value="${settings.apiKey||''}" placeholder="AIza... (학생에게 노출되지 않아요)" oninput="saveApi(this.value)">
       ${settings.apiKey?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>API 키 저장됨</div>`:''}
+    </div>
+    <div class="card"><div class="card-title">📊 구글시트 연동</div>
+      <p style="font-size:.75rem;color:var(--sub);line-height:1.7;margin-bottom:10px">학생이 뮤지컬을 완성할 때마다 아래 구글시트 웹앱 URL로 자동 기록돼요. (선택 사항 — 비워두면 시트 연동 없이도 정상 작동합니다)</p>
+      <input class="t-input" type="text" id="sheet-url-input" value="${settings.sheetUrl||''}" placeholder="https://script.google.com/macros/s/.../exec" oninput="saveSheetUrl(this.value)">
+      ${settings.sheetUrl?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>연동됨</div>`:''}
+      <button class="btn-sec" style="margin-top:8px;padding:7px 14px;font-size:.78rem" onclick="testSheetConnection()">🔗 연결 테스트</button>
     </div>
     <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:16px;font-size:.78rem;color:rgba(255,255,255,.45);line-height:1.9">
       💡 <strong style="color:rgba(255,255,255,.65)">사용 순서</strong><br>1. API 키 입력 → 2. 반/모둠 추가 → 3. 수업 ON → 4. 초대 링크 공유<br>학생들은 이름+반/모둠 선택만 하면 바로 대본 제작이 가능해요.</div>`;
@@ -502,6 +532,18 @@ function renderDashContent(){
 
 function toggleClass(){ setSettings(teacherUid, {classOn: !settings.classOn}); renderDashContent(); }
 function saveApi(v){ setSettings(teacherUid, {apiKey:v}); }
+function saveSheetUrl(v){ setSettings(teacherUid, {sheetUrl:v.trim()}); }
+async function testSheetConnection(){
+  const url=settings.sheetUrl;
+  if(!url){ showToast('⚠️ 먼저 웹앱 URL을 입력해주세요'); return; }
+  showToast('🔄 연결 확인 중...');
+  try{
+    const res=await fetch(url,{method:'POST',body:JSON.stringify({action:'ping'})});
+    const data=await res.json().catch(()=>({}));
+    if(data && data.ok){ showToast('✅ 연결 성공!'); }
+    else{ showToast('⚠️ 응답은 왔지만 확인이 필요해요'); }
+  }catch(e){ showToast('❌ 연결 실패: '+e.message); }
+}
 function copyInvite(url){ navigator.clipboard.writeText(url).then(()=>showToast('✅ 초대 링크 복사됨!')); }
 function generateInviteQR(url){
   const el=document.getElementById('inviteQr'); if(!el) return;
@@ -509,6 +551,20 @@ function generateInviteQR(url){
   if(typeof QRCode==='undefined'){ el.textContent='QR 로딩 실패'; return; }
   new QRCode(el, { text:url, width:140, height:140, colorDark:'#0a0810', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
 }
+function escapeAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+let currentGroupInviteUrl='';
+function showGroupInvite(groupName){
+  const url=`${location.origin}${location.pathname}?role=student&teacher=${teacherUid||''}&group=${encodeURIComponent(groupName)}`;
+  currentGroupInviteUrl=url;
+  document.getElementById('giTitle').textContent=groupName;
+  document.getElementById('giLink').textContent=url;
+  document.getElementById('groupInviteModal').style.display='flex';
+  const qrEl=document.getElementById('giQr'); qrEl.innerHTML='';
+  if(typeof QRCode==='undefined'){ qrEl.textContent='QR 로딩 실패'; return; }
+  new QRCode(qrEl, { text:url, width:140, height:140, colorDark:'#0a0810', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+}
+function closeGroupInviteModal(){ document.getElementById('groupInviteModal').style.display='none'; }
+function copyGroupInvite(){ navigator.clipboard.writeText(currentGroupInviteUrl).then(()=>showToast('✅ 반/모둠 전용 링크 복사됨!')); }
 function toggleWPreview(id){const el=document.getElementById(`wp-${id}`);el.style.display=el.style.display==='block'?'none':'block';}
 function findWork(id){ return works.find(w=>String(w.id)===String(id)); }
 function approveWork(id){
@@ -707,7 +763,7 @@ JSON만:{"sceneTitle":"${act.title}","songTitle":"넘버제목","singer":"이 �
 JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","singer":"이 넘버를 부르는 인물(들). 보통 '전체 합창'","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const curtain=parseJSON(s4);
     setStep(5,'완성 정리 중...');
-    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength};
+    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength,interviewText:'',reflectionText:''};
     LS.set(DRAFT_KEY,generatedData);saveWork(generatedData);
     await new Promise(r=>setTimeout(r,500));renderResult();
   }catch(e){
@@ -725,10 +781,30 @@ function saveWork(d){
   currentWorkId = newId;
   const work={student:stuName||'익명',group:stuClass||'',title:d.title,genre:d.genre,acts:actCount,cast:castCount,
     expertMode:!!d.expertMode,conflictType:d.conflictType||'',scriptLength:d.scriptLength||'',
+    interviewText:d.interviewText||'',reflectionText:d.reflectionText||'',
     time:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
     approved:false,preview:`${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`,fullText,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   worksColRef(teacherUid).doc(newId).set(work).catch(e=>showToast('❌ 결과물 저장 실패: '+e.message));
+
+  // 구글시트로도 전송 (선택 사항 — URL 없으면 조용히 건너뜀)
+  if(settings.sheetUrl){
+    fetch(settings.sheetUrl,{
+      method:'POST',
+      body:JSON.stringify({
+        action:'logWork',
+        student: stuName||'익명',
+        group: stuClass||'',
+        title: d.title,
+        genre: d.genre,
+        acts: actCount,
+        cast: castCount,
+        expertMode: !!d.expertMode,
+        conflictType: d.conflictType||'',
+        synopsis: d.synopsis||''
+      })
+    }).catch(()=>{}); // 실패해도 앱 사용에 지장 없도록 조용히 무시
+  }
 }
 
 function buildFullText(d){
@@ -743,6 +819,8 @@ function buildFullText(d){
     t+=`\n♪ ${s.songTitle}${s.singer?` (${s.singer})`:''}\n\n${s.lyrics}\n\n[Suno] ${s.sunoPrompt}\n[BG] ${s.bgPrompt}\n\n`;
   });
   t+=`【 커튼콜 】\n${'─'.repeat(36)}\n♪ ${d.curtain.songTitle}${d.curtain.singer?` (${d.curtain.singer})`:''}\n\n${d.curtain.lyrics}\n\n[Suno] ${d.curtain.sunoPrompt}\n[BG] ${d.curtain.bgPrompt}`;
+  if(d.interviewText) t+=`\n\n【 인터뷰글 】\n${'─'.repeat(36)}\n${d.interviewText}`;
+  if(d.reflectionText) t+=`\n\n【 음악 감상문 】\n${'─'.repeat(36)}\n${d.reflectionText}`;
   return t;
 }
 
@@ -762,6 +840,18 @@ function renderResult(){
   ${renderSceneCard('opening','오프닝 코러스','tag-opening','🌅',d.opening,-1)}
   ${(d.scenes||[]).map((s,i)=>renderSceneCard(`scene-${i}`,`${i+1}막 — ${s.sceneTitle}`,'tag-scene','🎬',s,i)).join('')}
   ${renderSceneCard('curtain','커튼콜','tag-curtain','🎭',d.curtain,-2)}
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">📝 뮤지컬 이해와 감상</div>
+    <div class="edit-label" style="margin-top:0;display:flex;align-items:center;justify-content:space-between">
+      <span>🎤 인터뷰글</span>
+      <button class="w-btn" onclick="genInterviewQuestions()">✨ 질문 도움받기</button>
+    </div>
+    <p style="font-size:.72rem;color:var(--sub);margin:2px 0 8px;line-height:1.6">이 작품을 만든 작가가 되어, 기자와 인터뷰하듯 질문과 답을 적어보세요.</p>
+    <textarea class="edit-box" id="interview-text" rows="8" placeholder="예:&#10;Q. 이 작품에서 가장 표현하고 싶었던 감정은 무엇인가요?&#10;A. ">${d.interviewText||''}</textarea>
+    <div class="edit-label">🎵 음악 감상문</div>
+    <p style="font-size:.72rem;color:var(--sub);margin:2px 0 8px;line-height:1.6">완성된 뮤지컬의 이야기와 음악을 감상하고 느낀 점을 자유롭게 적어보세요.</p>
+    <textarea class="edit-box" id="reflection-text" rows="8" placeholder="예: 이 뮤지컬을 만들면서(또는 감상하면서) 느낀 점, 인상 깊었던 장면과 그 이유를 적어보세요.">${d.reflectionText||''}</textarea>
+  </div>
   <div class="btn-row">
     <button class="btn-sec" onclick="renderStudentInput()">↩ 새로 만들기</button>
     <button class="btn-regen" onclick="startGenerate()">🔄 재생성</button>
@@ -814,7 +904,7 @@ function scheduleAutoSave(){
     if(currentWorkId){
       const fullText=buildFullText(generatedData);
       const preview=`${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
-      worksColRef(teacherUid).doc(currentWorkId).set({fullText, preview},{merge:true})
+      worksColRef(teacherUid).doc(currentWorkId).set({fullText, preview, interviewText:generatedData.interviewText||'', reflectionText:generatedData.reflectionText||''},{merge:true})
         .catch(e=>console.warn('자동저장 실패', e));
     }
     showToast('💾 자동저장 완료');
@@ -830,6 +920,8 @@ function collectEdits(){
     if(generatedData.scenes[i].script!==undefined) generatedData.scenes[i].script=getVal(`script-scene-${i}`);
   });
   generatedData.curtain.lyrics=getVal('lyrics-curtain');generatedData.curtain.sunoPrompt=getVal('suno-curtain');generatedData.curtain.bgPrompt=getVal('bg-curtain');generatedData.curtain.singer=getVal('singer-curtain');
+  generatedData.interviewText=getVal('interview-text');
+  generatedData.reflectionText=getVal('reflection-text');
 }
 
 function downloadAll(){
@@ -859,6 +951,24 @@ function launchSlideshow(){
 }
 
 function copyEl(id){const el=document.getElementById(id);if(!el)return;navigator.clipboard.writeText(el.value||el.textContent).then(()=>showToast('✅ 복사됨!'));}
+async function genInterviewQuestions(){
+  if(!generatedData){ showToast('⚠️ 먼저 뮤지컬을 완성해주세요'); return; }
+  const ta=document.getElementById('interview-text'); if(!ta) return;
+  showToast('✨ 질문을 만들고 있어요...');
+  try{
+    const prompt=`뮤지컬 "${generatedData.title}" (장르: ${generatedData.genre})의 줄거리: ${generatedData.synopsis}
+이 작품을 만든 학생 작가와의 인터뷰 질문을 3~4개 만들어주세요. 창작 의도, 표현하고 싶었던 감정, 인상 깊은 장면, 등장인물 설정 이유 등을 물어보는 질문으로, 중학생이 답하기 좋은 눈높이로 작성하세요.
+다른 설명 없이, 각 줄에 "Q. 질문" 형식으로만 응답하세요.`;
+    const text=await callGemini(prompt);
+    const questions=text.trim().split('\n').map(l=>l.trim()).filter(l=>l.startsWith('Q'));
+    const template=questions.map(q=>`${q}\nA. `).join('\n\n');
+    ta.value=ta.value.trim() ? ta.value+'\n\n'+template : template;
+    scheduleAutoSave();
+    showToast('✅ 질문이 추가됐어요! 답을 적어보세요');
+  }catch(e){
+    showToast('❌ 질문 생성 실패: '+e.message);
+  }
+}
 let toastT;
 function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>{el.style.display='none';},2000);}
 
@@ -879,6 +989,7 @@ function showToast(msg){const el=document.getElementById('toast');el.textContent
     isStudentMode=true;
     if(!teacherParam){ renderNoTeacherLink(); return; }
     teacherUid=teacherParam;
+    lockedGroupParam=params.get('group')||'';
     subscribeSettings(teacherUid, ()=>{ renderStudentLoginGate(); });
     subscribeGroups(teacherUid);
     return;
@@ -897,4 +1008,3 @@ function showToast(msg){const el=document.getElementById('toast');el.textContent
 </script>
 </body>
 </html>
-
