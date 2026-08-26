@@ -595,6 +595,8 @@ const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디',
 const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
 const CONFLICT_TYPES=['내적 갈등 (인물 내면)','인물 간 갈등','사회·구조적 갈등','운명·환경적 갈등'];
 const SCRIPT_LENGTHS=[
+  {id:'2',label:'2분',lines:'3~5줄'},
+  {id:'5',label:'5분',lines:'8~10줄'},
   {id:'10',label:'10분',lines:'15~20줄'},
   {id:'20',label:'20분',lines:'30~40줄'},
   {id:'30',label:'30분',lines:'45~60줄'},
@@ -686,12 +688,24 @@ function resetGenre(){bgGenre='';moodGenre='';document.querySelectorAll('.gtag')
 function changeCast(d){castCount=Math.min(20,Math.max(2,castCount+d));const el=document.getElementById('cast-v');if(el)el.textContent=castCount;}
 function selAct(el,n){document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');actCount=n;}
 
-async function callGemini(prompt){
+async function callGemini(prompt, retryCount){
+  retryCount = retryCount || 0;
   const key=settings.apiKey||'';
   if(!key)throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
-  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key.trim()}`;
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key.trim()}`;
   const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.9,maxOutputTokens:8192}})});
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`오류 ${res.status}`);}
+  if(!res.ok){
+    const e=await res.json().catch(()=>({}));
+    const msg=e?.error?.message||`오류 ${res.status}`;
+    const isBusy = res.status===429 || res.status===503 || /high demand|overloaded|unavailable/i.test(msg);
+    if(isBusy && retryCount<3){
+      const waitMs=1500*(retryCount+1);
+      showToast(`⏳ 서버가 혼잡해요, ${Math.round(waitMs/1000)}초 후 자동 재시도... (${retryCount+1}/3)`);
+      await new Promise(r=>setTimeout(r,waitMs));
+      return callGemini(prompt, retryCount+1);
+    }
+    throw new Error(msg);
+  }
   const data=await res.json();return data.candidates?.[0]?.content?.parts?.[0]?.text||'';
 }
 function parseJSON(text){const c=text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();return JSON.parse(c);}
