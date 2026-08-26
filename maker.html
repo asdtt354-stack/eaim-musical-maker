@@ -592,7 +592,7 @@ function downloadWork(id){
 // ══════════════════════════
 const BG_GENRES=['🏫 학교','🏠 가정','🌿 자연·환경','🏯 역사','🚀 우주·미래','🏙️ 도시','🌊 바다·섬','🧚 마법세계'];
 const MOOD_GENRES=['✨ 판타지','🤝 우정','🌱 성장','😄 코미디','🗺️ 모험','💛 사랑·가족','🔍 미스터리','💪 도전·극복'];
-const DURATIONS=[{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
+const DURATIONS=[{id:1,label:'단막(1막)'},{id:2,label:'2막'},{id:3,label:'3막'},{id:4,label:'4막'},{id:5,label:'5막'}];
 const CONFLICT_TYPES=['내적 갈등 (인물 내면)','인물 간 갈등','사회·구조적 갈등','운명·환경적 갈등'];
 const SCRIPT_LENGTHS=[
   {id:'2',label:'2분',lines:'3~5줄'},
@@ -603,7 +603,7 @@ const SCRIPT_LENGTHS=[
   {id:'40',label:'40분',lines:'60~80줄'},
   {id:'60',label:'1시간',lines:'90~120줄'},
 ];
-let bgGenre='',moodGenre='',castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
+let bgGenres=[],moodGenres=[],castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
 let expertMode=false,conflictType='',toneStyle='',refStyle='',scriptLength='20';
 const root=document.getElementById('root');
 
@@ -630,7 +630,7 @@ function renderStudentInput(){
       <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">대사·지문이 포함된 정식 대본 형식으로 생성돼요. 갈등 구조와 극작 톤을 직접 지정할 수 있어요.</p></div>`:''}
     <div style="margin-bottom:16px"><div class="edit-label">주제 / 이야기 *</div>
       <textarea class="edit-box" id="theme" rows="3" placeholder="예: 우정&#10;또는: 전학 온 아이가 음악을 통해 친구들과 하나가 되는 이야기"></textarea></div>
-    <div style="margin-bottom:16px"><div class="edit-label">장르 * — 배경 → 분위기 순서로 선택</div>
+    <div style="margin-bottom:16px"><div class="edit-label">장르 * — 배경 → 분위기 순서로 선택 (각각 2개 이상 선택 가능)</div>
       <div class="genre-step"><div class="genre-step-lbl"><span class="step-badge sb1">1</span>배경 장르</div>
         <div class="genre-tags">${BG_GENRES.map(g=>`<div class="gtag" onclick="selBg(this,'${g}')">${g}</div>`).join('')}</div></div>
       <div class="genre-step" id="mood-step" style="opacity:.35;pointer-events:none">
@@ -681,10 +681,38 @@ function selLength(el,id){
   el.classList.add('on'); scriptLength=id;
 }
 
-function selBg(el,g){document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg'));el.classList.add('on-bg');bgGenre=g;document.getElementById('mood-step').style.opacity='1';document.getElementById('mood-step').style.pointerEvents='auto';updateGenreSummary();}
-function selMood(el,g){document.querySelectorAll('#mood-step .gtag').forEach(t=>t.classList.remove('on-mood'));el.classList.add('on-mood');moodGenre=g;updateGenreSummary();}
-function updateGenreSummary(){const sum=document.getElementById('genre-sum'),txt=document.getElementById('genre-sum-txt');if(bgGenre&&moodGenre&&sum&&txt){sum.classList.add('show');txt.textContent=`${bgGenre} + ${moodGenre}`;}}
-function resetGenre(){bgGenre='';moodGenre='';document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg','on-mood'));document.getElementById('mood-step').style.opacity='.35';document.getElementById('mood-step').style.pointerEvents='none';document.getElementById('genre-sum').classList.remove('show');}
+function selBg(el,g){
+  el.classList.toggle('on-bg');
+  const idx=bgGenres.indexOf(g);
+  if(idx>=0) bgGenres.splice(idx,1); else bgGenres.push(g);
+  const step=document.getElementById('mood-step');
+  if(bgGenres.length){ step.style.opacity='1'; step.style.pointerEvents='auto'; }
+  else{ step.style.opacity='.35'; step.style.pointerEvents='none'; }
+  updateGenreSummary();
+}
+function selMood(el,g){
+  el.classList.toggle('on-mood');
+  const idx=moodGenres.indexOf(g);
+  if(idx>=0) moodGenres.splice(idx,1); else moodGenres.push(g);
+  updateGenreSummary();
+}
+function updateGenreSummary(){
+  const sum=document.getElementById('genre-sum'),txt=document.getElementById('genre-sum-txt');
+  if(!sum||!txt)return;
+  if(bgGenres.length && moodGenres.length){
+    sum.classList.add('show');
+    txt.textContent=`${bgGenres.join(', ')} + ${moodGenres.join(', ')}`;
+  }else{
+    sum.classList.remove('show');
+  }
+}
+function resetGenre(){
+  bgGenres=[];moodGenres=[];
+  document.querySelectorAll('.gtag').forEach(t=>t.classList.remove('on-bg','on-mood'));
+  document.getElementById('mood-step').style.opacity='.35';
+  document.getElementById('mood-step').style.pointerEvents='none';
+  document.getElementById('genre-sum').classList.remove('show');
+}
 function changeCast(d){castCount=Math.min(20,Math.max(2,castCount+d));const el=document.getElementById('cast-v');if(el)el.textContent=castCount;}
 function selAct(el,n){document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('on'));el.classList.add('on');actCount=n;}
 
@@ -713,11 +741,11 @@ function parseJSON(text){const c=text.replace(/```json\n?/g,'').replace(/```\n?/
 async function startGenerate(){
   const theme=document.getElementById('theme')?.value.trim(),setting=document.getElementById('setting')?.value.trim()||'현대',err=document.getElementById('s-err');
   if(!theme){err.textContent='주제를 입력해주세요!';return;}
-  if(!bgGenre){err.textContent='배경 장르를 선택해주세요!';return;}
-  if(!moodGenre){err.textContent='분위기 장르를 선택해주세요!';return;}
+  if(!bgGenres.length){err.textContent='배경 장르를 선택해주세요!';return;}
+  if(!moodGenres.length){err.textContent='분위기 장르를 선택해주세요!';return;}
   if(expertMode && !conflictType){err.textContent='전문가 과정은 중심 갈등 구조를 선택해주세요!';return;}
   err.textContent='';
-  const genre=`${bgGenre} + ${moodGenre}`;
+  const genre=`${bgGenres.join(', ')} + ${moodGenres.join(', ')}`;
   const toneVal=document.getElementById('toneStyle')?.value.trim()||'';
   const refVal=document.getElementById('refStyle')?.value.trim()||'';
   const main=document.getElementById('student-main');
