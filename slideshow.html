@@ -262,13 +262,16 @@ select.bubble-ctrl-btn{padding:5px 8px}
 
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
-  <input id="char-url-input" data-tip="캐릭터로 쓸 이미지의 URL을 붙여넣어요" placeholder="캐릭터 이미지 URL">
+  <input id="char-url-input" data-tip="캐릭터로 쓸 이미지의 URL을 붙여넣어요" placeholder="캐릭터 이미지 URL (인터넷 주소가 있을 때)">
   <select id="char-position-select" data-tip="캐릭터가 무대의 어느 쪽에 설지 골라요">
     <option value="right">오른쪽</option>
     <option value="left">왼쪽</option>
     <option value="center">가운데</option>
   </select>
-  <button class="char-panel-btn" data-tip="입력한 이미지를 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ 적용</button>
+  <button class="char-panel-btn" data-tip="입력한 URL을 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ URL로 적용</button>
+  <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin:6px 0">— 또는 —</div>
+  <input type="file" id="char-file-input" accept="image/*" style="display:none" onchange="applyCharLayerFromFile(this)">
+  <button class="char-panel-btn" data-tip="내 기기에 있는 이미지 파일을 캐릭터로 올려요" style="background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.35);color:#ffd54f" onclick="document.getElementById('char-file-input').click()">📁 내 기기에서 이미지 파일 올리기</button>
   <button class="char-panel-btn remove" data-tip="지금 올려진 캐릭터를 무대에서 지워요" onclick="removeCharLayer()">✕ 캐릭터 제거</button>
   <button class="char-panel-btn anim" data-tip="캐릭터에게 움직임을 넣는 메뉴를 열어요" onclick="toggleAnimPanel()">🎬 애니메이션</button>
   <button class="char-panel-btn" data-tip="캐릭터 패널을 닫아요" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
@@ -350,6 +353,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()" title="화면 녹화">⏺</button>
   <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()" title="배경 효과">🎆</button>
   <button class="ctrl-btn" id="btn-ppt" data-tip="지금 무대(효과·캐릭터·말풍선 포함)를 PPT 파일로 저장해요" onclick="downloadPPTX()" title="PPT 다운로드">📊</button>
+  <button class="ctrl-btn" id="btn-save-deco" data-tip="지금 배치한 캐릭터·말풍선·효과를 저장해요 (새로고침해도 유지)" onclick="saveDecorations(true)" style="color:#69f0ae">✅</button>
   <button class="ctrl-btn" id="btn-dlg-toggle" data-tip="이 장면의 대사를 한 줄씩 순서대로 말풍선으로 보여줘요" onclick="toggleDialogueBar()" title="대사 진행">🗨</button>
 </div>
 <div id="dialogue-bar">
@@ -512,18 +516,31 @@ function toggleCharPanel() {
 function applyCharLayer() {
   const url = document.getElementById('char-url-input').value.trim();
   if (!url) { showToast('⚠️ 캐릭터 이미지 URL을 입력해주세요'); return; }
+  const ok = addCharacterImage(url);
+  if (ok) document.getElementById('char-url-input').value = '';
+}
+function applyCharLayerFromFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('⚠️ 이미지 파일만 올릴 수 있어요'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = () => { addCharacterImage(reader.result); input.value=''; };
+  reader.onerror = () => { showToast('⚠️ 파일을 읽지 못했어요'); input.value=''; };
+  reader.readAsDataURL(file);
+}
+function addCharacterImage(src) {
   const pos = document.getElementById('char-position-select').value;
-  const slide = getCurrentSlideEl(); if (!slide) return;
+  const slide = getCurrentSlideEl(); if (!slide) return false;
   slide.querySelectorAll('.char-layer').forEach(c => c.remove());
   const img = document.createElement('img');
   img.className = `char-layer ${pos}`;
-  img.src = url; img.alt = '캐릭터';
+  img.src = src; img.alt = '캐릭터';
   img.setAttribute('data-tip', '무대 위 캐릭터예요 · 🎭 버튼에서 애니메이션을 넣을 수 있어요');
   img.onerror = () => { img.style.display='none'; showToast('⚠️ 이미지를 불러올 수 없어요'); };
   const container = slide.querySelector('.parallax-container');
   if (container) container.appendChild(img); else slide.appendChild(img);
-  document.getElementById('char-url-input').value = '';
   showToast('✅ 캐릭터 추가됨!');
+  return true;
 }
 function removeCharLayer() {
   const slide = getCurrentSlideEl(); if (!slide) return;
@@ -1017,6 +1034,7 @@ function initSlideshow() {
   SCENES.forEach((s,i)=>buildScene(s,i));
   buildEnding();
   document.getElementById('controls').style.display='flex';
+  restoreDecorations();
   showSlide(0);
   (async()=>{ for(let i=0;i<SCENES.length;i++) await loadBgImage(SCENES[i],i).catch(()=>{}); })();
   attachHoverTooltips();
@@ -1141,6 +1159,82 @@ function doShowSlideInstant(idx){
     lyricLines.forEach((_,li)=>{ const el=document.getElementById(`cl-${li}`); if(el) el.style.opacity='1'; });
   }
   mouseX=0; mouseY=0;
+}
+
+// ══════════════════════════
+// ✅ 캐릭터·말풍선·효과 저장/복원 — 새로고침해도 배치가 유지되도록
+// ══════════════════════════
+const DECORATION_STORAGE_KEY = 'eaim_mm_slideshow_decorations';
+function getSlideKeyEl(key){
+  if (key==='cover') return document.getElementById('cover-slide');
+  if (key==='end') return document.getElementById('end-slide');
+  return document.getElementById(`scene-slide-${key}`);
+}
+function collectSlideDecorations(container){
+  if(!container) return {char:null,bubbles:[]};
+  const charImg = container.querySelector('.char-layer');
+  let char=null;
+  if(charImg){
+    const posMatch=(charImg.className.match(/\b(left|right|center)\b/)||[])[1]||'right';
+    const loopMatch=(charImg.className.match(/char-anim-(float|breathe|sway)/)||[])[0]||'';
+    char = { src: charImg.getAttribute('src')||'', pos: posMatch, loopAnim: loopMatch };
+  }
+  const bubbles=[...container.querySelectorAll('.speech-bubble')].map(b=>{
+    const tailClass=(b.className.match(/tail-\S+/)||[])[0]||'tail-left';
+    const nameEl=b.querySelector('.bubble-name');
+    const textEl=b.querySelector('span');
+    return { name: nameEl?nameEl.textContent:'', text: textEl?textEl.textContent:'', tail: tailClass, left: b.style.left||'', top: b.style.top||'' };
+  });
+  return { char, bubbles };
+}
+function saveDecorations(showConfirm){
+  const data = { effects: Array.from(activeEffects), scenes: {} };
+  data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
+  data.scenes['end'] = collectSlideDecorations(getSlideKeyEl('end'));
+  for (let i=0;i<TOTAL;i++) data.scenes[i] = collectSlideDecorations(getSlideKeyEl(i));
+  try{
+    localStorage.setItem(DECORATION_STORAGE_KEY, JSON.stringify(data));
+    if(showConfirm) showToast('✅ 캐릭터·말풍선·효과 저장 완료! 새로고침해도 유지돼요');
+  }catch(e){
+    if(showConfirm) showToast('❌ 저장 실패: '+e.message);
+  }
+}
+function restoreCharToSlide(container, item){
+  if(!item || !item.src) return;
+  container.querySelectorAll('.char-layer').forEach(c=>c.remove());
+  const img = document.createElement('img');
+  img.className = `char-layer ${item.pos||'right'}${item.loopAnim?(' '+item.loopAnim):''}`;
+  img.src = item.src; img.alt = '캐릭터';
+  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 🎭 버튼에서 애니메이션을 넣을 수 있어요');
+  img.onerror = () => { img.style.display='none'; };
+  const inner = container.querySelector('.parallax-container');
+  if (inner) inner.appendChild(img); else container.appendChild(img);
+}
+function restoreBubbleEl(container, item){
+  if(!item.text) return;
+  const bubble=document.createElement('div');
+  bubble.className=`speech-bubble ${item.tail||'tail-left'}`;
+  bubble.style.left=item.left||'30%';bubble.style.top=item.top||'55%';
+  bubble.innerHTML=`${item.name?`<div class="bubble-name">${item.name}</div>`:''}<span>${item.text}</span><button class="bubble-del" onclick="this.parentElement.remove()">✕</button>`;
+  makeDraggable(bubble);
+  container.appendChild(bubble);
+}
+function restoreDecorations(){
+  let raw; try{ raw = localStorage.getItem(DECORATION_STORAGE_KEY); }catch(e){ return; }
+  if(!raw) return;
+  let data; try{ data = JSON.parse(raw); }catch(e){ return; }
+  if(!data || !data.scenes) return;
+  Object.keys(data.scenes).forEach(key=>{
+    const container = getSlideKeyEl(key);
+    if(!container) return;
+    const d = data.scenes[key];
+    if(d.char) restoreCharToSlide(container, d.char);
+    (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
+  });
+  (data.effects||[]).forEach(type=>{
+    try{ toggleEffect(type); }catch(e){}
+  });
+  if((data.effects||[]).length) showToast('✅ 저장된 캐릭터·말풍선·효과를 불러왔어요');
 }
 
 async function downloadPPTX(){
