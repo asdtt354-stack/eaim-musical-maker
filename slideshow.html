@@ -15,9 +15,11 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .slide.visible{opacity:1}
 .parallax-container{position:absolute;inset:0;overflow:hidden}
 .bg-layer{position:absolute;inset:-4%;width:108%;height:108%;object-fit:cover;transition:opacity 1.4s ease, transform .1s ease-out;will-change:transform}
-.char-layer{position:absolute;bottom:0;right:8%;height:90%;max-width:45%;object-fit:contain;transition:opacity 1s ease, transform .08s ease-out;will-change:transform;z-index:5;filter:drop-shadow(0 8px 32px rgba(0,0,0,.7))}
-.char-layer.center{right:auto;left:50%;transform:translateX(-50%);max-width:35%}
-.char-layer.left{right:auto;left:5%;max-width:35%}
+.char-wrap{position:absolute;bottom:0;left:55%;height:85%;max-width:38%;z-index:5;cursor:move}
+.char-wrap.selected{outline:3px dashed #5DADE2;outline-offset:8px;border-radius:8px}
+.char-layer{height:100%;width:auto;max-width:100%;object-fit:contain;transition:opacity 1s ease, transform .08s ease-out;will-change:transform;filter:drop-shadow(0 8px 32px rgba(0,0,0,.7));display:block;pointer-events:none}
+.char-del-btn{position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:#ff5252;color:#fff;font-size:12px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;line-height:1;pointer-events:auto}
+.char-wrap:hover .char-del-btn{display:flex}
 .bg-overlay{position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,.88) 0%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.1) 100%),linear-gradient(to top,rgba(0,0,0,.8) 0%,transparent 45%);z-index:3}
 .bg-spinner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:2}
 .top-bar{position:absolute;top:0;left:0;right:0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent);z-index:10}
@@ -126,7 +128,6 @@ select.bubble-ctrl-btn{padding:5px 8px}
 #char-panel.show{display:block}
 #char-panel h4{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
 #char-url-input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;outline:none;margin-bottom:6px;font-family:inherit}
-#char-position-select{width:100%;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 8px;border-radius:8px;font-size:12px;outline:none;margin-bottom:8px;font-family:inherit}
 .char-panel-btn{width:100%;padding:7px;border-radius:8px;background:rgba(93,173,226,.2);border:1px solid rgba(93,173,226,.4);color:#5DADE2;font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:4px}
 .char-panel-btn.remove{background:rgba(255,82,82,.15);border-color:rgba(255,82,82,.4);color:#ff5252}
 .char-panel-btn.anim{background:rgba(255,213,79,.1);border-color:rgba(255,213,79,.3);color:#ffd54f}
@@ -262,18 +263,16 @@ select.bubble-ctrl-btn{padding:5px 8px}
 
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px">추가된 캐릭터: <span id="char-count">0</span>/3</div>
   <input id="char-url-input" data-tip="캐릭터로 쓸 이미지의 URL을 붙여넣어요" placeholder="캐릭터 이미지 URL (인터넷 주소가 있을 때)">
-  <select id="char-position-select" data-tip="캐릭터가 무대의 어느 쪽에 설지 골라요">
-    <option value="right">오른쪽</option>
-    <option value="left">왼쪽</option>
-    <option value="center">가운데</option>
-  </select>
-  <button class="char-panel-btn" data-tip="입력한 URL을 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ URL로 적용</button>
+  <button class="char-panel-btn" data-tip="입력한 URL을 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ URL로 추가</button>
   <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin:6px 0">— 또는 —</div>
   <input type="file" id="char-file-input" accept="image/*" style="display:none" onchange="applyCharLayerFromFile(this)">
   <button class="char-panel-btn" data-tip="내 기기에 있는 이미지 파일을 캐릭터로 올려요" style="background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.35);color:#ffd54f" onclick="document.getElementById('char-file-input').click()">📁 내 기기에서 이미지 파일 올리기</button>
-  <button class="char-panel-btn remove" data-tip="지금 올려진 캐릭터를 무대에서 지워요" onclick="removeCharLayer()">✕ 캐릭터 제거</button>
-  <button class="char-panel-btn anim" data-tip="캐릭터에게 움직임을 넣는 메뉴를 열어요" onclick="toggleAnimPanel()">🎬 애니메이션</button>
+  <button class="char-panel-btn remove" data-tip="선택된(또는 가장 최근) 캐릭터를 무대에서 지워요" onclick="removeCharLayer()">✕ 선택된 캐릭터 제거</button>
+  <button class="char-panel-btn remove" data-tip="모든 캐릭터를 무대에서 지워요" onclick="clearAllChars()" style="opacity:.85">🗑 전체 제거</button>
+  <button class="char-panel-btn anim" data-tip="캐릭터에게 움직임을 넣는 메뉴를 열어요" onclick="toggleAnimPanel()">🎬 애니메이션 (선택된 캐릭터)</button>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin:6px 0;line-height:1.6">💡 한 장면에 최대 3명까지 추가할 수 있어요. 캐릭터를 클릭하면 선택되고, 드래그하면 자유롭게 위치를 옮길 수 있어요</div>
   <button class="char-panel-btn" data-tip="캐릭터 패널을 닫아요" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
 </div>
 
@@ -420,14 +419,12 @@ function applyParallax() {
   rafId = null;
   const slide = getSlideEl(current); if (!slide) return;
   const bg = slide.querySelector('.bg-layer');
-  const ch = slide.querySelector('.char-layer');
   if (bg) bg.style.transform = `translate(${mouseX * -8}px, ${mouseY * -6}px) scale(1.08)`;
-  if (ch) {
-    const base = ch.classList.contains('center') ? 'translateX(-50%)' : '';
+  slide.querySelectorAll('.char-layer').forEach(ch => {
     if (!ch.style.animation || ch.style.animation === 'none') {
-      ch.style.transform = `${base} translate(${mouseX * 18}px, ${mouseY * 10}px)`;
+      ch.style.transform = `translate(${mouseX * 18}px, ${mouseY * 10}px)`;
     }
-  }
+  });
 }
 let floatAngle = 0;
 setInterval(() => {
@@ -436,12 +433,12 @@ setInterval(() => {
   const fx = Math.sin(floatAngle) * 0.3, fy = Math.cos(floatAngle * 0.7) * 0.2;
   const slide = getSlideEl(current); if (!slide) return;
   const bg = slide.querySelector('.bg-layer');
-  const ch = slide.querySelector('.char-layer');
   if (bg) bg.style.transform = `translate(${fx * -8}px, ${fy * -6}px) scale(1.08)`;
-  if (ch && (!ch.style.animation || ch.style.animation==='none')) {
-    const base = ch.classList.contains('center') ? 'translateX(-50%)' : '';
-    ch.style.transform = `${base} translate(${fx * 18}px, ${fy * 10}px)`;
-  }
+  slide.querySelectorAll('.char-layer').forEach(ch => {
+    if (!ch.style.animation || ch.style.animation==='none') {
+      ch.style.transform = `translate(${fx * 18}px, ${fy * 10}px)`;
+    }
+  });
 }, 30);
 
 let GEMINI_KEY = localStorage.getItem('mm_teacher_api') || localStorage.getItem('eaim_gemini_key') || '';
@@ -512,6 +509,52 @@ function toggleCharPanel() {
   const panel = document.getElementById('char-panel');
   panel.classList.toggle('show');
   document.getElementById('btn-char').style.color = panel.classList.contains('show') ? '#FFD700' : 'rgba(255,255,255,.8)';
+  updateCharCount();
+}
+let charIdCounter = 0;
+let selectedCharId = null;
+const CHAR_SLOT_LEFT_PERCENTS = [58, 32, 8]; // 1번째=오른쪽 쪽, 2번째=가운데, 3번째=왼쪽 쪽 (드래그로 자유 조정 가능)
+function updateCharCount() {
+  const slide = getCurrentSlideEl();
+  const n = slide ? slide.querySelectorAll('.char-wrap').length : 0;
+  const el = document.getElementById('char-count'); if (el) el.textContent = n;
+}
+function selectChar(id) {
+  document.querySelectorAll('.char-wrap').forEach(w => w.classList.remove('selected'));
+  selectedCharId = id;
+  const el = document.querySelector(`.char-wrap[data-char-id="${id}"]`);
+  if (el) el.classList.add('selected');
+}
+function deselectAllChars() {
+  document.querySelectorAll('.char-wrap').forEach(w => w.classList.remove('selected'));
+  selectedCharId = null;
+}
+document.getElementById('stage').addEventListener('click', (e) => {
+  if (e.target.closest('.char-wrap') || e.target.closest('.speech-bubble')) return;
+  deselectAllChars();
+});
+function makeCharDraggable(el) {
+  let sx, sy, sl, st, moved;
+  el.addEventListener('mousedown', e => {
+    if (e.target.classList.contains('char-del-btn')) return;
+    e.preventDefault();
+    moved = false;
+    const r = el.getBoundingClientRect(), pr = el.parentElement.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; sl = r.left - pr.left; st = r.top - pr.top;
+    const mv = mv => {
+      if (Math.abs(mv.clientX - sx) > 4 || Math.abs(mv.clientY - sy) > 4) moved = true;
+      el.style.left = (sl + mv.clientX - sx) + 'px';
+      el.style.top = (st + mv.clientY - sy) + 'px';
+      el.style.right = 'auto'; el.style.bottom = 'auto';
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', mv);
+      document.removeEventListener('mouseup', up);
+      if (!moved) selectChar(el.dataset.charId);
+    };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
 }
 function applyCharLayer() {
   const url = document.getElementById('char-url-input').value.trim();
@@ -529,23 +572,53 @@ function applyCharLayerFromFile(input) {
   reader.readAsDataURL(file);
 }
 function addCharacterImage(src) {
-  const pos = document.getElementById('char-position-select').value;
   const slide = getCurrentSlideEl(); if (!slide) return false;
-  slide.querySelectorAll('.char-layer').forEach(c => c.remove());
+  const container = slide.querySelector('.parallax-container') || slide;
+  const existing = container.querySelectorAll('.char-wrap');
+  if (existing.length >= 3) { showToast('⚠️ 캐릭터는 한 장면에 최대 3명까지 추가할 수 있어요'); return false; }
+  const id = 'char_' + (++charIdCounter);
+  const slot = existing.length;
+  const wrap = document.createElement('div');
+  wrap.className = 'char-wrap';
+  wrap.dataset.charId = id;
+  wrap.style.left = (CHAR_SLOT_LEFT_PERCENTS[slot] || 30) + '%';
   const img = document.createElement('img');
-  img.className = `char-layer ${pos}`;
+  img.className = 'char-layer';
   img.src = src; img.alt = '캐릭터';
-  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 🎭 버튼에서 애니메이션을 넣을 수 있어요');
-  img.onerror = () => { img.style.display='none'; showToast('⚠️ 이미지를 불러올 수 없어요'); };
-  const container = slide.querySelector('.parallax-container');
-  if (container) container.appendChild(img); else slide.appendChild(img);
-  showToast('✅ 캐릭터 추가됨!');
+  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 클릭하면 선택, 드래그하면 이동해요');
+  img.onerror = () => { showToast('⚠️ 이미지를 불러올 수 없어요'); wrap.remove(); updateCharCount(); };
+  const delBtn = document.createElement('button');
+  delBtn.className = 'char-del-btn';
+  delBtn.textContent = '✕';
+  delBtn.onclick = (e) => {
+    e.stopPropagation();
+    wrap.remove();
+    if (selectedCharId === id) selectedCharId = null;
+    updateCharCount();
+    showToast('🗑 캐릭터 제거됨');
+  };
+  wrap.appendChild(img); wrap.appendChild(delBtn);
+  makeCharDraggable(wrap);
+  container.appendChild(wrap);
+  selectChar(id);
+  updateCharCount();
+  showToast('✅ 캐릭터 추가됨! 드래그해서 위치를 옮길 수 있어요');
   return true;
 }
 function removeCharLayer() {
   const slide = getCurrentSlideEl(); if (!slide) return;
-  slide.querySelectorAll('.char-layer').forEach(c => c.remove());
-  showToast('🗑 캐릭터 제거됨');
+  let target = selectedCharId ? slide.querySelector(`.char-wrap[data-char-id="${selectedCharId}"]`) : null;
+  if (!target) { const all = slide.querySelectorAll('.char-wrap'); target = all[all.length - 1]; }
+  if (target) { target.remove(); selectedCharId = null; showToast('🗑 캐릭터 제거됨'); }
+  else showToast('⚠️ 제거할 캐릭터가 없어요');
+  updateCharCount();
+}
+function clearAllChars() {
+  const slide = getCurrentSlideEl(); if (!slide) return;
+  slide.querySelectorAll('.char-wrap').forEach(c => c.remove());
+  selectedCharId = null;
+  updateCharCount();
+  showToast('🗑 모든 캐릭터 제거됨');
 }
 
 function toggleAnimPanel() {
@@ -554,7 +627,9 @@ function toggleAnimPanel() {
 }
 function getCharEl() {
   const slide = getCurrentSlideEl(); if (!slide) return null;
-  return slide.querySelector('.char-layer');
+  let wrap = selectedCharId ? slide.querySelector(`.char-wrap[data-char-id="${selectedCharId}"]`) : null;
+  if (!wrap) { const all = slide.querySelectorAll('.char-wrap'); wrap = all[all.length - 1]; }
+  return wrap ? wrap.querySelector('.char-layer') : null;
 }
 function playCharAnim(type) {
   const ch = getCharEl();
@@ -611,6 +686,7 @@ async function toggleRecording() {
     showToast('⏹ 녹화 중지 — 저장 중...');
   } else {
     try {
+      deselectAllChars();
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: 'screen', frameRate: 30 },
         audio: true
@@ -1171,21 +1247,19 @@ function getSlideKeyEl(key){
   return document.getElementById(`scene-slide-${key}`);
 }
 function collectSlideDecorations(container){
-  if(!container) return {char:null,bubbles:[]};
-  const charImg = container.querySelector('.char-layer');
-  let char=null;
-  if(charImg){
-    const posMatch=(charImg.className.match(/\b(left|right|center)\b/)||[])[1]||'right';
-    const loopMatch=(charImg.className.match(/char-anim-(float|breathe|sway)/)||[])[0]||'';
-    char = { src: charImg.getAttribute('src')||'', pos: posMatch, loopAnim: loopMatch };
-  }
+  if(!container) return {chars:[],bubbles:[]};
+  const chars=[...container.querySelectorAll('.char-wrap')].map(wrap=>{
+    const img=wrap.querySelector('.char-layer');
+    const loopMatch=(img?.className.match(/char-anim-(float|breathe|sway)/)||[])[0]||'';
+    return { src: img?.getAttribute('src')||'', left: wrap.style.left||'', top: wrap.style.top||'', loopAnim: loopMatch };
+  });
   const bubbles=[...container.querySelectorAll('.speech-bubble')].map(b=>{
     const tailClass=(b.className.match(/tail-\S+/)||[])[0]||'tail-left';
     const nameEl=b.querySelector('.bubble-name');
     const textEl=b.querySelector('span');
     return { name: nameEl?nameEl.textContent:'', text: textEl?textEl.textContent:'', tail: tailClass, left: b.style.left||'', top: b.style.top||'' };
   });
-  return { char, bubbles };
+  return { chars, bubbles };
 }
 function saveDecorations(showConfirm){
   const data = { effects: Array.from(activeEffects), scenes: {} };
@@ -1201,14 +1275,24 @@ function saveDecorations(showConfirm){
 }
 function restoreCharToSlide(container, item){
   if(!item || !item.src) return;
-  container.querySelectorAll('.char-layer').forEach(c=>c.remove());
+  const target = container.querySelector('.parallax-container') || container;
+  const id = 'char_' + (++charIdCounter);
+  const wrap = document.createElement('div');
+  wrap.className = 'char-wrap';
+  wrap.dataset.charId = id;
+  wrap.style.left = item.left || '30%';
+  if (item.top) wrap.style.top = item.top;
   const img = document.createElement('img');
-  img.className = `char-layer ${item.pos||'right'}${item.loopAnim?(' '+item.loopAnim):''}`;
+  img.className = 'char-layer' + (item.loopAnim ? (' '+item.loopAnim) : '');
   img.src = item.src; img.alt = '캐릭터';
-  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 🎭 버튼에서 애니메이션을 넣을 수 있어요');
-  img.onerror = () => { img.style.display='none'; };
-  const inner = container.querySelector('.parallax-container');
-  if (inner) inner.appendChild(img); else container.appendChild(img);
+  img.onerror = () => { wrap.remove(); };
+  const delBtn = document.createElement('button');
+  delBtn.className = 'char-del-btn';
+  delBtn.textContent = '✕';
+  delBtn.onclick = (e) => { e.stopPropagation(); wrap.remove(); if(selectedCharId===id) selectedCharId=null; updateCharCount(); };
+  wrap.appendChild(img); wrap.appendChild(delBtn);
+  makeCharDraggable(wrap);
+  target.appendChild(wrap);
 }
 function restoreBubbleEl(container, item){
   if(!item.text) return;
@@ -1228,7 +1312,7 @@ function restoreDecorations(){
     const container = getSlideKeyEl(key);
     if(!container) return;
     const d = data.scenes[key];
-    if(d.char) restoreCharToSlide(container, d.char);
+    (d.chars||[]).forEach(item=>restoreCharToSlide(container, item));
     (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
   });
   (data.effects||[]).forEach(type=>{
@@ -1244,6 +1328,7 @@ async function downloadPPTX(){
   }
   const progressEl=document.getElementById('ppt-progress'), progressText=document.getElementById('ppt-progress-text');
   const wasAuto=autoPlay; if(wasAuto) toggleAuto();
+  deselectAllChars();
   const startSlide=current;
 
   document.getElementById('controls').style.display='none';
