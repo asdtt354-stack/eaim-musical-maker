@@ -13,11 +13,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#fdfbf6;--gold:#b8862a;--gold2:#e0ac45;
+  --bg:#fdfbf6;--gold:#9c6b18;--gold2:#c9962e;
   --purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;
   --green:#52c27a;--red:#e0453f;
-  --text:#2d2438;--sub:#7a6f8a;
-  --border:rgba(124,58,237,0.12);--card:#ffffff;
+  --text:#241c30;--sub:#5f5470;
+  --border:rgba(124,58,237,0.2);--card:#ffffff;
 }
 body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);min-height:100vh;
   background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,0.06) 0%,transparent 50%),
@@ -35,22 +35,22 @@ body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);mi
 .main-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 .err-msg{font-size:.72rem;color:#c0392b;margin-bottom:8px;min-height:18px;}
 .notice-box{background:rgba(224,69,63,0.06);border:1px solid rgba(224,69,63,0.2);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;}
-.app-header{background:linear-gradient(180deg,#fff9ec 0%,#fff3d9 60%,#fff 100%);border-bottom:2px solid var(--gold);padding:14px 20px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+.app-header{background:linear-gradient(180deg,#fef3d8 0%,#fbe4ad 60%,#fdf7e8 100%);border-bottom:3px solid var(--gold);padding:14px 20px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
 .header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .logo-t{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold);}
 .header-right{display:flex;align-items:center;gap:10px;}
 .mode-badge{font-size:.6rem;padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:.1em;}
-.badge-teacher{background:rgba(184,134,42,0.12);color:var(--gold);border:1px solid rgba(184,134,42,0.35);}
+.badge-teacher{background:rgba(156,107,24,0.12);color:var(--gold);border:1px solid rgba(156,107,24,0.35);}
 .badge-student{background:rgba(82,194,122,0.12);color:#2e7d4f;border:1px solid rgba(82,194,122,0.4);}
 .logout-btn{font-size:.62rem;color:rgba(45,36,56,.4);background:none;border:none;cursor:pointer;}
 .tab-bar{display:flex;background:rgba(124,58,237,0.03);border-bottom:1px solid rgba(124,58,237,.08);position:sticky;top:58px;z-index:90;}
 .tab-btn{flex:1;padding:11px 4px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(45,36,56,.4);font-family:inherit;transition:all .2s;border-bottom:2px solid transparent;}
 .tab-btn.on{color:var(--gold);border-bottom-color:var(--gold);}
-.badge-count{background:rgba(184,134,42,0.12);color:var(--gold);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
+.badge-count{background:rgba(156,107,24,0.12);color:var(--gold);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
 main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(45,36,56,.04);}
 .card-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.api-badge{display:flex;align-items:center;gap:8px;background:#faf8ff;border:1px solid rgba(184,134,42,0.2);border-radius:10px;padding:10px 14px;}
+.api-badge{display:flex;align-items:center;gap:8px;background:#faf8ff;border:1px solid rgba(156,107,24,0.2);border-radius:10px;padding:10px 14px;}
 .api-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .dot-on{background:var(--green);box-shadow:0 0 6px var(--green);}
 .dot-off{background:rgba(45,36,56,.15);}
@@ -62,22 +62,22 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .genre-step{background:#faf8ff;border:1px solid rgba(124,58,237,.08);border-radius:10px;padding:14px;margin-bottom:8px;}
 .genre-step-lbl{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .step-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
-.sb1{background:rgba(184,134,42,0.15);color:var(--gold);}
+.sb1{background:rgba(156,107,24,0.15);color:var(--gold);}
 .sb2{background:rgba(199,120,221,0.18);color:#a83fb0;}
 .genre-tags{display:flex;flex-wrap:wrap;gap:7px;}
 .gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;user-select:none;}
 .gtag:hover{border-color:var(--gold);color:var(--gold);}
-.gtag.on-bg{background:rgba(184,134,42,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.gtag.on-bg{background:rgba(156,107,24,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
 .gtag.on-mood{background:rgba(199,120,221,0.18);border-color:#a83fb0;color:#a83fb0;font-weight:700;}
 .genre-summary{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:8px;font-size:.78rem;color:#2e7d4f;}
 .genre-summary.show{display:flex;}
 .counter-wrap{display:flex;align-items:center;gap:0;background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:10px;overflow:hidden;width:fit-content;}
 .c-btn{width:44px;height:46px;border:none;cursor:pointer;background:transparent;color:var(--text);font-size:1.3rem;font-family:inherit;transition:background .2s;display:flex;align-items:center;justify-content:center;}
-.c-btn:hover{background:rgba(184,134,42,0.12);color:var(--gold);}
+.c-btn:hover{background:rgba(156,107,24,0.12);color:var(--gold);}
 .c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:1px solid rgba(124,58,237,.1);border-right:1px solid rgba(124,58,237,.1);line-height:46px;}
 .act-btns{display:flex;gap:8px;}
 .act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.85rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;font-family:inherit;}
-.act-btn.on{background:rgba(184,134,42,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.act-btn.on{background:rgba(156,107,24,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
 .gen-btn{width:100%;padding:17px;border-radius:12px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(124,58,237,0.25);transition:all .3s;margin-top:8px;}
 .gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.35);}
 .gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
@@ -85,7 +85,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .prog-card.show{display:block;}
 .prog-steps{display:flex;flex-direction:column;gap:10px;max-width:400px;margin:16px auto;}
 .prog-step{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;background:#faf8ff;font-size:.85rem;color:var(--sub);transition:all .4s;}
-.prog-step.active{background:rgba(184,134,42,0.1);color:var(--gold);border:1px solid rgba(184,134,42,0.25);}
+.prog-step.active{background:rgba(156,107,24,0.1);color:var(--gold);border:1px solid rgba(156,107,24,0.25);}
 .prog-step.done{background:rgba(82,194,122,0.08);color:#2e7d4f;}
 .sicon{font-size:1rem;width:22px;text-align:center;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -99,7 +99,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .scene-header:hover{background:rgba(124,58,237,.03);}
 .scene-header.open{border-bottom-color:rgba(124,58,237,.08);}
 .scene-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border-radius:10px;font-weight:700;}
-.tag-opening{background:rgba(184,134,42,0.12);color:var(--gold);border:1px solid rgba(184,134,42,0.3);}
+.tag-opening{background:rgba(156,107,24,0.12);color:var(--gold);border:1px solid rgba(156,107,24,0.3);}
 .tag-scene{background:rgba(93,173,226,0.12);color:#2f7ab8;border:1px solid rgba(93,173,226,0.3);}
 .tag-curtain{background:rgba(199,120,221,0.12);color:#a83fb0;border:1px solid rgba(199,120,221,0.3);}
 .scene-body{padding:18px;}
@@ -123,7 +123,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .btn-slide{flex:2;padding:15px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-weight:800;font-size:1rem;font-family:inherit;box-shadow:0 4px 20px rgba(199,120,221,0.25);}
 .btn-dl{flex:1;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--blue),#2f6a9c);color:#fff;font-weight:700;font-size:.88rem;font-family:inherit;}
 .work-card{background:#faf8ff;border:1px solid rgba(124,58,237,.10);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;}
-.work-card:hover{border-color:rgba(184,134,42,.3);}
+.work-card:hover{border-color:rgba(156,107,24,.3);}
 .work-card.approved{border-left:3px solid var(--green);}
 .w-title{font-weight:700;font-size:.95rem;color:var(--gold);}
 .w-meta{font-size:.68rem;color:rgba(45,36,56,.4);margin-top:3px;}
@@ -135,7 +135,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .w-preview{margin-top:10px;padding:12px;background:#faf8ff;border-radius:8px;font-size:.78rem;color:rgba(45,36,56,.6);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Noto Serif KR',serif;display:none;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:rgba(184,134,42,.25);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:rgba(156,107,24,.25);border-radius:2px;}
 .fade-in{animation:fadeIn .35s ease-out;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 #toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.95);color:#fff;display:none;pointer-events:none;}
@@ -165,7 +165,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .mode-tab{flex:1;padding:12px 8px;border-radius:8px;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
 .mode-tab .mt-title{font-size:.88rem;font-weight:700;}
 .mode-tab .mt-sub{font-size:.62rem;margin-top:2px;opacity:.7;}
-.mode-tab.on{background:rgba(184,134,42,0.15);color:var(--gold);}
+.mode-tab.on{background:rgba(156,107,24,0.15);color:var(--gold);}
 .mode-tab.on.expert{background:rgba(124,58,237,0.1);color:#a83fb0;}
 .expert-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);color:#a83fb0;border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:700;letter-spacing:.05em;}
 .expert-fields{background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.12);border-radius:12px;padding:16px;margin-bottom:16px;}
@@ -192,7 +192,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
       <svg class="google-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.3 0 10.2-2 13.8-5.4l-6.4-5.4C29.3 34.9 26.8 35.8 24 35.8c-5.3 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.8l6.4 5.4C40.6 36.4 44 30.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
       구글 계정으로 로그인
     </button>
-    <a href="index.html" style="display:block;text-align:center;font-size:.7rem;color:rgba(255,255,255,.25);margin-top:16px;text-decoration:none;">← 허브로 돌아가기</a>
+    <a href="index.html" style="display:block;text-align:center;font-size:.7rem;color:rgba(45,36,56,.4);margin-top:16px;text-decoration:none;">← 허브로 돌아가기</a>
   </div>
 </div>
 
@@ -505,15 +505,15 @@ function renderDashContent(){
       ${settings.sheetUrl?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#86efac;margin-top:4px"><div class="api-dot dot-on"></div>연동됨</div>`:''}
       <button class="btn-sec" style="margin-top:8px;padding:7px 14px;font-size:.78rem" onclick="testSheetConnection()">🔗 연결 테스트</button>
     </div>
-    <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:16px;font-size:.78rem;color:rgba(255,255,255,.45);line-height:1.9">
-      💡 <strong style="color:rgba(255,255,255,.65)">사용 순서</strong><br>1. API 키 입력 → 2. 반/모둠 추가 → 3. 수업 ON → 4. 초대 링크 공유<br>학생들은 이름+반/모둠 선택만 하면 바로 대본 제작이 가능해요.</div>`;
+    <div style="background:rgba(212,168,67,0.05);border:1px solid rgba(212,168,67,0.15);border-radius:12px;padding:16px;font-size:.78rem;color:rgba(45,36,56,.6);line-height:1.9">
+      💡 <strong style="color:rgba(45,36,56,.8)">사용 순서</strong><br>1. API 키 입력 → 2. 반/모둠 추가 → 3. 수업 ON → 4. 초대 링크 공유<br>학생들은 이름+반/모둠 선택만 하면 바로 대본 제작이 가능해요.</div>`;
     generateInviteQR(inviteUrl);
   }else{
     el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-size:.75rem;color:var(--sub)">총 ${works.length}개의 결과물</div>
       ${works.length?`<button class="w-btn danger" onclick="clearAllWorks()">전체 삭제</button>`:''}
     </div>
-    ${works.length===0?`<div style="text-align:center;padding:50px 20px;color:rgba(255,255,255,.2)">아직 학생 결과물이 없어요 🎭</div>`:
+    ${works.length===0?`<div style="text-align:center;padding:50px 20px;color:rgba(45,36,56,.3)">아직 학생 결과물이 없어요 🎭</div>`:
       works.map(w=>`<div class="work-card ${w.approved?'approved':''}" id="wc-${w.id}">
         <div style="display:flex;align-items:flex-start;gap:8px">
           <div style="width:7px;height:7px;border-radius:50%;margin-top:6px;flex-shrink:0;background:${w.approved?'var(--green)':'var(--gold)'};box-shadow:0 0 5px ${w.approved?'var(--green)':'var(--gold)'}"></div>
@@ -661,9 +661,9 @@ function renderStudentInput(){
             <div class="c-val" id="cast-v">${castCount}</div>
             <button class="c-btn" onclick="changeCast(1)">+</button>
           </div><span style="font-size:.8rem;color:var(--sub)">명</span></div>
-        <div style="font-size:.68rem;color:rgba(255,255,255,.2);margin-top:6px">AI가 이름·역할 자동 창작</div></div>
+        <div style="font-size:.68rem;color:rgba(45,36,56,.35);margin-top:6px">AI가 이름·역할 자동 창작</div></div>
       <div>${isReading?`<div class="edit-label">공연 형식</div>
-        <div style="font-size:.78rem;color:var(--sub);padding:12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.08)">여러 개의 짧은 장면(낭독) + 노래 1곡</div>`:`<div class="edit-label">막 수 *</div>
+        <div style="font-size:.78rem;color:var(--sub);padding:12px;background:#faf8ff;border-radius:8px;border:1px solid rgba(124,58,237,.1)">여러 개의 짧은 장면(낭독) + 노래 1곡</div>`:`<div class="edit-label">막 수 *</div>
         <div class="act-btns">${DURATIONS.map(d=>`<button class="act-btn ${actCount===d.id?'on':''}" onclick="selAct(this,${d.id})">${d.label}</button>`).join('')}</div>`}</div>
     </div>
     <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
@@ -973,7 +973,7 @@ function renderResult(){
     <div class="r-sub">${d.genre} · ${actCount}막 · 등장인물 ${castCount}명${d.expertMode&&d.conflictType?` · ${d.conflictType}`:''}</div>
   </div>
   <div class="card" style="margin-bottom:14px"><div class="card-title" style="margin-bottom:10px">👥 등장인물</div>
-    <div style="font-size:.82rem;color:rgba(255,255,255,.6);line-height:2">${(d.characters||[]).map(c=>`• ${c}`).join('<br>')}</div></div>
+    <div style="font-size:.82rem;color:rgba(45,36,56,.75);line-height:2">${(d.characters||[]).map(c=>`• ${c}`).join('<br>')}</div></div>
   ${renderSceneCard('opening','오프닝 코러스','tag-opening','🌅',d.opening,-1)}
   ${(d.scenes||[]).map((s,i)=>renderSceneCard(`scene-${i}`,`${i+1}막 — ${s.sceneTitle}`,'tag-scene','🎬',s,i)).join('')}
   ${renderSceneCard('curtain','커튼콜','tag-curtain','🎭',d.curtain,-2)}
@@ -1007,7 +1007,7 @@ function renderSceneCard(id,label,tagClass,icon,data,idx){
         <span style="font-size:.85rem;font-weight:700;color:var(--text)">♪ ${data.songTitle||''}</span>
         ${data.singer?`<span style="font-size:.72rem;color:var(--pink);background:rgba(199,120,221,0.1);border:1px solid rgba(199,120,221,0.25);border-radius:20px;padding:2px 10px">🎤 ${data.singer}</span>`:''}
       </div>
-      <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-${id}">▲</span>
+      <span style="color:rgba(45,36,56,.35);font-size:.72rem" id="arr-${id}">▲</span>
     </div>
     <div class="scene-body" id="body-${id}">
       ${data.script!==undefined?`<div class="edit-label" style="margin-top:0">🎓 대본 (대사·지문)</div>
@@ -1048,13 +1048,13 @@ function renderReadingResult(){
     <div class="r-sub">${d.genre} · ${d.performanceStructure||''}</div>
   </div>
   <div class="card"><div class="card-title">📋 활동 안내</div>
-    <p style="font-size:.85rem;color:rgba(255,255,255,.7);line-height:1.9">
+    <p style="font-size:.85rem;color:rgba(45,36,56,.75);line-height:1.9">
       <strong style="color:var(--gold)">공연 구성:</strong> ${d.performanceStructure||''}<br>
       <strong style="color:var(--gold)">준비물:</strong> ${d.preparation||''}</p>
   </div>
   <div class="card"><div class="card-title">🎭 배역 정하기</div>
     ${(d.characters||[]).map((c,i)=>`
-      <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="padding:10px 0;border-bottom:1px solid rgba(124,58,237,.1)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <div><strong style="color:var(--gold)">${c.role||''}</strong> <span style="font-size:.75rem;color:var(--sub)">${c.desc||''}</span></div>
           <input class="edit-box" type="text" id="role-name-${i}" value="${d.roleNames?.[i]||''}" placeholder="담당 학생 이름" style="min-height:auto;resize:none;width:140px;margin-bottom:0">
@@ -1070,7 +1070,7 @@ function renderReadingResult(){
           <span style="font-size:.85rem;font-weight:700;color:var(--text)">${s.sceneTitle||''}</span>
           <span style="font-size:.72rem;color:var(--sub)">${s.timeEstimate||''}</span>
         </div>
-        <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-rscene-${i}">▲</span>
+        <span style="color:rgba(45,36,56,.35);font-size:.72rem" id="arr-rscene-${i}">▲</span>
       </div>
       <div class="scene-body" id="body-rscene-${i}">
         <div class="edit-label" style="margin-top:0">📜 낭독 대본 (지문·대사)</div>
@@ -1089,7 +1089,7 @@ function renderReadingResult(){
   <div class="card"><div class="card-title">🎵 노래 구성</div>
     <div style="font-size:.85rem;color:var(--gold);font-weight:700;margin-bottom:10px">♪ ${d.song?.songTitle||''}</div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
-      ${(d.song?.sections||[]).map(sec=>`<div style="display:flex;gap:12px;font-size:.8rem;color:rgba(255,255,255,.7)"><span style="width:44px;color:var(--pink);font-weight:700">${sec.part}</span><span style="color:var(--sub)">${sec.time}</span></div>`).join('')}
+      ${(d.song?.sections||[]).map(sec=>`<div style="display:flex;gap:12px;font-size:.8rem;color:rgba(45,36,56,.75)"><span style="width:44px;color:var(--pink);font-weight:700">${sec.part}</span><span style="color:var(--sub)">${sec.time}</span></div>`).join('')}
     </div>
     <div class="edit-label" style="margin-top:0">가사</div>
     <textarea class="edit-box" id="rsong-lyrics" rows="6">${d.song?.lyrics||''}</textarea>
@@ -1112,7 +1112,7 @@ function renderReadingResult(){
   </div>
   <div class="card"><div class="card-title">✅ 최종 점검</div>
     ${checkLabels.map((label,i)=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem;color:rgba(255,255,255,.7);gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(124,58,237,.1);font-size:.8rem;color:rgba(45,36,56,.75);gap:8px">
         <span style="flex:1">${label}</span>
         <label style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--sub)"><input type="checkbox" id="check-pre-${i}" ${d.checklistPre?.[i]?'checked':''} onchange="scheduleAutoSave()">연습 전</label>
         <label style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--sub)"><input type="checkbox" id="check-post-${i}" ${d.checklistPost?.[i]?'checked':''} onchange="scheduleAutoSave()">연습 후</label>
