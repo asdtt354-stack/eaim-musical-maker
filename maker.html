@@ -27,9 +27,9 @@ body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);mi
 .login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;}
 .login-sub{font-size:0.68rem;color:var(--sub);text-align:center;letter-spacing:0.25em;margin-bottom:28px;}
 .field-label{font-size:0.82rem;color:var(--sub);margin-bottom:6px;letter-spacing:.1em;}
-.t-input{background:#faf8ff;border:1px solid rgba(124,58,237,0.15);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:1.02rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;}
+.t-input{background:#f3ecff;border:2px solid rgba(124,58,237,0.35);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:1.02rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;font-weight:500;}
 .t-input:focus{border-color:var(--purple);}
-.t-input::placeholder{color:rgba(45,36,56,0.28);}
+.t-input::placeholder{color:rgba(23,15,34,0.42);}
 .main-btn{background:linear-gradient(135deg,#d4a843,#e8a020);color:#000;border:none;border-radius:12px;font-weight:900;font-size:1.1rem;padding:15px;width:100%;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:4px;}
 .main-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(201,150,46,0.3);}
 .main-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
@@ -59,24 +59,24 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .toggle-track.on{background:rgba(82,194,122,0.5);border:1px solid var(--green);}
 .toggle-thumb{width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(45,36,56,.2);position:absolute;top:3px;left:3px;transition:all .3s;}
 .toggle-track.on .toggle-thumb{left:27px;background:var(--green);box-shadow:0 0 6px var(--green);}
-.genre-step{background:#faf8ff;border:1px solid rgba(124,58,237,.08);border-radius:10px;padding:14px;margin-bottom:8px;}
+.genre-step{background:#f3ecff;border:1.5px solid rgba(124,58,237,.22);border-radius:10px;padding:14px;margin-bottom:8px;}
 .genre-step-lbl{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .step-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
 .sb1{background:rgba(122,83,18,0.15);color:var(--gold);}
 .sb2{background:rgba(199,120,221,0.18);color:#a83fb0;}
 .genre-tags{display:flex;flex-wrap:wrap;gap:7px;}
-.gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.92rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;user-select:none;}
+.gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.92rem;border:2px solid rgba(124,58,237,.3);background:#fff;color:#3a3050;font-weight:600;transition:all .2s;user-select:none;}
 .gtag:hover{border-color:var(--gold);color:var(--gold);}
 .gtag.on-bg{background:rgba(122,83,18,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
 .gtag.on-mood{background:rgba(199,120,221,0.18);border-color:#a83fb0;color:#a83fb0;font-weight:700;}
 .genre-summary{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:8px;font-size:.78rem;color:#2e7d4f;}
 .genre-summary.show{display:flex;}
-.counter-wrap{display:flex;align-items:center;gap:0;background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:10px;overflow:hidden;width:fit-content;}
+.counter-wrap{display:flex;align-items:center;gap:0;background:#f3ecff;border:2px solid rgba(124,58,237,.3);border-radius:10px;overflow:hidden;width:fit-content;}
 .c-btn{width:44px;height:46px;border:none;cursor:pointer;background:transparent;color:var(--text);font-size:1.3rem;font-family:inherit;transition:background .2s;display:flex;align-items:center;justify-content:center;}
 .c-btn:hover{background:rgba(122,83,18,0.12);color:var(--gold);}
-.c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:1px solid rgba(124,58,237,.1);border-right:1px solid rgba(124,58,237,.1);line-height:46px;}
+.c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:2px solid rgba(124,58,237,.25);border-right:2px solid rgba(124,58,237,.25);line-height:46px;}
 .act-btns{display:flex;gap:8px;}
-.act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.95rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;font-family:inherit;}
+.act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.95rem;border:2px solid rgba(124,58,237,.3);background:#fff;color:#3a3050;font-weight:600;transition:all .2s;font-family:inherit;}
 .act-btn.on{background:rgba(122,83,18,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
 .gen-btn{width:100%;padding:17px;border-radius:12px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Cormorant Garamond',serif;font-size:1.45rem;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(124,58,237,0.25);transition:all .3s;margin-top:8px;}
 .gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.35);}
@@ -105,7 +105,7 @@ main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
 .scene-body{padding:18px;}
 .edit-label{font-size:.78rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;margin-top:14px;}
 .edit-label:first-child{margin-top:0;}
-.edit-box{background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:8px;padding:12px;color:var(--text);font-size:1rem;font-family:'Noto Serif KR',serif;line-height:1.8;width:100%;outline:none;resize:vertical;transition:border-color .2s;min-height:80px;}
+.edit-box{background:#f3ecff;border:2px solid rgba(124,58,237,.3);border-radius:8px;padding:12px;color:var(--text);font-size:1rem;font-family:'Noto Serif KR',serif;line-height:1.8;width:100%;outline:none;resize:vertical;transition:border-color .2s;min-height:80px;font-weight:500;}
 .edit-box:focus{border-color:var(--gold);}
 .prompt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 @media(max-width:580px){.prompt-grid{grid-template-columns:1fr;}}
@@ -632,7 +632,7 @@ function renderStudentInput(){
       </button>
     </div>
     ${isReading?`<div style="margin-bottom:16px"><span class="expert-badge" style="background:rgba(93,173,226,0.18);border-color:rgba(93,173,226,0.35);color:var(--blue)">📖 음악낭독극</span>
-      <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">해설자를 포함한 소수 인원이 짧은 장면을 낭독하고 마지막에 다 함께 노래하는 형식이에요. 배역표·장면별 표현 메모·노래 구성·무대 동선·최종 점검까지 학습지 형태로 만들어져요.</p></div>`:''}
+      <p style="font-size:.85rem;color:#3a3050;margin-top:8px;line-height:1.7;font-weight:500">해설자를 포함한 소수 인원이 짧은 장면을 낭독하고 마지막에 다 함께 노래하는 형식이에요. 배역표·장면별 표현 메모·노래 구성·무대 동선·최종 점검까지 학습지 형태로 만들어져요.</p></div>`:''}
     ${!isReading?`<div class="mode-tabs" style="margin-top:-4px">
       <button class="mode-tab ${!expertMode?'on':''}" onclick="setMode(false)">
         <div class="mt-title">🎈 일반 모드</div><div class="mt-sub">누구나 쉽게</div>
@@ -661,9 +661,9 @@ function renderStudentInput(){
             <div class="c-val" id="cast-v">${castCount}</div>
             <button class="c-btn" onclick="changeCast(1)">+</button>
           </div><span style="font-size:.8rem;color:var(--sub)">명</span></div>
-        <div style="font-size:.68rem;color:rgba(45,36,56,.35);margin-top:6px">AI가 이름·역할 자동 창작</div></div>
+        <div style="font-size:.75rem;color:rgba(23,15,34,.55);margin-top:6px;font-weight:500">AI가 이름·역할 자동 창작</div></div>
       <div>${isReading?`<div class="edit-label">공연 형식</div>
-        <div style="font-size:.78rem;color:var(--sub);padding:12px;background:#faf8ff;border-radius:8px;border:1px solid rgba(124,58,237,.1)">여러 개의 짧은 장면(낭독) + 노래 1곡</div>`:`<div class="edit-label">막 수 *</div>
+        <div style="font-size:.85rem;color:#3a3050;font-weight:600;padding:12px;background:#f3ecff;border-radius:8px;border:2px solid rgba(124,58,237,.25)">여러 개의 짧은 장면(낭독) + 노래 1곡</div>`:`<div class="edit-label">막 수 *</div>
         <div class="act-btns">${DURATIONS.map(d=>`<button class="act-btn ${actCount===d.id?'on':''}" onclick="selAct(this,${d.id})">${d.label}</button>`).join('')}</div>`}</div>
     </div>
     <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
