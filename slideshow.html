@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EAIM 슬라이드쇼</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;color:#fff;width:100vw;height:100vh;overflow:hidden}
@@ -217,6 +219,17 @@ select.bubble-ctrl-btn{padding:5px 8px}
   border:6px solid transparent;border-top-color:rgba(255,255,255,.96);border-bottom:none;
 }
 #hover-tooltip.show{opacity:1;transform:translateY(0) scale(1)}
+#ppt-progress{position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#ppt-progress.show{display:flex}
+.ppt-spinner{width:48px;height:48px;border:4px solid rgba(93,173,226,.25);border-top:4px solid #5DADE2;border-radius:50%;animation:spin 1s linear infinite}
+#ppt-progress-text{font-size:14px;color:#fff;letter-spacing:1px}
+#dialogue-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);border-radius:30px;padding:8px 10px 8px 16px;border:1px solid rgba(255,255,255,.12);z-index:150}
+#dialogue-bar.show{display:flex}
+#dialogue-progress{font-size:11px;color:rgba(255,255,255,.55);letter-spacing:1px;min-width:52px;text-align:center}
+.dlg-btn{background:rgba(93,173,226,.18);border:1px solid rgba(93,173,226,.4);color:#5DADE2;border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
+.dlg-btn:disabled{opacity:.3;cursor:default}
+.dlg-btn.reset{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:6px 10px}
+.auto-dialogue-bubble{transition:opacity .25s ease}
 </style>
 </head>
 <body>
@@ -243,6 +256,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="signal-indicator">🚦 <span id="signal-text">음향 신호 발신 중</span></div>
 <div id="rec-indicator"><div class="rec-dot"></div><span id="rec-text">녹화 중... 0:00</span></div>
 <div id="blackout"><div id="blackout-text"></div></div>
+<div id="ppt-progress"><div class="ppt-spinner"></div><div id="ppt-progress-text">PPT 생성 준비 중...</div></div>
 
 <div id="hover-tooltip"></div>
 
@@ -330,11 +344,19 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-prev" data-tip="이전 장면으로 이동해요">◀</button>
   <div class="dot-nav" id="dot-nav"></div>
   <button class="ctrl-btn" id="btn-next" data-tip="다음 장면으로 이동해요">▶</button>
-  <button class="ctrl-btn" id="btn-auto" data-tip="7초마다 자동으로 다음 장면 넘어가요">⏵</button>
+  <button class="ctrl-btn" id="btn-auto" data-tip="⚠️ 7초마다 자동으로 넘어가요 (미리보기용 — 실제 공연 중엔 ▶ 버튼으로 직접 넘기세요)">🔁</button>
   <button class="ctrl-btn" id="btn-bubble" data-tip="말풍선 대사를 추가해요" onclick="toggleBubblePanel()">💬</button>
   <button class="ctrl-btn" id="btn-char" data-tip="캐릭터 이미지를 무대에 올려요" onclick="toggleCharPanel()">🎭</button>
   <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()" title="화면 녹화">⏺</button>
   <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()" title="배경 효과">🎆</button>
+  <button class="ctrl-btn" id="btn-ppt" data-tip="지금 무대(효과·캐릭터·말풍선 포함)를 PPT 파일로 저장해요" onclick="downloadPPTX()" title="PPT 다운로드">📊</button>
+  <button class="ctrl-btn" id="btn-dlg-toggle" data-tip="이 장면의 대사를 한 줄씩 순서대로 말풍선으로 보여줘요" onclick="toggleDialogueBar()" title="대사 진행">🗨</button>
+</div>
+<div id="dialogue-bar">
+  <button class="dlg-btn reset" data-tip="이 장면의 대사를 처음부터 다시 시작해요" onclick="resetDialogue()">⟲</button>
+  <button class="dlg-btn" id="dlg-prev" data-tip="이전 대사로 돌아가요" onclick="prevDialogueLine()">◀ 이전 대사</button>
+  <span id="dialogue-progress">0 / 0</span>
+  <button class="dlg-btn" id="dlg-next" data-tip="다음 대사를 말풍선으로 보여줘요" onclick="nextDialogueLine()">다음 대사 ▶</button>
 </div>
 <div id="key-hint">← → 키보드 | ESC 종료</div>
 <button id="back-btn" onclick="goBack()">↩ 처음으로</button>
@@ -741,6 +763,10 @@ function doShowSlide(idx) {
       const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
       lines.forEach((_,i)=>{ const ll=document.getElementById(`ll-${si}-${i}`);if(ll)ll.style.opacity='1'; });
     },350);
+    initDialogueForScene(si);
+  } else {
+    dialogueLines=[]; dialogueIndex=-1;
+    document.getElementById('dialogue-bar').classList.remove('show');
   }
   if (idx===TOTAL+1) {
     document.getElementById('controls').style.display='none';
@@ -799,10 +825,13 @@ function updateControls() {
 function goBack() { window.location.href='index.html'; }
 function toggleAuto() {
   autoPlay=!autoPlay;
-  document.getElementById('btn-auto').textContent=autoPlay?'⏸':'⏵';
+  document.getElementById('btn-auto').textContent=autoPlay?'⏸':'🔁';
   document.getElementById('btn-auto').style.color=autoPlay?'#5DADE2':'rgba(255,255,255,.8)';
   clearInterval(autoTimer);
-  if(autoPlay){ autoTimer=setInterval(()=>{ if(current>=TOTAL){autoPlay=false;clearInterval(autoTimer);return;} showSlide(current+1); },7000); }
+  if(autoPlay){
+    showToast('🔁 자동재생 ON — 7초마다 넘어가요 (미리보기용, 실제 공연 중엔 ▶ 버튼을 직접 눌러 넘기는 걸 추천해요)');
+    autoTimer=setInterval(()=>{ if(current>=TOTAL){autoPlay=false;clearInterval(autoTimer);document.getElementById('btn-auto').textContent='🔁';document.getElementById('btn-auto').style.color='rgba(255,255,255,.8)';return;} showSlide(current+1); },7000);
+  }
 }
 document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight'||e.key===' '){ if(current<TOTAL+1)showSlide(current+1); }
@@ -836,6 +865,87 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();nextLyricLine(si);}
 });
 let bubblePanelOpen=false;
+// ══════════════════════════
+// 🗨 대사 진행 — 뮤지컬메이커가 생성한 대본(script)을 한 줄씩 순서대로 말풍선으로 표시
+// ══════════════════════════
+let dialogueLines=[], dialogueIndex=-1, dialogueSceneIdx=-1;
+const DIALOGUE_POSITIONS=[
+  {left:'8%', top:'64%', tail:'tail-left'},
+  {left:'30%',top:'40%', tail:'tail-left'},
+  {left:'54%',top:'40%', tail:'tail-right'},
+  {left:'74%',top:'64%', tail:'tail-right'},
+];
+function parseDialogue(scriptText){
+  if(!scriptText) return [];
+  const out=[];
+  const speakerPos={};
+  scriptText.split('\n').forEach(raw=>{
+    const line=raw.trim();
+    if(!line || line.startsWith('[') || line.startsWith('(')) return;
+    const m=line.match(/^([^:：]{1,14})[:：]\s*(.+)$/);
+    if(!m) return;
+    const speaker=m[1].trim(), text=m[2].trim();
+    if(!text) return;
+    if(!(speaker in speakerPos)) speakerPos[speaker]=Object.keys(speakerPos).length % DIALOGUE_POSITIONS.length;
+    out.push({speaker, text, posIdx:speakerPos[speaker]});
+  });
+  return out;
+}
+function initDialogueForScene(si){
+  dialogueSceneIdx=si;
+  dialogueLines=parseDialogue(SCENES[si]?.script||'');
+  dialogueIndex=-1;
+  clearAutoDialogueBubble();
+  const bar=document.getElementById('dialogue-bar');
+  const toggleBtn=document.getElementById('btn-dlg-toggle');
+  if(dialogueLines.length){
+    toggleBtn.style.opacity='1'; toggleBtn.disabled=false;
+  } else {
+    bar.classList.remove('show');
+    toggleBtn.style.opacity='.3';
+  }
+  updateDialogueProgress();
+}
+function toggleDialogueBar(){
+  if(!dialogueLines.length){ showToast('⚠️ 이 장면에는 대본 대사가 없어요'); return; }
+  const bar=document.getElementById('dialogue-bar');
+  bar.classList.toggle('show');
+  document.getElementById('btn-dlg-toggle').style.color=bar.classList.contains('show')?'#5DADE2':'rgba(255,255,255,.8)';
+}
+function clearAutoDialogueBubble(){
+  const slide=getCurrentSlideEl();
+  if(slide) slide.querySelectorAll('.auto-dialogue-bubble').forEach(b=>b.remove());
+}
+function renderDialogueLine(){
+  clearAutoDialogueBubble();
+  updateDialogueProgress();
+  if(dialogueIndex<0 || dialogueIndex>=dialogueLines.length) return;
+  const line=dialogueLines[dialogueIndex];
+  const pos=DIALOGUE_POSITIONS[line.posIdx];
+  const slide=getCurrentSlideEl(); if(!slide) return;
+  const bubble=document.createElement('div');
+  bubble.className=`speech-bubble ${pos.tail} auto-dialogue-bubble`;
+  bubble.style.left=pos.left; bubble.style.top=pos.top;
+  bubble.innerHTML=`<div class="bubble-name">${line.speaker}</div><span>${line.text}</span>`;
+  slide.appendChild(bubble);
+}
+function nextDialogueLine(){
+  if(dialogueIndex>=dialogueLines.length-1){ showToast('마지막 대사예요'); return; }
+  dialogueIndex++; renderDialogueLine();
+}
+function prevDialogueLine(){
+  if(dialogueIndex<=0){ dialogueIndex=-1; clearAutoDialogueBubble(); updateDialogueProgress(); return; }
+  dialogueIndex--; renderDialogueLine();
+}
+function resetDialogue(){ dialogueIndex=-1; clearAutoDialogueBubble(); updateDialogueProgress(); }
+function updateDialogueProgress(){
+  const el=document.getElementById('dialogue-progress'); if(!el) return;
+  el.textContent=`${dialogueIndex+1} / ${dialogueLines.length}`;
+  const prevBtn=document.getElementById('dlg-prev'), nextBtn=document.getElementById('dlg-next');
+  if(prevBtn) prevBtn.disabled=dialogueIndex<0;
+  if(nextBtn) nextBtn.disabled=dialogueLines.length===0 || dialogueIndex>=dialogueLines.length-1;
+}
+
 function toggleBubblePanel(){
   bubblePanelOpen=!bubblePanelOpen;
   document.getElementById('bubble-panel').classList.toggle('show',bubblePanelOpen);
@@ -1004,6 +1114,91 @@ function clearEffects(){
   activeEffects.clear();
   document.getElementById('fx-overlay').innerHTML='';
   document.querySelectorAll('.fx-effect-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// ══════════════════════════
+// 📊 PPT 다운로드 — 현재 상태(효과·캐릭터·말풍선 포함)를 슬라이드별로 캡처
+// ══════════════════════════
+function doShowSlideInstant(idx){
+  const old=getSlideEl(current);
+  if (old) old.className=old.className.replace('visible','hidden');
+  current=idx;
+  const el=getSlideEl(idx); if (!el) return;
+  el.className=el.className.replace('hidden','visible');
+  if (idx>=1&&idx<=TOTAL) {
+    const si=idx-1;
+    const mc=document.getElementById(`mc-${si}`),lp=document.getElementById(`lp-${si}`);
+    if(mc){mc.classList.remove('hidden');mc.classList.add('visible');}
+    if(lp){lp.classList.remove('hidden');lp.classList.add('visible');}
+    const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
+    lines.forEach((_,li)=>{ const ll=document.getElementById(`ll-${si}-${li}`);if(ll)ll.style.opacity='1'; });
+  }
+  if (idx===TOTAL+1) {
+    const cp=document.getElementById('curtain-phase'),cr=document.getElementById('credits-phase');
+    if(cp){ cp.style.opacity='1'; cp.style.pointerEvents='auto'; }
+    if(cr){ cr.style.opacity='0'; cr.style.pointerEvents='none'; }
+    const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
+    lyricLines.forEach((_,li)=>{ const el=document.getElementById(`cl-${li}`); if(el) el.style.opacity='1'; });
+  }
+  mouseX=0; mouseY=0;
+}
+
+async function downloadPPTX(){
+  if (typeof html2canvas === 'undefined' || typeof PptxGenJS === 'undefined') {
+    showToast('⚠️ PPT 도구를 불러오지 못했어요. 인터넷 연결을 확인해주세요');
+    return;
+  }
+  const progressEl=document.getElementById('ppt-progress'), progressText=document.getElementById('ppt-progress-text');
+  const wasAuto=autoPlay; if(wasAuto) toggleAuto();
+  const startSlide=current;
+
+  document.getElementById('controls').style.display='none';
+  document.getElementById('key-hint').style.display='none';
+  document.getElementById('back-btn').style.display='none';
+  document.getElementById('api-status').style.display='none';
+  document.getElementById('signal-indicator').style.display='none';
+  ['char-panel','char-anim-panel','bubble-panel','fx-panel'].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove('show','open');});
+  progressEl.classList.add('show');
+  progressText.textContent='PPT 생성 준비 중...';
+
+  try{
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({ name:'EAIM', width:13.333, height:7.5 });
+    pptx.layout='EAIM';
+
+    const total = TOTAL+2; // 커버 + 각 장면 + 커튼콜
+    for(let i=0;i<total;i++){
+      doShowSlideInstant(i);
+      await new Promise(r=>setTimeout(r,400));
+      progressText.textContent=`슬라이드 캡처 중... (${i+1}/${total})`;
+      try{
+        const canvas = await html2canvas(document.body, {
+          backgroundColor:'#0D1B2A', useCORS:true, allowTaint:true,
+          scale:1, width:window.innerWidth, height:window.innerHeight
+        });
+        const imgData = canvas.toDataURL('image/jpeg', 0.88);
+        const slide = pptx.addSlide();
+        slide.background = { color:'0D1B2A' };
+        slide.addImage({ data:imgData, x:0, y:0, w:13.333, h:7.5 });
+      }catch(e){
+        console.warn('슬라이드 캡처 실패', i, e);
+      }
+    }
+
+    progressText.textContent='PPT 파일 저장 중...';
+    await pptx.writeFile({ fileName:`${SHOW_TITLE}_EAIM.pptx` });
+    showToast('✅ PPT 다운로드 완료!');
+  }catch(e){
+    console.error(e);
+    showToast('❌ PPT 생성 중 오류가 발생했어요: '+e.message);
+  }finally{
+    progressEl.classList.remove('show');
+    document.getElementById('controls').style.display='flex';
+    document.getElementById('key-hint').style.display='block';
+    document.getElementById('api-status').style.display='flex';
+    doShowSlideInstant(startSlide);
+    updateControls();
+  }
 }
 
 // ══════════════════════════

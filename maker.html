@@ -9,165 +9,166 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.2.3/build/index.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#0a0810;--gold:#d4a843;--gold2:#f0c96a;
+  --bg:#fdfbf6;--gold:#b8862a;--gold2:#e0ac45;
   --purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;
-  --green:#52c27a;--red:#ef4444;
-  --text:#f0e8ff;--sub:#9a8aaa;
-  --border:rgba(212,168,67,0.15);--card:rgba(255,255,255,0.04);
+  --green:#52c27a;--red:#e0453f;
+  --text:#2d2438;--sub:#7a6f8a;
+  --border:rgba(124,58,237,0.12);--card:#ffffff;
 }
 body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);min-height:100vh;
-  background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,0.15) 0%,transparent 50%),
-  radial-gradient(ellipse at 80% 100%,rgba(93,173,226,0.1) 0%,transparent 50%);}
+  background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,0.06) 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 100%,rgba(93,173,226,0.06) 0%,transparent 50%);}
 .login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
-.login-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;}
-.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;text-shadow:0 0 30px rgba(212,168,67,0.4);}
+.login-box{background:#fff;border:1px solid rgba(124,58,237,0.12);border-radius:20px;padding:36px 28px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(124,58,237,0.06);}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:700;color:var(--gold);text-align:center;margin-bottom:4px;}
 .login-sub{font-size:0.68rem;color:var(--sub);text-align:center;letter-spacing:0.25em;margin-bottom:28px;}
 .field-label{font-size:0.7rem;color:var(--sub);margin-bottom:6px;letter-spacing:.1em;}
-.t-input{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:0.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;}
-.t-input:focus{border-color:var(--gold);}
-.t-input::placeholder{color:rgba(255,255,255,0.2);}
+.t-input{background:#faf8ff;border:1px solid rgba(124,58,237,0.15);color:var(--text);border-radius:10px;width:100%;padding:12px 14px;font-size:0.9rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:10px;}
+.t-input:focus{border-color:var(--purple);}
+.t-input::placeholder{color:rgba(45,36,56,0.28);}
 .main-btn{background:linear-gradient(135deg,#d4a843,#e8a020);color:#000;border:none;border-radius:12px;font-weight:900;font-size:1rem;padding:15px;width:100%;cursor:pointer;transition:all .2s;font-family:inherit;margin-top:4px;}
-.main-btn:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(212,168,67,0.4);}
+.main-btn:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(201,150,46,0.3);}
 .main-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
-.err-msg{font-size:.72rem;color:#fca5a5;margin-bottom:8px;min-height:18px;}
-.notice-box{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;}
-.app-header{background:linear-gradient(180deg,#3d0a14 0%,#5c1121 60%,transparent 100%);border-bottom:2px solid var(--gold);padding:14px 20px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+.err-msg{font-size:.72rem;color:#c0392b;margin-bottom:8px;min-height:18px;}
+.notice-box{background:rgba(224,69,63,0.06);border:1px solid rgba(224,69,63,0.2);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;}
+.app-header{background:linear-gradient(180deg,#fff9ec 0%,#fff3d9 60%,#fff 100%);border-bottom:2px solid var(--gold);padding:14px 20px;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
 .header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .logo-t{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;color:var(--gold);}
 .header-right{display:flex;align-items:center;gap:10px;}
 .mode-badge{font-size:.6rem;padding:3px 10px;border-radius:10px;font-weight:700;letter-spacing:.1em;}
-.badge-teacher{background:rgba(212,168,67,0.2);color:var(--gold);border:1px solid rgba(212,168,67,0.4);}
-.badge-student{background:rgba(82,194,122,0.2);color:#86efac;border:1px solid rgba(82,194,122,0.4);}
-.logout-btn{font-size:.62rem;color:rgba(255,255,255,.3);background:none;border:none;cursor:pointer;}
-.tab-bar{display:flex;background:rgba(0,0,0,0.4);border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:58px;z-index:90;}
-.tab-btn{flex:1;padding:11px 4px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(255,255,255,.35);font-family:inherit;transition:all .2s;border-bottom:2px solid transparent;}
+.badge-teacher{background:rgba(184,134,42,0.12);color:var(--gold);border:1px solid rgba(184,134,42,0.35);}
+.badge-student{background:rgba(82,194,122,0.12);color:#2e7d4f;border:1px solid rgba(82,194,122,0.4);}
+.logout-btn{font-size:.62rem;color:rgba(45,36,56,.4);background:none;border:none;cursor:pointer;}
+.tab-bar{display:flex;background:rgba(124,58,237,0.03);border-bottom:1px solid rgba(124,58,237,.08);position:sticky;top:58px;z-index:90;}
+.tab-btn{flex:1;padding:11px 4px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:none;color:rgba(45,36,56,.4);font-family:inherit;transition:all .2s;border-bottom:2px solid transparent;}
 .tab-btn.on{color:var(--gold);border-bottom-color:var(--gold);}
-.badge-count{background:rgba(212,168,67,0.2);color:var(--gold);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
+.badge-count{background:rgba(184,134,42,0.12);color:var(--gold);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
 main{max-width:900px;margin:0 auto;padding:24px 16px 80px;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px;box-shadow:0 1px 3px rgba(45,36,56,.04);}
 .card-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:700;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.api-badge{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(212,168,67,0.2);border-radius:10px;padding:10px 14px;}
+.api-badge{display:flex;align-items:center;gap:8px;background:#faf8ff;border:1px solid rgba(184,134,42,0.2);border-radius:10px;padding:10px 14px;}
 .api-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .dot-on{background:var(--green);box-shadow:0 0 6px var(--green);}
-.dot-off{background:rgba(255,255,255,.2);}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(0,0,0,0.25);border-radius:10px;border:1px solid rgba(255,255,255,.08);}
-.toggle-track{width:50px;height:26px;border-radius:13px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+.dot-off{background:rgba(45,36,56,.15);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#faf8ff;border-radius:10px;border:1px solid rgba(124,58,237,.08);}
+.toggle-track{width:50px;height:26px;border-radius:13px;background:rgba(45,36,56,.12);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
 .toggle-track.on{background:rgba(82,194,122,0.5);border:1px solid var(--green);}
-.toggle-thumb{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.4);position:absolute;top:3px;left:3px;transition:all .3s;}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(45,36,56,.2);position:absolute;top:3px;left:3px;transition:all .3s;}
 .toggle-track.on .toggle-thumb{left:27px;background:var(--green);box-shadow:0 0 6px var(--green);}
-.genre-step{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:8px;}
+.genre-step{background:#faf8ff;border:1px solid rgba(124,58,237,.08);border-radius:10px;padding:14px;margin-bottom:8px;}
 .genre-step-lbl{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .step-badge{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;}
-.sb1{background:rgba(212,168,67,0.25);color:var(--gold);}
-.sb2{background:rgba(199,120,221,0.25);color:var(--pink);}
+.sb1{background:rgba(184,134,42,0.15);color:var(--gold);}
+.sb2{background:rgba(199,120,221,0.18);color:#a83fb0;}
 .genre-tags{display:flex;flex-wrap:wrap;gap:7px;}
-.gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--sub);transition:all .2s;user-select:none;}
+.gtag{padding:7px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;user-select:none;}
 .gtag:hover{border-color:var(--gold);color:var(--gold);}
-.gtag.on-bg{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
-.gtag.on-mood{background:rgba(199,120,221,0.15);border-color:var(--pink);color:var(--pink);font-weight:700;}
-.genre-summary{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:8px;font-size:.78rem;color:var(--green);}
+.gtag.on-bg{background:rgba(184,134,42,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.gtag.on-mood{background:rgba(199,120,221,0.18);border-color:#a83fb0;color:#a83fb0;font-weight:700;}
+.genre-summary{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:8px;font-size:.78rem;color:#2e7d4f;}
 .genre-summary.show{display:flex;}
-.counter-wrap{display:flex;align-items:center;gap:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;overflow:hidden;width:fit-content;}
-.c-btn{width:44px;height:46px;border:none;cursor:pointer;background:rgba(255,255,255,.06);color:var(--text);font-size:1.3rem;font-family:inherit;transition:background .2s;display:flex;align-items:center;justify-content:center;}
-.c-btn:hover{background:rgba(212,168,67,0.2);color:var(--gold);}
-.c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:1px solid rgba(255,255,255,.08);border-right:1px solid rgba(255,255,255,.08);line-height:46px;}
+.counter-wrap{display:flex;align-items:center;gap:0;background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:10px;overflow:hidden;width:fit-content;}
+.c-btn{width:44px;height:46px;border:none;cursor:pointer;background:transparent;color:var(--text);font-size:1.3rem;font-family:inherit;transition:background .2s;display:flex;align-items:center;justify-content:center;}
+.c-btn:hover{background:rgba(184,134,42,0.12);color:var(--gold);}
+.c-val{min-width:70px;text-align:center;font-size:1.6rem;font-weight:700;color:var(--gold);font-family:'Cormorant Garamond',serif;border-left:1px solid rgba(124,58,237,.1);border-right:1px solid rgba(124,58,237,.1);line-height:46px;}
 .act-btns{display:flex;gap:8px;}
-.act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.85rem;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--sub);transition:all .2s;font-family:inherit;}
-.act-btn.on{background:rgba(212,168,67,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
-.gen-btn{width:100%;padding:17px;border-radius:12px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 30px rgba(124,58,237,0.4);transition:all .3s;margin-top:8px;}
-.gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(124,58,237,0.5);}
+.act-btn{flex:1;padding:10px;border-radius:8px;cursor:pointer;text-align:center;font-size:.85rem;border:1px solid rgba(124,58,237,.12);background:#faf8ff;color:var(--sub);transition:all .2s;font-family:inherit;}
+.act-btn.on{background:rgba(184,134,42,0.15);border-color:var(--gold);color:var(--gold);font-weight:700;}
+.gen-btn{width:100%;padding:17px;border-radius:12px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;letter-spacing:.05em;box-shadow:0 4px 20px rgba(124,58,237,0.25);transition:all .3s;margin-top:8px;}
+.gen-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,58,237,0.35);}
 .gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.prog-card{background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);border-radius:14px;padding:28px;text-align:center;display:none;}
+.prog-card{background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.15);border-radius:14px;padding:28px;text-align:center;display:none;}
 .prog-card.show{display:block;}
 .prog-steps{display:flex;flex-direction:column;gap:10px;max-width:400px;margin:16px auto;}
-.prog-step{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;background:rgba(255,255,255,.04);font-size:.85rem;color:var(--sub);transition:all .4s;}
-.prog-step.active{background:rgba(212,168,67,0.1);color:var(--gold);border:1px solid rgba(212,168,67,0.2);}
-.prog-step.done{background:rgba(82,194,122,0.08);color:var(--green);}
+.prog-step{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;background:#faf8ff;font-size:.85rem;color:var(--sub);transition:all .4s;}
+.prog-step.active{background:rgba(184,134,42,0.1);color:var(--gold);border:1px solid rgba(184,134,42,0.25);}
+.prog-step.done{background:rgba(82,194,122,0.08);color:#2e7d4f;}
 .sicon{font-size:1rem;width:22px;text-align:center;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .result-wrap{display:none;}
 .result-wrap.show{display:block;}
 .r-header{text-align:center;padding:20px 0 16px;}
-.r-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--gold);text-shadow:0 0 20px rgba(212,168,67,0.3);}
+.r-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;color:var(--gold);}
 .r-sub{font-size:.75rem;color:var(--sub);letter-spacing:.15em;margin-top:6px;}
-.scene-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;}
+.scene-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(45,36,56,.04);}
 .scene-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;transition:background .2s;border-bottom:1px solid transparent;}
-.scene-header:hover{background:rgba(255,255,255,.03);}
-.scene-header.open{border-bottom-color:rgba(255,255,255,.07);}
+.scene-header:hover{background:rgba(124,58,237,.03);}
+.scene-header.open{border-bottom-color:rgba(124,58,237,.08);}
 .scene-tag{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border-radius:10px;font-weight:700;}
-.tag-opening{background:rgba(212,168,67,0.15);color:var(--gold);border:1px solid rgba(212,168,67,0.3);}
-.tag-scene{background:rgba(93,173,226,0.15);color:var(--blue);border:1px solid rgba(93,173,226,0.3);}
-.tag-curtain{background:rgba(199,120,221,0.15);color:var(--pink);border:1px solid rgba(199,120,221,0.3);}
+.tag-opening{background:rgba(184,134,42,0.12);color:var(--gold);border:1px solid rgba(184,134,42,0.3);}
+.tag-scene{background:rgba(93,173,226,0.12);color:#2f7ab8;border:1px solid rgba(93,173,226,0.3);}
+.tag-curtain{background:rgba(199,120,221,0.12);color:#a83fb0;border:1px solid rgba(199,120,221,0.3);}
 .scene-body{padding:18px;}
 .edit-label{font-size:.68rem;color:var(--sub);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px;margin-top:14px;}
 .edit-label:first-child{margin-top:0;}
-.edit-box{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;color:var(--text);font-size:.88rem;font-family:'Noto Serif KR',serif;line-height:1.8;width:100%;outline:none;resize:vertical;transition:border-color .2s;min-height:80px;}
+.edit-box{background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:8px;padding:12px;color:var(--text);font-size:.88rem;font-family:'Noto Serif KR',serif;line-height:1.8;width:100%;outline:none;resize:vertical;transition:border-color .2s;min-height:80px;}
 .edit-box:focus{border-color:var(--gold);}
 .prompt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
 @media(max-width:580px){.prompt-grid{grid-template-columns:1fr;}}
-.prompt-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px 12px;}
-.prompt-label{font-size:.65rem;color:var(--pink);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
+.prompt-box{background:#faf8ff;border:1px solid rgba(124,58,237,.10);border-radius:8px;padding:10px 12px;}
+.prompt-label{font-size:.65rem;color:#a83fb0;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;}
 .prompt-text{font-size:.75rem;color:var(--sub);line-height:1.6;font-family:monospace;width:100%;background:none;border:none;outline:none;resize:none;}
 .save-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(82,194,122,0.06);border:1px solid rgba(82,194,122,.2);border-radius:10px;margin-bottom:14px;font-size:.75rem;}
-.save-status{display:flex;align-items:center;gap:6px;color:var(--green);}
+.save-status{display:flex;align-items:center;gap:6px;color:#2e7d4f;}
 .save-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
-.btn-sec{padding:13px 18px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--sub);font-size:.88rem;font-family:inherit;transition:all .2s;}
-.btn-sec:hover{background:rgba(255,255,255,.12);color:var(--text);}
-.btn-regen{padding:13px 18px;border-radius:10px;cursor:pointer;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.3);color:var(--pink);font-size:.88rem;font-family:inherit;}
-.btn-slide{flex:2;padding:15px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-weight:800;font-size:1rem;font-family:inherit;box-shadow:0 4px 24px rgba(199,120,221,0.35);}
-.btn-dl{flex:1;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--blue),#1B4F72);color:#fff;font-weight:700;font-size:.88rem;font-family:inherit;}
-.work-card{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;}
-.work-card:hover{border-color:rgba(212,168,67,.25);}
+.btn-sec{padding:13px 18px;border-radius:10px;cursor:pointer;background:#faf8ff;border:1px solid rgba(124,58,237,.15);color:var(--sub);font-size:.88rem;font-family:inherit;transition:all .2s;}
+.btn-sec:hover{background:rgba(124,58,237,.06);color:var(--text);}
+.btn-regen{padding:13px 18px;border-radius:10px;cursor:pointer;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.25);color:#a83fb0;font-size:.88rem;font-family:inherit;}
+.btn-slide{flex:2;padding:15px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;font-weight:800;font-size:1rem;font-family:inherit;box-shadow:0 4px 20px rgba(199,120,221,0.25);}
+.btn-dl{flex:1;padding:13px;border-radius:10px;cursor:pointer;border:none;background:linear-gradient(135deg,var(--blue),#2f6a9c);color:#fff;font-weight:700;font-size:.88rem;font-family:inherit;}
+.work-card{background:#faf8ff;border:1px solid rgba(124,58,237,.10);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .2s;}
+.work-card:hover{border-color:rgba(184,134,42,.3);}
 .work-card.approved{border-left:3px solid var(--green);}
 .w-title{font-weight:700;font-size:.95rem;color:var(--gold);}
-.w-meta{font-size:.68rem;color:rgba(255,255,255,.3);margin-top:3px;}
+.w-meta{font-size:.68rem;color:rgba(45,36,56,.4);margin-top:3px;}
 .w-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
-.w-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);font-family:inherit;transition:all .2s;}
-.w-btn:hover{background:rgba(255,255,255,.12);color:var(--text);}
-.w-btn.approve-on{border-color:var(--green);color:var(--green);}
-.w-btn.danger{border-color:rgba(239,68,68,.3);color:#fca5a5;background:rgba(239,68,68,.08);}
-.w-preview{margin-top:10px;padding:12px;background:rgba(0,0,0,.3);border-radius:8px;font-size:.78rem;color:rgba(255,255,255,.55);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Noto Serif KR',serif;display:none;}
+.w-btn{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:6px;font-size:.72rem;cursor:pointer;border:1px solid rgba(124,58,237,.12);background:#fff;color:rgba(45,36,56,.55);font-family:inherit;transition:all .2s;}
+.w-btn:hover{background:rgba(124,58,237,.06);color:var(--text);}
+.w-btn.approve-on{border-color:var(--green);color:#2e7d4f;}
+.w-btn.danger{border-color:rgba(224,69,63,.3);color:#c0392b;background:rgba(224,69,63,.06);}
+.w-preview{margin-top:10px;padding:12px;background:#faf8ff;border-radius:8px;font-size:.78rem;color:rgba(45,36,56,.6);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:'Noto Serif KR',serif;display:none;}
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:rgba(212,168,67,.25);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:rgba(184,134,42,.25);border-radius:2px;}
 .fade-in{animation:fadeIn .35s ease-out;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.9);color:#000;display:none;pointer-events:none;}
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:.82rem;background:rgba(82,194,122,0.95);color:#fff;display:none;pointer-events:none;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:580px){.row2{grid-template-columns:1fr;}}
 
 /* ══ 교사 구글 로그인 / 학생 반모둠 입장 / 대시보드 추가 스타일 ══ */
-.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:none;border-radius:12px;font-weight:700;font-size:.95rem;padding:14px;width:100%;cursor:pointer;font-family:inherit;}
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid rgba(45,36,56,.15);border-radius:12px;font-weight:700;font-size:.95rem;padding:14px;width:100%;cursor:pointer;font-family:inherit;}
 .google-icon{width:20px;height:20px;flex-shrink:0;}
-.teacher-chip{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:16px;text-align:left;}
+.teacher-chip{display:flex;align-items:center;gap:8px;background:#faf8ff;border:1px solid rgba(124,58,237,.08);border-radius:10px;padding:8px 12px;margin-bottom:16px;text-align:left;}
 .teacher-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
-.invite-box{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;font-size:.7rem;color:rgba(255,255,255,.55);word-break:break-all;font-family:monospace;margin-top:8px;text-align:left;}
-.invite-qr-box{background:#fff;border-radius:10px;padding:14px;display:inline-block;margin-top:12px;text-align:center;}
-.invite-qr-caption{font-size:.62rem;color:rgba(255,255,255,.35);margin-top:6px;letter-spacing:.05em;}
-.locked-notice{background:rgba(239,68,68,0.08);border:1.5px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;font-size:.82rem;color:#fca5a5;}
+.invite-box{background:#faf8ff;border:1px solid rgba(124,58,237,.12);border-radius:10px;padding:12px;font-size:.7rem;color:rgba(45,36,56,.6);word-break:break-all;font-family:monospace;margin-top:8px;text-align:left;}
+.invite-qr-box{background:#fff;border:1px solid rgba(124,58,237,.1);border-radius:10px;padding:14px;display:inline-block;margin-top:12px;text-align:center;}
+.invite-qr-caption{font-size:.62rem;color:rgba(45,36,56,.4);margin-top:6px;letter-spacing:.05em;}
+.locked-notice{background:rgba(224,69,63,0.06);border:1.5px solid rgba(224,69,63,0.25);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;font-size:.82rem;color:#c0392b;}
 .no-teacher-wrap,.loading-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--sub);}
-.group-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.82rem;color:rgba(255,255,255,.7);text-align:left;}
-.group-del{background:none;border:none;color:#fca5a5;cursor:pointer;font-size:.75rem;}
-.hub-link{font-size:.7rem;color:rgba(255,255,255,.25);text-decoration:none;padding:4px 8px;border:1px solid rgba(255,255,255,.1);border-radius:6px;}
-.group-invite-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
-.group-invite-box{background:#12101a;border:1px solid var(--border);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center;}
+.group-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(124,58,237,.08);font-size:.82rem;color:rgba(45,36,56,.7);text-align:left;}
+.group-del{background:none;border:none;color:#c0392b;cursor:pointer;font-size:.75rem;}
+.hub-link{font-size:.7rem;color:rgba(45,36,56,.4);text-decoration:none;padding:4px 8px;border:1px solid rgba(124,58,237,.12);border-radius:6px;}
+.group-invite-overlay{position:fixed;inset:0;background:rgba(45,36,56,.35);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;}
+.group-invite-box{background:#fff;border:1px solid rgba(124,58,237,.15);border-radius:16px;padding:28px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(45,36,56,.15);}
 .group-invite-title{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:14px;font-weight:700;}
-.group-lock-badge{font-size:.72rem;color:#86efac;background:rgba(82,194,122,0.08);border:1px solid rgba(82,194,122,.25);border-radius:8px;padding:8px 10px;margin-bottom:10px;text-align:left;}
+.group-lock-badge{font-size:.72rem;color:#2e7d4f;background:rgba(82,194,122,0.08);border:1px solid rgba(82,194,122,.25);border-radius:8px;padding:8px 10px;margin-bottom:10px;text-align:left;}
 
 /* ══ 전문가 과정 ══ */
-.mode-tabs{display:flex;background:rgba(0,0,0,0.3);border-radius:12px;padding:5px;margin-bottom:18px;gap:5px;}
+.mode-tabs{display:flex;background:rgba(124,58,237,0.04);border-radius:12px;padding:5px;margin-bottom:18px;gap:5px;}
 .mode-tab{flex:1;padding:12px 8px;border-radius:8px;cursor:pointer;text-align:center;border:none;font-family:inherit;background:none;color:var(--sub);transition:all .2s;}
 .mode-tab .mt-title{font-size:.88rem;font-weight:700;}
 .mode-tab .mt-sub{font-size:.62rem;margin-top:2px;opacity:.7;}
-.mode-tab.on{background:rgba(212,168,67,0.15);color:var(--gold);}
-.mode-tab.on.expert{background:rgba(124,58,237,0.18);color:var(--pink);}
-.expert-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.18);border:1px solid rgba(124,58,237,0.35);color:var(--pink);border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:700;letter-spacing:.05em;}
-.expert-fields{background:rgba(124,58,237,0.05);border:1px solid rgba(124,58,237,0.18);border-radius:12px;padding:16px;margin-bottom:16px;}
+.mode-tab.on{background:rgba(184,134,42,0.15);color:var(--gold);}
+.mode-tab.on.expert{background:rgba(124,58,237,0.1);color:#a83fb0;}
+.expert-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);color:#a83fb0;border-radius:20px;padding:3px 12px;font-size:.68rem;font-weight:700;letter-spacing:.05em;}
+.expert-fields{background:rgba(124,58,237,0.04);border:1px solid rgba(124,58,237,0.12);border-radius:12px;padding:16px;margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -605,6 +606,7 @@ const SCRIPT_LENGTHS=[
 ];
 let bgGenres=[],moodGenres=[],castCount=5,actCount=3,generatedData=null,autoSaveTimer=null;
 let expertMode=false,conflictType='',toneStyle='',refStyle='',scriptLength='20';
+let performanceType='general';
 const root=document.getElementById('root');
 
 function renderStudent(){
@@ -615,10 +617,23 @@ function renderStudent(){
   renderStudentInput();
 }
 
+function setPerformanceType(t){ performanceType=t; renderStudentInput(); }
+
 function renderStudentInput(){
   const main=document.getElementById('student-main');if(!main)return;
+  const isReading = performanceType==='reading';
   main.innerHTML=`<div class="card"><div class="card-title">✦ 뮤지컬 만들기</div>
     <div class="mode-tabs">
+      <button class="mode-tab ${!isReading?'on':''}" onclick="setPerformanceType('general')">
+        <div class="mt-title">🎵 일반 뮤지컬</div><div class="mt-sub">막 구성 · 노래+대본</div>
+      </button>
+      <button class="mode-tab ${isReading?'on expert':''}" onclick="setPerformanceType('reading')">
+        <div class="mt-title">📖 음악낭독극</div><div class="mt-sub">낭독+노래 · 짧은 공연</div>
+      </button>
+    </div>
+    ${isReading?`<div style="margin-bottom:16px"><span class="expert-badge" style="background:rgba(93,173,226,0.18);border-color:rgba(93,173,226,0.35);color:var(--blue)">📖 음악낭독극</span>
+      <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">해설자를 포함한 소수 인원이 짧은 장면을 낭독하고 마지막에 다 함께 노래하는 형식이에요. 배역표·장면별 표현 메모·노래 구성·무대 동선·최종 점검까지 학습지 형태로 만들어져요.</p></div>`:''}
+    ${!isReading?`<div class="mode-tabs" style="margin-top:-4px">
       <button class="mode-tab ${!expertMode?'on':''}" onclick="setMode(false)">
         <div class="mt-title">🎈 일반 모드</div><div class="mt-sub">누구나 쉽게</div>
       </button>
@@ -627,7 +642,7 @@ function renderStudentInput(){
       </button>
     </div>
     ${expertMode?`<div style="margin-bottom:16px"><span class="expert-badge">🎓 전문가 과정</span>
-      <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">대사·지문이 포함된 정식 대본 형식으로 생성돼요. 갈등 구조와 극작 톤을 직접 지정할 수 있어요.</p></div>`:''}
+      <p style="font-size:.72rem;color:var(--sub);margin-top:8px;line-height:1.6">대사·지문이 포함된 정식 대본 형식으로 생성돼요. 갈등 구조와 극작 톤을 직접 지정할 수 있어요.</p></div>`:''}`:''}
     <div style="margin-bottom:16px"><div class="edit-label">주제 / 이야기 *</div>
       <textarea class="edit-box" id="theme" rows="3" placeholder="예: 우정&#10;또는: 전학 온 아이가 음악을 통해 친구들과 하나가 되는 이야기"></textarea></div>
     <div style="margin-bottom:16px"><div class="edit-label">장르 * — 배경 → 분위기 순서로 선택 (각각 2개 이상 선택 가능)</div>
@@ -639,7 +654,7 @@ function renderStudentInput(){
       <div class="genre-summary" id="genre-sum"><span>✅</span><span id="genre-sum-txt"></span>
         <button onclick="resetGenre()" style="margin-left:auto;background:none;border:none;color:var(--sub);cursor:pointer;font-size:.72rem">다시선택</button></div></div>
     <div class="row2" style="margin-bottom:16px">
-      <div><div class="edit-label">등장인물 수 *</div>
+      <div><div class="edit-label">${isReading?'배역 인원 수 * (해설자 포함)':'등장인물 수 *'}</div>
         <div style="display:flex;align-items:center;gap:10px">
           <div class="counter-wrap">
             <button class="c-btn" onclick="changeCast(-1)">−</button>
@@ -647,14 +662,15 @@ function renderStudentInput(){
             <button class="c-btn" onclick="changeCast(1)">+</button>
           </div><span style="font-size:.8rem;color:var(--sub)">명</span></div>
         <div style="font-size:.68rem;color:rgba(255,255,255,.2);margin-top:6px">AI가 이름·역할 자동 창작</div></div>
-      <div><div class="edit-label">막 수 *</div>
-        <div class="act-btns">${DURATIONS.map(d=>`<button class="act-btn ${actCount===d.id?'on':''}" onclick="selAct(this,${d.id})">${d.label}</button>`).join('')}</div></div>
+      <div>${isReading?`<div class="edit-label">공연 형식</div>
+        <div style="font-size:.78rem;color:var(--sub);padding:12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.08)">여러 개의 짧은 장면(낭독) + 노래 1곡</div>`:`<div class="edit-label">막 수 *</div>
+        <div class="act-btns">${DURATIONS.map(d=>`<button class="act-btn ${actCount===d.id?'on':''}" onclick="selAct(this,${d.id})">${d.label}</button>`).join('')}</div>`}</div>
     </div>
     <div style="margin-bottom:16px"><div class="edit-label">배경 시간/장소 (선택)</div>
       <input class="edit-box" type="text" id="setting" placeholder="예: 현대 중학교, 봄학기" style="min-height:auto;resize:none;"></div>
-    <div style="margin-bottom:16px"><div class="edit-label">대본 분량 (막당 대사·지문)</div>
-      <div class="act-btns" id="length-btns">${SCRIPT_LENGTHS.map(l=>`<button class="act-btn ${scriptLength===l.id?'on':''}" onclick="selLength(this,'${l.id}')">${l.label}<br><span style="font-size:.62rem;opacity:.7">${l.lines}</span></button>`).join('')}</div></div>
-    ${expertMode?`<div class="expert-fields">
+    <div style="margin-bottom:16px"><div class="edit-label">${isReading?'전체 공연 시간 (낭독+노래)':'대본 분량 (막당 대사·지문)'}</div>
+      <div class="act-btns" id="length-btns">${SCRIPT_LENGTHS.map(l=>`<button class="act-btn ${scriptLength===l.id?'on':''}" onclick="selLength(this,'${l.id}')">${l.label}<br><span style="font-size:.62rem;opacity:.7">${isReading?'낭독+노래':l.lines}</span></button>`).join('')}</div></div>
+    ${!isReading&&expertMode?`<div class="expert-fields">
       <div class="edit-label" style="margin-top:0">중심 갈등 구조 *</div>
       <div class="genre-tags" id="conflict-tags">${CONFLICT_TYPES.map(c=>`<div class="gtag" onclick="selConflict(this,'${c}')">${c}</div>`).join('')}</div>
       <div class="edit-label">극작 톤 / 스타일 (선택)</div>
@@ -663,9 +679,10 @@ function renderStudentInput(){
       <input class="edit-box" type="text" id="refStyle" placeholder="예: 스프링 어웨이크닝, 지킬 앤 하이드 같은 톤" style="min-height:auto;resize:none;">
     </div>`:''}
     <div class="err-msg" id="s-err"></div>
-    <button class="gen-btn" id="gen-btn" onclick="startGenerate()">✨ 뮤지컬 전체 생성</button>
+    <button class="gen-btn" id="gen-btn" onclick="${isReading?'startGenerateReading()':'startGenerate()'}">✨ ${isReading?'음악낭독극 만들기':'뮤지컬 전체 생성'}</button>
   </div>`;
 }
+
 
 function setMode(expert){
   expertMode=expert;
@@ -809,7 +826,7 @@ ${actsBrief}
 JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","singer":"이 넘버를 부르는 인물(들). 보통 '전체 합창'","lyrics":"가사 4-6줄(감동적 마무리)","sunoPrompt":"영문 Suno(emotional finale,50단어이내)","bgPrompt":"영문 배경이미지(grand finale, all cast), 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9","mood":"분위기 한국어"}`);
     const curtain=parseJSON(s4);
     setStep(5,'완성 정리 중...');
-    generatedData={title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength,interviewText:'',reflectionText:''};
+    generatedData={performanceType:'general',title:struct.title,genre,characters:struct.characters,synopsis:struct.synopsis,setting,opening,scenes,curtain,expertMode,conflictType,toneStyle:toneVal,scriptLength,interviewText:'',reflectionText:''};
     LS.set(DRAFT_KEY,generatedData);saveWork(generatedData);
     await new Promise(r=>setTimeout(r,500));renderResult();
   }catch(e){
@@ -820,16 +837,68 @@ JSON만:{"songTitle":"커튼콜 제목(Reprise가능)","singer":"이 넘버를 �
   }
 }
 
+async function startGenerateReading(){
+  const theme=document.getElementById('theme')?.value.trim(),setting=document.getElementById('setting')?.value.trim()||'현대',err=document.getElementById('s-err');
+  if(!theme){err.textContent='주제를 입력해주세요!';return;}
+  if(!bgGenres.length){err.textContent='배경 장르를 선택해주세요!';return;}
+  if(!moodGenres.length){err.textContent='분위기 장르를 선택해주세요!';return;}
+  err.textContent='';
+  const genre=`${bgGenres.join(', ')} + ${moodGenres.join(', ')}`;
+  const main=document.getElementById('student-main');
+  main.innerHTML=`<div class="prog-card show">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:4px">📖 음악낭독극을 만들고 있어요...</div>
+    <div style="font-size:.72rem;color:var(--sub);margin-bottom:0">잠시만 기다려주세요</div>
+    <div id="prog-msg" style="font-size:.72rem;color:var(--sub);margin-top:12px">배역·장면·노래를 함께 구성하는 중...</div>
+  </div>`;
+  try{
+    const totalMin=parseInt(scriptLength,10)||5;
+    const readMin=Math.max(1, Math.round(totalMin*0.6*10)/10);
+    const songMin=Math.max(1, Math.round((totalMin-readMin)*10)/10);
+    const s1=await callGemini(`창작 음악낭독극 대본 작가로서 아래 정보로 음악낭독극 학습용 대본을 설계하세요.
+주제: ${theme} | 장르: ${genre} | 배역 인원: ${castCount}명 | 배경: ${setting} | 전체 공연 시간: 약 ${totalMin}분(낭독 ${readMin}분 + 노래 ${songMin}분)
+[형식 안내]
+- 배역은 해설자 1명을 반드시 포함해 총 ${castCount}명. 해설자는 시대·상황을 설명하고, 나머지는 주인공/주변인물/여러 명이 함께 말하는 합창역 등으로 구성하세요.
+- 낭독 대본은 여러 개의 짧은 장면으로 나누고, 각 장면 script에는 [무대] 지문과 "배역이름: 대사" 형식을 섞어서 작성하세요. 대사는 중학생이 낭독하기 좋은 길이와 어휘로, 감정이 자연스럽게 이어지도록 작성하세요.
+- 노래는 도입-전개-절정-마무리 4단계로 구성된 합창곡 1곡입니다.
+JSON만 응답:
+{"title":"작품 제목","characters":[{"role":"배역이름","desc":"주요 역할(한 줄)","tip":"표현의 핵심(한 줄)"} ${castCount}명 배열],"preparation":"준비물 한 줄","performanceStructure":"낭독 ${readMin}분 + 노래 ${songMin}분 = 총 ${totalMin}분","scenes":[{"sceneTitle":"장면 제목","timeEstimate":"약 OO초","script":"[무대] 지문\\n배역: 대사\\n배역: 대사"}],"song":{"songTitle":"노래 제목","sections":[{"part":"도입","time":"0:00~..."},{"part":"전개","time":"..."},{"part":"절정","time":"..."},{"part":"마무리","time":"..."}],"lyrics":"가사 6-8줄(절정 중심)","sunoPrompt":"영문 Suno 프롬프트(50단어이내)","bgPrompt":"영문 배경이미지 프롬프트, 2.5D parallax composition with distinct far background layer(sky/distant scenery), mid layer(buildings/trees/environment), near foreground layer(props/ground details), theatrical stage lighting, --ar 16:9"}}`, 0, 16384);
+    const d=parseJSON(s1);
+    generatedData={
+      performanceType:'reading', title:d.title, genre, characters:d.characters||[], preparation:d.preparation||'',
+      performanceStructure:d.performanceStructure||'', scenes:d.scenes||[], song:d.song||{},
+      roleNames:(d.characters||[]).map(()=>''),
+      expressionNotes:(d.scenes||[]).map(()=>({word:'',motion:'',bgm:''})),
+      blocking:{start:'',gather:'',prop:'',final:''},
+      checklistPre:[false,false,false,false,false],
+      checklistPost:[false,false,false,false,false],
+      interviewText:'', reflectionText:''
+    };
+    LS.set(DRAFT_KEY,generatedData);saveWork(generatedData);
+    renderResult();
+  }catch(e){
+    main.innerHTML=`<div class="card" style="text-align:center;padding:32px">
+      <div style="font-size:1.2rem;color:#fca5a5;margin-bottom:12px">⚠️ 생성 실패</div>
+      <div style="font-size:.82rem;color:var(--sub);margin-bottom:20px">${e.message}</div>
+      <button class="btn-sec" onclick="renderStudentInput()">← 돌아가기</button></div>`;
+  }
+}
+
 let currentWorkId = null;
 function saveWork(d){
-  const fullText=buildFullText(d);
+  const fullText = d.performanceType==='reading' ? buildReadingFullText(d) : buildFullText(d);
   const newId = worksColRef(teacherUid).doc().id;
   currentWorkId = newId;
-  const work={student:stuName||'익명',group:stuClass||'',title:d.title,genre:d.genre,acts:actCount,cast:castCount,
-    expertMode:!!d.expertMode,conflictType:d.conflictType||'',scriptLength:d.scriptLength||'',
+  const workAects = d.performanceType==='reading' ? (d.scenes||[]).length : actCount;
+  const workCast = d.performanceType==='reading' ? (d.characters||[]).length : castCount;
+  const preview = d.performanceType==='reading'
+    ? `${d.performanceStructure||''}\n\n♪ ${d.song?.songTitle||''}\n${d.song?.lyrics||''}`
+    : `${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`;
+  const work={student:stuName||'익명',group:stuClass||'',title:d.title,genre:d.genre,acts:workAects,cast:workCast,
+    performanceType:d.performanceType||'general',
+    expertMode:!!d.expertMode,conflictType:d.conflictType||'',scriptLength:d.scriptLength||scriptLength||'',
     interviewText:d.interviewText||'',reflectionText:d.reflectionText||'',
     time:new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}),
-    approved:false,preview:`${d.synopsis}\n\n♪ ${d.opening.songTitle}\n${d.opening.lyrics}`,fullText,
+    approved:false,preview,fullText,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   worksColRef(teacherUid).doc(newId).set(work).catch(e=>showToast('❌ 결과물 저장 실패: '+e.message));
 
@@ -843,11 +912,11 @@ function saveWork(d){
         group: stuClass||'',
         title: d.title,
         genre: d.genre,
-        acts: actCount,
-        cast: castCount,
+        acts: workAects,
+        cast: workCast,
         expertMode: !!d.expertMode,
         conflictType: d.conflictType||'',
-        synopsis: d.synopsis||''
+        synopsis: d.synopsis||d.performanceStructure||''
       })
     }).catch(()=>{}); // 실패해도 앱 사용에 지장 없도록 조용히 무시
   }
@@ -870,7 +939,29 @@ function buildFullText(d){
   return t;
 }
 
+function buildReadingFullText(d){
+  if(!d)return'';
+  let t=`${'═'.repeat(48)}\n  ${(d.title||'').toUpperCase()}\n  [음악낭독극] ${d.genre||''}\n${'═'.repeat(48)}\n\n`;
+  t+=`📋 공연 구성: ${d.performanceStructure||''}\n🎒 준비물: ${d.preparation||''}\n\n`;
+  t+=`👥 배역\n`+(d.characters||[]).map((c,i)=>`  • ${c.role}${d.roleNames?.[i]?` (${d.roleNames[i]})`:''} — ${c.desc||''} / 표현: ${c.tip||''}`).join('\n')+`\n\n`;
+  (d.scenes||[]).forEach((s,i)=>{
+    t+=`【 장면 ${i+1}: ${s.sceneTitle||''} 】 ${s.timeEstimate||''}\n${'─'.repeat(36)}\n${s.script||''}\n`;
+    const note=d.expressionNotes?.[i];
+    if(note) t+=`\n표현 메모 — 낱말:${note.word||''} / 시선·동작:${note.motion||''} / 배경음악 시작:${note.bgm||''}\n`;
+    t+=`\n`;
+  });
+  t+=`【 노래: ${d.song?.songTitle||''} 】\n${'─'.repeat(36)}\n`;
+  (d.song?.sections||[]).forEach(sec=>{ t+=`${sec.part} (${sec.time})\n`; });
+  t+=`\n${d.song?.lyrics||''}\n\n[Suno] ${d.song?.sunoPrompt||''}\n[BG] ${d.song?.bgPrompt||''}\n\n`;
+  t+=`🚶 무대 동선\n  노래 시작 위치: ${d.blocking?.start||''}\n  합창으로 모이는 시점: ${d.blocking?.gather||''}\n  상징적 소품·동작 사용 시점: ${d.blocking?.prop||''}\n  마지막 자세와 시선: ${d.blocking?.final||''}\n\n`;
+  if(d.interviewText) t+=`【 인터뷰글 】\n${'─'.repeat(36)}\n${d.interviewText}\n\n`;
+  if(d.reflectionText) t+=`【 성찰 】\n${'─'.repeat(36)}\n${d.reflectionText}`;
+  return t;
+}
+
 function renderResult(){
+  if(generatedData && generatedData.performanceType==='reading'){ renderReadingResult(); return; }
+
   const main=document.getElementById('student-main');if(!main||!generatedData)return;
   const d=generatedData;
   main.innerHTML=`<div class="save-bar"><div class="save-status"><div class="save-dot"></div>자동저장 완료</div>
@@ -901,7 +992,8 @@ function renderResult(){
   <div class="btn-row">
     <button class="btn-sec" onclick="renderStudentInput()">↩ 새로 만들기</button>
     <button class="btn-regen" onclick="startGenerate()">🔄 재생성</button>
-    <button class="btn-dl" onclick="downloadAll()">📥 다운로드</button>
+    <button class="btn-dl" onclick="downloadAll()">📥 TXT 다운로드</button>
+    <button class="btn-dl" onclick="downloadDocx()" style="background:linear-gradient(135deg,#2f7ab8,#1B4F72)">📄 Word 다운로드</button>
     <button class="btn-slide" onclick="launchSlideshow()">🎬 슬라이드쇼</button>
   </div>`;
   main.querySelectorAll('textarea, .prompt-text').forEach(el=>{el.addEventListener('input',()=>{scheduleAutoSave();});});
@@ -943,13 +1035,118 @@ function toggleScene(id){
   const isOpen=body.style.display!=='none';body.style.display=isOpen?'none':'block';if(arr)arr.textContent=isOpen?'▼':'▲';
 }
 
+function renderReadingResult(){
+  const main=document.getElementById('student-main');if(!main||!generatedData)return;
+  const d=generatedData;
+  const checkLabels=['대사의 의미를 이해하고 자연스럽게 낭독했는가?','발음·목소리 크기·속도가 관객에게 잘 전달되는가?','표정과 시선, 움직임이 인물의 감정을 보여 주는가?','낭독에서 노래로 자연스럽게 연결되는가?','전체 공연 시간이 목표 시간 안에 들어오는가?'];
+  main.innerHTML=`<div class="save-bar"><div class="save-status"><div class="save-dot"></div>자동저장 완료</div>
+    <div style="font-size:.68rem;color:var(--sub)">수정하면 자동으로 저장됩니다</div></div>
+  <div class="r-header">
+    <div style="font-size:.62rem;color:var(--sub);letter-spacing:.25em;margin-bottom:6px">✦ EAIM MUSICAL ✦</div>
+    <div style="margin-bottom:8px"><span class="expert-badge" style="background:rgba(93,173,226,0.18);border-color:rgba(93,173,226,0.35);color:var(--blue)">📖 음악낭독극</span></div>
+    <div class="r-title">${d.title}</div>
+    <div class="r-sub">${d.genre} · ${d.performanceStructure||''}</div>
+  </div>
+  <div class="card"><div class="card-title">📋 활동 안내</div>
+    <p style="font-size:.85rem;color:rgba(255,255,255,.7);line-height:1.9">
+      <strong style="color:var(--gold)">공연 구성:</strong> ${d.performanceStructure||''}<br>
+      <strong style="color:var(--gold)">준비물:</strong> ${d.preparation||''}</p>
+  </div>
+  <div class="card"><div class="card-title">🎭 배역 정하기</div>
+    ${(d.characters||[]).map((c,i)=>`
+      <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div><strong style="color:var(--gold)">${c.role||''}</strong> <span style="font-size:.75rem;color:var(--sub)">${c.desc||''}</span></div>
+          <input class="edit-box" type="text" id="role-name-${i}" value="${d.roleNames?.[i]||''}" placeholder="담당 학생 이름" style="min-height:auto;resize:none;width:140px;margin-bottom:0">
+        </div>
+        <div style="font-size:.72rem;color:var(--pink);margin-top:4px">표현의 핵심: ${c.tip||''}</div>
+      </div>`).join('')}
+  </div>
+  ${(d.scenes||[]).map((s,i)=>`
+    <div class="scene-card">
+      <div class="scene-header open" onclick="toggleScene('rscene-${i}')">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="scene-tag tag-scene">🎬 장면 ${i+1}</span>
+          <span style="font-size:.85rem;font-weight:700;color:var(--text)">${s.sceneTitle||''}</span>
+          <span style="font-size:.72rem;color:var(--sub)">${s.timeEstimate||''}</span>
+        </div>
+        <span style="color:rgba(255,255,255,.25);font-size:.72rem" id="arr-rscene-${i}">▲</span>
+      </div>
+      <div class="scene-body" id="body-rscene-${i}">
+        <div class="edit-label" style="margin-top:0">📜 낭독 대본 (지문·대사)</div>
+        <textarea class="edit-box" id="rscript-${i}" rows="7" style="font-family:monospace;font-size:.82rem">${s.script||''}</textarea>
+        <div class="edit-label">✏️ 표현 메모 — 우리 모둠만의 장면 만들기</div>
+        <div class="prompt-grid" style="grid-template-columns:1fr">
+          <div class="prompt-box"><div class="prompt-label" style="color:var(--sub)">이 장면에서 가장 강조할 낱말</div>
+            <input class="edit-box" type="text" id="exp-word-${i}" value="${d.expressionNotes?.[i]?.word||''}" style="min-height:auto;resize:none;background:rgba(0,0,0,.25);margin-bottom:0"></div>
+          <div class="prompt-box"><div class="prompt-label" style="color:var(--sub)">함께 맞춰야 할 시선·동작</div>
+            <input class="edit-box" type="text" id="exp-motion-${i}" value="${d.expressionNotes?.[i]?.motion||''}" style="min-height:auto;resize:none;background:rgba(0,0,0,.25);margin-bottom:0"></div>
+          <div class="prompt-box"><div class="prompt-label" style="color:var(--sub)">배경음악이 시작되는 지점</div>
+            <input class="edit-box" type="text" id="exp-bgm-${i}" value="${d.expressionNotes?.[i]?.bgm||''}" style="min-height:auto;resize:none;background:rgba(0,0,0,.25);margin-bottom:0"></div>
+        </div>
+      </div>
+    </div>`).join('')}
+  <div class="card"><div class="card-title">🎵 노래 구성</div>
+    <div style="font-size:.85rem;color:var(--gold);font-weight:700;margin-bottom:10px">♪ ${d.song?.songTitle||''}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+      ${(d.song?.sections||[]).map(sec=>`<div style="display:flex;gap:12px;font-size:.8rem;color:rgba(255,255,255,.7)"><span style="width:44px;color:var(--pink);font-weight:700">${sec.part}</span><span style="color:var(--sub)">${sec.time}</span></div>`).join('')}
+    </div>
+    <div class="edit-label" style="margin-top:0">가사</div>
+    <textarea class="edit-box" id="rsong-lyrics" rows="6">${d.song?.lyrics||''}</textarea>
+    <div class="prompt-grid">
+      <div class="prompt-box"><div class="prompt-label">🎵 Suno 프롬프트 <button class="w-btn" style="float:right;margin-top:-2px" onclick="copyEl('rsong-suno')">복사</button></div>
+        <textarea class="prompt-text" id="rsong-suno" rows="3">${d.song?.sunoPrompt||''}</textarea></div>
+      <div class="prompt-box"><div class="prompt-label">🖼 배경 프롬프트 <button class="w-btn" style="float:right;margin-top:-2px" onclick="copyEl('rsong-bg')">복사</button></div>
+        <textarea class="prompt-text" id="rsong-bg" rows="3">${d.song?.bgPrompt||''}</textarea></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title">🚶 무대 동선 정하기</div>
+    <div class="edit-label" style="margin-top:0">노래 시작 위치</div>
+    <input class="edit-box" type="text" id="block-start" value="${d.blocking?.start||''}" style="min-height:auto;resize:none">
+    <div class="edit-label">합창으로 모이는 시점</div>
+    <input class="edit-box" type="text" id="block-gather" value="${d.blocking?.gather||''}" style="min-height:auto;resize:none">
+    <div class="edit-label">상징적 소품·동작을 사용하는 시점</div>
+    <input class="edit-box" type="text" id="block-prop" value="${d.blocking?.prop||''}" style="min-height:auto;resize:none">
+    <div class="edit-label">마지막 자세와 시선</div>
+    <input class="edit-box" type="text" id="block-final" value="${d.blocking?.final||''}" style="min-height:auto;resize:none">
+  </div>
+  <div class="card"><div class="card-title">✅ 최종 점검</div>
+    ${checkLabels.map((label,i)=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.8rem;color:rgba(255,255,255,.7);gap:8px">
+        <span style="flex:1">${label}</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--sub)"><input type="checkbox" id="check-pre-${i}" ${d.checklistPre?.[i]?'checked':''} onchange="scheduleAutoSave()">연습 전</label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:var(--sub)"><input type="checkbox" id="check-post-${i}" ${d.checklistPost?.[i]?'checked':''} onchange="scheduleAutoSave()">연습 후</label>
+      </div>`).join('')}
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">📝 뮤지컬 이해와 감상</div>
+    <div class="edit-label" style="margin-top:0;display:flex;align-items:center;justify-content:space-between">
+      <span>🎤 인터뷰글</span>
+      <button class="w-btn" onclick="genInterviewQuestions()">✨ 질문 도움받기</button>
+    </div>
+    <textarea class="edit-box" id="interview-text" rows="6" placeholder="예:&#10;Q. 이 작품에서 가장 표현하고 싶었던 감정은 무엇인가요?&#10;A. ">${d.interviewText||''}</textarea>
+    <div class="edit-label">🎵 활동 후 성찰</div>
+    <p style="font-size:.72rem;color:var(--sub);margin:2px 0 8px;line-height:1.6">우리 모둠이 가장 잘 표현한 부분은? 이 이야기를 통해 생각하게 된 의미를 한 문장으로 써 봅시다.</p>
+    <textarea class="edit-box" id="reflection-text" rows="6">${d.reflectionText||''}</textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn-sec" onclick="renderStudentInput()">↩ 새로 만들기</button>
+    <button class="btn-regen" onclick="startGenerateReading()">🔄 재생성</button>
+    <button class="btn-dl" onclick="downloadAll()">📥 TXT 다운로드</button>
+    <button class="btn-dl" onclick="downloadDocx()" style="background:linear-gradient(135deg,#2f7ab8,#1B4F72)">📄 Word 다운로드</button>
+  </div>`;
+  main.querySelectorAll('textarea, .prompt-text, input[type=text]').forEach(el=>{el.addEventListener('input',()=>{scheduleAutoSave();});});
+}
+
 function scheduleAutoSave(){
   clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(()=>{
     collectEdits();LS.set(DRAFT_KEY,generatedData);
     if(currentWorkId){
-      const fullText=buildFullText(generatedData);
-      const preview=`${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
+      const fullText = generatedData.performanceType==='reading' ? buildReadingFullText(generatedData) : buildFullText(generatedData);
+      const preview = generatedData.performanceType==='reading'
+        ? `${generatedData.performanceStructure||''}\n\n♪ ${generatedData.song?.songTitle||''}\n${generatedData.song?.lyrics||''}`
+        : `${generatedData.synopsis}\n\n♪ ${generatedData.opening.songTitle}\n${generatedData.opening.lyrics}`;
       worksColRef(teacherUid).doc(currentWorkId).set({fullText, preview, interviewText:generatedData.interviewText||'', reflectionText:generatedData.reflectionText||''},{merge:true})
         .catch(e=>console.warn('자동저장 실패', e));
     }
@@ -960,6 +1157,24 @@ function scheduleAutoSave(){
 function collectEdits(){
   if(!generatedData)return;
   const getVal=id=>document.getElementById(id)?.value||'';
+  if(generatedData.performanceType==='reading'){
+    (generatedData.characters||[]).forEach((_,i)=>{ generatedData.roleNames[i]=getVal(`role-name-${i}`); });
+    (generatedData.scenes||[]).forEach((_,i)=>{
+      generatedData.scenes[i].script=getVal(`rscript-${i}`);
+      generatedData.expressionNotes[i]={word:getVal(`exp-word-${i}`),motion:getVal(`exp-motion-${i}`),bgm:getVal(`exp-bgm-${i}`)};
+    });
+    if(generatedData.song){
+      generatedData.song.lyrics=getVal('rsong-lyrics');
+      generatedData.song.sunoPrompt=getVal('rsong-suno');
+      generatedData.song.bgPrompt=getVal('rsong-bg');
+    }
+    generatedData.blocking={start:getVal('block-start'),gather:getVal('block-gather'),prop:getVal('block-prop'),final:getVal('block-final')};
+    generatedData.checklistPre=(generatedData.checklistPre||[]).map((_,i)=>document.getElementById(`check-pre-${i}`)?.checked||false);
+    generatedData.checklistPost=(generatedData.checklistPost||[]).map((_,i)=>document.getElementById(`check-post-${i}`)?.checked||false);
+    generatedData.interviewText=getVal('interview-text');
+    generatedData.reflectionText=getVal('reflection-text');
+    return;
+  }
   generatedData.opening.lyrics=getVal('lyrics-opening');generatedData.opening.sunoPrompt=getVal('suno-opening');generatedData.opening.bgPrompt=getVal('bg-opening');generatedData.opening.singer=getVal('singer-opening');
   (generatedData.scenes||[]).forEach((_,i)=>{
     generatedData.scenes[i].lyrics=getVal(`lyrics-scene-${i}`);generatedData.scenes[i].sunoPrompt=getVal(`suno-scene-${i}`);generatedData.scenes[i].bgPrompt=getVal(`bg-scene-${i}`);generatedData.scenes[i].singer=getVal(`singer-scene-${i}`);
@@ -971,10 +1186,44 @@ function collectEdits(){
 }
 
 function downloadAll(){
-  collectEdits();const text=buildFullText(generatedData);
+  collectEdits();
+  const text = generatedData.performanceType==='reading' ? buildReadingFullText(generatedData) : buildFullText(generatedData);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
   a.download=`${generatedData?.title||'뮤지컬'}_${stuName||'학생'}.txt`;a.click();
+}
+
+async function downloadDocx(){
+  if (typeof docx === 'undefined') { showToast('⚠️ Word 변환 도구를 불러오지 못했어요. 인터넷 연결을 확인해주세요'); return; }
+  collectEdits();
+  const text = generatedData.performanceType==='reading' ? buildReadingFullText(generatedData) : buildFullText(generatedData);
+  showToast('📄 Word 파일 만드는 중...');
+  try{
+    const lines = text.split('\n');
+    const children = [
+      new docx.Paragraph({ text: generatedData?.title || '뮤지컬', heading: docx.HeadingLevel.TITLE, spacing:{after:300} })
+    ];
+    lines.forEach(line=>{
+      const trimmed = line.trim();
+      if(/^[═─]+$/.test(trimmed)) return; // 장식용 구분선은 워드 문서에선 생략
+      if(!trimmed){ children.push(new docx.Paragraph({ text:'' })); return; }
+      if(trimmed.startsWith('【')){
+        children.push(new docx.Paragraph({ text: trimmed, heading: docx.HeadingLevel.HEADING_2, spacing:{before:280,after:120} }));
+        return;
+      }
+      children.push(new docx.Paragraph({ children:[ new docx.TextRun({ text: line }) ], spacing:{after:80} }));
+    });
+    const doc = new docx.Document({ sections:[{ properties:{}, children }] });
+    const blob = await docx.Packer.toBlob(doc);
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`${generatedData?.title||'뮤지컬'}_${stuName||'학생'}.docx`;
+    a.click();
+    showToast('✅ Word 파일 다운로드 완료!');
+  }catch(e){
+    console.error(e);
+    showToast('❌ Word 변환 실패: '+e.message);
+  }
 }
 
 function launchSlideshow(){
@@ -982,7 +1231,7 @@ function launchSlideshow(){
   const toCharStr = c => Array.isArray(c) ? c.join(', ') : (c||'');
   const scenes=[
     {type:'opening',title:'오프닝 코러스',songTitle:d.opening.songTitle,lyrics:d.opening.lyrics,imagePrompt:d.opening.bgPrompt,characters:toCharStr(d.characters),emotion:'설렘',musicMood:d.opening.mood},
-    ...(d.scenes||[]).map(s=>({title:s.sceneTitle,songTitle:s.songTitle,lyrics:s.lyrics,imagePrompt:s.bgPrompt,characters:toCharStr(s.characters),emotion:s.emotion,musicMood:s.mood})),
+    ...(d.scenes||[]).map(s=>({title:s.sceneTitle,songTitle:s.songTitle,lyrics:s.lyrics,imagePrompt:s.bgPrompt,characters:toCharStr(s.characters),emotion:s.emotion,musicMood:s.mood,script:s.script||''})),
   ];
   localStorage.setItem('eaim_musical_data',JSON.stringify({
     title:d.title, scenes,
