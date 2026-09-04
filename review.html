@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✍️ 평론실 | EAIM 프로덕션</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.75}
+button,input,textarea{font-family:inherit;font-size:inherit}
+header{background:var(--slate);color:#fff;padding:26px 20px}
+.hin{max-width:900px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hin a{color:rgba(255,255,255,.55);font-size:.82rem;text-decoration:none;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4px 10px}
+h1{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;line-height:1}
+h1 small{display:block;font-family:'Noto Serif KR',serif;font-size:.78rem;font-weight:400;color:var(--gold2);letter-spacing:.2em;margin-bottom:6px}
+main{max-width:900px;margin:0 auto;padding:26px 20px 90px}
+.steps{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.steps span{font-size:.78rem;padding:4px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--sub)}
+.steps span.on{background:var(--slate);color:#fff;border-color:var(--slate);font-weight:700}
+.steps span.done{background:rgba(46,125,79,.1);color:var(--green);border-color:rgba(46,125,79,.35)}
+.page{display:none}.page.on{display:block}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:1.35rem;color:var(--gold);margin-bottom:6px}
+.card .q{font-weight:900;margin:14px 0 6px}
+.card .q:first-of-type{margin-top:0}
+.hint{font-size:.8rem;color:var(--sub)}
+.in{width:100%;background:#f3ecff;border:2px solid rgba(124,58,237,.3);border-radius:9px;padding:10px 12px;color:var(--ink);outline:none;font-size:.98rem;line-height:1.7}
+.in:focus{border-color:var(--purple)}
+textarea.in{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+.tag{padding:6px 12px;border-radius:20px;cursor:pointer;font-size:.9rem;border:2px solid rgba(124,58,237,.28);background:#fff;color:#3a3050;font-weight:600;user-select:none}
+.tag.on{background:rgba(122,83,18,.14);border-color:var(--gold);color:var(--gold);font-weight:700}
+.colors{display:flex;flex-wrap:wrap;gap:10px}
+.col{width:46px;text-align:center;cursor:pointer;font-size:.7rem;color:var(--sub)}
+.col i{display:block;width:38px;height:38px;border-radius:50%;margin:0 auto 3px;border:3px solid transparent;box-sizing:border-box}
+.col.on i{border-color:var(--ink);transform:scale(1.12)}
+.col.on{color:var(--ink);font-weight:700}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+.btn{padding:11px 18px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:.95rem}
+.btn.p{background:linear-gradient(135deg,var(--gold2),#e8a020);border:0;font-weight:800}
+.btn.ai{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;border:0;font-weight:800}
+.btn:disabled{opacity:.5;cursor:wait}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.compare{grid-template-columns:1fr}}
+.cbox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#faf8ff}
+.cbox h4{font-size:.85rem;color:var(--sub);margin-bottom:6px}
+.cbox .big{font-size:1.15rem;font-weight:900}
+.swatch{display:inline-block;width:18px;height:18px;border-radius:50%;vertical-align:middle;margin-right:6px;border:1px solid rgba(0,0,0,.1)}
+.draft{min-height:320px;font-size:1rem;line-height:1.9}
+.bar{height:4px;border-radius:2px;background:rgba(124,58,237,.12);overflow:hidden;display:none;margin-top:10px}
+.bar.show{display:block}.bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--purple),var(--pink));animation:sl 1.2s infinite}
+@keyframes sl{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+.st{font-size:.82rem;color:var(--sub);margin-top:8px;min-height:20px}.st.err{color:#c0392b}
+.rubric{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+.rubric th,.rubric td{border:1px solid var(--line);padding:7px 8px;vertical-align:top;text-align:left}
+.rubric th{background:#faf8ff;white-space:nowrap}
+.rubric td.pick{text-align:center;cursor:pointer;font-weight:700;color:var(--sub)}
+.rubric td.pick.on{background:rgba(46,125,79,.12);color:var(--green)}
+.keydot{font-size:.75rem;color:rgba(255,255,255,.6)}
+.keydot.on{color:#86efac}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(46,125,79,.95);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;display:none;z-index:99}
+@media print{header,.steps,.nav,.btn,.bar{display:none!important}.page{display:block!important}.card{break-inside:avoid;border:0;padding:0 0 18px}}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <div><h1><small>EAIM PRODUCTION · 평론실</small>감상문과 평론</h1></div>
+  <div style="display:flex;gap:10px;align-items:center"><span class="keydot" id="keydot">키 확인 중</span><a href="index.html">🏠 프로덕션</a></div>
+</div></header>
+
+<main>
+  <div class="steps" id="steps"></div>
+
+  <!-- 1 -->
+  <section class="page on" id="p1">
+    <div class="card">
+      <h2>1. 무엇을 감상하나요</h2>
+      <p class="hint" id="fromMaker"></p>
+      <div class="row" style="margin-top:8px">
+        <div><div class="q">이름</div><input class="in" id="name" placeholder="이름"></div>
+        <div><div class="q">반/모둠</div><input class="in" id="cls" placeholder="예: 2학년 3반 2모둠"></div>
+      </div>
+      <div class="q">작품</div><input class="in" id="title" placeholder="예: 봄날의 이야기">
+      <div class="q">제작(작곡·대본)</div><input class="in" id="maker" placeholder="예: 3반 2모둠 프로덕션 / 우리 모둠">
+      <div class="q">감상 방식</div>
+      <div class="tags" id="how">
+        <div class="tag on">🎬 우리 모둠 공연 영상</div><div class="tag">🎭 다른 모둠 공연</div><div class="tag">🎵 넘버 음원만</div><div class="tag">📖 낭독극</div>
+      </div>
+      <div class="q">감상 전 내 기분</div>
+      <div class="tags" id="e1"></div>
+      <div class="q">감상 전 마음의 색</div>
+      <div class="colors" id="c1"></div>
+    </div>
+    <div class="nav"><span></span><button class="btn p" onclick="go(2)">감상 시작 →</button></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="page" id="p2">
+    <div class="card">
+      <h2>2. 귀로 듣는 탐험</h2>
+      <p class="hint">공연을 보면서 적어요. 짧게 써도 됩니다.</p>
+      <div class="q">가장 잘 들린 악기·소리</div><input class="in" id="q1" placeholder="예: 피아노와 낮은 베이스, 마지막엔 합창">
+      <div class="q">빠르기와 리듬</div><input class="in" id="q2" placeholder="예: 1막은 느리게, 커튼콜은 빨라짐">
+      <div class="q">셈여림·강약의 변화</div><input class="in" id="q3" placeholder="예: 갈등 장면에서 갑자기 커짐">
+      <div class="q">기억에 남는 멜로디·가사</div><input class="in" id="q4" placeholder="예: '우리가 써온 이야기' 후렴">
+      <div class="q">곡의 분위기</div><input class="in" id="q5" placeholder="예: 밝다가 아련해짐">
+      <div class="q">노래·연주 방식 (솔로·듀엣·합창, 이어짐·끊어짐)</div><input class="in" id="q6" placeholder="예: 2막 듀엣이 주고받는 느낌">
+      <div class="q">장면·그림·음악이 어울렸나요</div><input class="in" id="q7" placeholder="예: 3막 배경 그림의 어두운 색과 노래가 잘 맞음">
+    </div>
+    <div class="nav"><button class="btn" onclick="go(1)">← 이전</button><button class="btn p" onclick="go(3)">다음 →</button></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="page" id="p3">
+    <div class="card">
+      <h2>3. 마음으로 느끼기</h2>
+      <div class="q">이 음악이 배경이라면 어떤 장면일까요</div><textarea class="in" id="q8" placeholder="예: 비 오는 날 교실 창가, 혼자 남은 아이"></textarea>
+      <div class="q">감상 후 마음의 색</div>
+      <div class="colors" id="c2"></div>
+      <div class="q">감상 후 내 기분</div>
+      <div class="tags" id="e2"></div>
+      <div class="compare" style="margin-top:14px">
+        <div class="cbox"><h4>감상 전</h4><div class="big" id="cmp1">—</div></div>
+        <div class="cbox"><h4>감상 후</h4><div class="big" id="cmp2">—</div></div>
+      </div>
+      <div class="q">기분과 색이 달라졌다면, 음악의 어떤 부분 때문일까요</div><textarea class="in" id="q9" placeholder="예: 커튼콜의 합창이 커지면서 답답함이 풀렸다"></textarea>
+    </div>
+    <div class="nav"><button class="btn" onclick="go(2)">← 이전</button><button class="btn p" onclick="go(4)">다음 →</button></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="page" id="p4">
+    <div class="card">
+      <h2>4. 평론가의 한마디</h2>
+      <div class="q">이 작품을 한 문장으로</div><input class="in" id="q10" placeholder="예: 서툴지만 진짜 우리 이야기가 들리는 무대">
+      <div class="q">가장 좋았던 점과 그 이유</div><textarea class="in" id="q11"></textarea>
+      <div class="q">아쉬운 점과 제안 (구체적으로)</div><textarea class="in" id="q12" placeholder="예: 2막 노래가 가사와 빠르기가 안 맞았다. 반주를 조금 느리게 하면 좋겠다"></textarea>
+      <div class="q">누구에게 추천하나요</div><input class="in" id="q13">
+      <div class="q">별점</div><div class="tags" id="star"><div class="tag">★</div><div class="tag">★★</div><div class="tag">★★★</div><div class="tag">★★★★</div><div class="tag">★★★★★</div></div>
+      <div class="q">연주·발표 평가 <span class="hint">(9음01-02 — 나 또는 동료 모둠)</span></div>
+      <table class="rubric"><tr><th>평가 요소</th><th>A</th><th>B</th><th>C</th></tr>
+        <tr><td>발표 완성도</td><td class="pick" data-k="r1" data-v="A">박·코드·감정 흐름이 어긋나지 않게 끝까지</td><td class="pick" data-k="r1" data-v="B">일부 어긋남이 있으나 곡 전체를</td><td class="pick" data-k="r1" data-v="C">일부 구간만</td></tr>
+        <tr><td>음악 요소 표현</td><td class="pick" data-k="r2" data-v="A">빠르기·셈여림·음색을 장면에 맞게 살림</td><td class="pick" data-k="r2" data-v="B">한두 요소를 살림</td><td class="pick" data-k="r2" data-v="C">요소 변화가 거의 없음</td></tr>
+        <tr><td>음악·장면·매체의 어울림</td><td class="pick" data-k="r3" data-v="A">노래·그림·대사·음향이 한 장면으로 어울림</td><td class="pick" data-k="r3" data-v="B">대체로 어울리나 어긋난 장면이 있음</td><td class="pick" data-k="r3" data-v="C">따로 노는 느낌</td></tr>
+      </table>
+    </div>
+    <div class="nav"><button class="btn" onclick="go(3)">← 이전</button><button class="btn ai" onclick="makeDraft()">📝 초안 만들기 →</button></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="page" id="p5">
+    <div class="card">
+      <h2>5. 내가 쓰는 감상문</h2>
+      <p class="hint">지금까지 적은 것을 문장으로 이어 붙인 초안이에요. <b>어색한 곳을 직접 고치고 살을 붙인 뒤</b> AI 다듬기를 눌러요. AI는 내 문장과 생각을 바꾸지 않고 연결과 맞춤법만 손봅니다.</p>
+      <textarea class="in draft" id="draft"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn ai" id="polishBtn" onclick="polish()">✨ AI에게 다듬기 부탁하기</button>
+        <button class="btn" onclick="askBetter()">💬 더 쓸 거리 물어보기</button>
+      </div>
+      <div class="bar" id="bar"><i></i></div>
+      <div class="st" id="st"></div>
+      <div id="aiNote" class="hint" style="margin-top:8px;white-space:pre-wrap"></div>
+    </div>
+    <div class="nav"><button class="btn" onclick="go(4)">← 이전</button><button class="btn p" onclick="go(6)">완성 →</button></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="page" id="p6">
+    <div class="card">
+      <h2>6. 완성</h2>
+      <div id="final" style="white-space:pre-wrap;font-size:1rem;line-height:1.9"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn p" onclick="saveTxt()">⬇ 저장 (.txt)</button>
+        <button class="btn" onclick="window.print()">🖨 인쇄</button>
+        <button class="btn" onclick="submitTeacher()" id="submitBtn">📤 선생님께 제출</button>
+        <button class="btn" onclick="go(5)">← 다시 고치기</button>
+      </div>
+      <div class="st" id="st6"></div>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const P=new URLSearchParams(location.search);
+const FIREBASE_CONFIG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-classroom.firebaseapp.com",projectId:"eaim-classroom",storageBucket:"eaim-classroom.firebasestorage.app",messagingSenderId:"294479576192",appId:"1:294479576192:web:c60e994e319dbd2f11ba65"};
+let apiKey=localStorage.getItem('mm_teacher_api')||'', db=null, teacherUid=P.get('teacher')||'';
+(function(){ try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.firestore(); }catch{}
+  if(teacherUid&&db){ db.collection('teachers').doc(teacherUid).collection('meta').doc('settings').onSnapshot(s=>setKey((s.data()||{}).apiKey||apiKey),()=>setKey(apiKey)); } else setKey(apiKey); })();
+function setKey(k){ apiKey=(k||'').trim(); const el=document.getElementById('keydot'); el.classList.toggle('on',!!apiKey); el.textContent=apiKey?'AI 다듬기 준비됨':'API 키 없음 — AI 다듬기 없이도 감상문은 쓸 수 있어요'; }
+
+/* ── 감정·색 ── */
+const E1=['설레는','기대되는','평온한','피곤한','심심한','긴장된','우울한','상쾌한','졸린','걱정되는','짜증난','행복한'];
+const E2=['벅차오르는','감동적인','행복한','따뜻한','신나는','편안한','차분한','몽환적인','신비로운','웅장한','그리운','슬픈','외로운','긴장되는','비장한','놀라운','자유로운','뿌듯한','답답한','지루한'];
+const COLORS=[['빨강','#ff4d4d'],['주황','#ff9f43'],['노랑','#feca57'],['연두','#badc58'],['초록','#6ab04c'],['청록','#1abc9c'],['하늘','#48dbfb'],['파랑','#2e86de'],['남색','#2c3e50'],['보라','#a55eea'],['분홍','#ff9ff3'],['갈색','#8d6e63'],['회색','#95a5a6'],['검정','#2d3436'],['흰색','#ffffff']];
+const S={}; // 상태
+function tagsInto(id,list,key){ const el=document.getElementById(id); el.innerHTML=list.map(t=>`<div class="tag">${t}</div>`).join(''); el.querySelectorAll('.tag').forEach(t=>t.onclick=()=>{ el.querySelectorAll('.tag').forEach(x=>x.classList.remove('on')); t.classList.add('on'); S[key]=t.textContent; cmp(); }); }
+function colorsInto(id,key){ const el=document.getElementById(id); el.innerHTML=COLORS.map(([n,c])=>`<div class="col" data-n="${n}" data-c="${c}"><i style="background:${c};${c==='#ffffff'?'border:1px solid #ccc':''}"></i>${n}</div>`).join(''); el.querySelectorAll('.col').forEach(t=>t.onclick=()=>{ el.querySelectorAll('.col').forEach(x=>x.classList.remove('on')); t.classList.add('on'); S[key]={n:t.dataset.n,c:t.dataset.c}; cmp(); }); }
+tagsInto('e1',E1,'e1'); tagsInto('e2',E2,'e2'); colorsInto('c1','c1'); colorsInto('c2','c2');
+['how','star'].forEach(id=>{ const el=document.getElementById(id); el.querySelectorAll('.tag').forEach(t=>t.onclick=()=>{ el.querySelectorAll('.tag').forEach(x=>x.classList.remove('on')); t.classList.add('on'); S[id]=t.textContent; }); });
+S.how='🎬 우리 모둠 공연 영상';
+document.querySelectorAll('.rubric .pick').forEach(td=>td.onclick=()=>{ document.querySelectorAll(`.rubric .pick[data-k="${td.dataset.k}"]`).forEach(x=>x.classList.remove('on')); td.classList.add('on'); S[td.dataset.k]=td.dataset.v; });
+function cmp(){ const f=(e,c)=>(c?`<span class="swatch" style="background:${c.c}"></span>${c.n}`:'')+(e?` · ${e}`:''); document.getElementById('cmp1').innerHTML=f(S.e1,S.c1)||'—'; document.getElementById('cmp2').innerHTML=f(S.e2,S.c2)||'—'; }
+const v=id=>document.getElementById(id).value.trim();
+
+/* ── 작품 정보 자동 채움 ── */
+(function(){ let d=null; try{ d=JSON.parse(localStorage.getItem('mm_draft')||localStorage.getItem('eaim_musical_data')||'null'); }catch{}
+  const studio=localStorage.getItem('eaim_production_name'); if(studio) document.getElementById('maker').value=studio+' 프로덕션';
+  if(d&&d.title){ document.getElementById('title').value=d.title; document.getElementById('fromMaker').textContent=`뮤지컬메이커의 "${d.title}"을(를) 감상하는 걸로 채웠어요. 다른 작품이면 고쳐 쓰세요.`; }
+  const saved=JSON.parse(localStorage.getItem('eaim_review_draft')||'null'); if(saved){ Object.entries(saved.fields||{}).forEach(([k,val])=>{ const el=document.getElementById(k); if(el) el.value=val; }); }
+})();
+
+/* ── 단계 ── */
+const STEPS=['작품','듣기','느끼기','평론','초안','완성'];
+function renderSteps(n){ document.getElementById('steps').innerHTML=STEPS.map((s,i)=>`<span class="${i+1===n?'on':i+1<n?'done':''}">${i+1}. ${s}</span>`).join(''); }
+function go(n){ if(n===2&&(!v('name')||!v('title'))){ toast('이름과 작품을 적어주세요'); return; } document.querySelectorAll('.page').forEach(p=>p.classList.remove('on')); document.getElementById('p'+n).classList.add('on'); renderSteps(n); window.scrollTo(0,0); persist(); if(n===6) renderFinal(); }
+renderSteps(1);
+function persist(){ const fields={}; document.querySelectorAll('input.in,textarea.in').forEach(el=>fields[el.id]=el.value); localStorage.setItem('eaim_review_draft',JSON.stringify({fields,S})); }
+document.addEventListener('input',persist);
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200); }
+
+/* ── 초안 ── */
+function makeDraft(){
+  const c1=S.c1?.n||'무색', c2=S.c2?.n||'새로운';
+  let t=`${v('cls')?v('cls')+' ':''}${v('name')}\n\n`;
+  t+=`${v('maker')?v('maker')+'의 ':''}'${v('title')}'을(를) ${S.how.replace(/^\S+\s/,'')}(으)로 감상했다.\n`;
+  t+=`감상 전 내 기분은 '${S.e1||'평범한'}' 쪽이었고 마음의 색은 '${c1}'에 가까웠다.\n\n`;
+  t+=`[듣기]\n`;
+  if(v('q1')) t+=`가장 먼저 들린 것은 ${v('q1')}이었다. `;
+  if(v('q2')) t+=`빠르기는 ${v('q2')}. `;
+  if(v('q3')) t+=`강약은 ${v('q3')}. `;
+  if(v('q4')) t+=`${v('q4')}이(가) 기억에 남는다. `;
+  if(v('q5')) t+=`전체 분위기는 ${v('q5')} 느낌이었고, `;
+  if(v('q6')) t+=`${v('q6')}. `;
+  if(v('q7')) t+=`\n장면과 음악의 어울림은 ${v('q7')}.`;
+  t+=`\n\n[느끼기]\n`;
+  if(v('q8')) t+=`이 음악이 배경이라면 '${v('q8')}' 같은 장면이 떠오른다. `;
+  t+=`감상이 끝나고 마음의 색은 '${c2}'(으)로, 기분은 '${S.e2||'특별한'}'(으)로 바뀌었다. `;
+  if(v('q9')) t+=`그렇게 바뀐 이유는 ${v('q9')} 때문이라고 생각한다.`;
+  t+=`\n\n[평론]\n`;
+  if(v('q10')) t+=`이 작품을 한 문장으로 말하면 "${v('q10')}"이다. `;
+  if(v('q11')) t+=`가장 좋았던 점은 ${v('q11')} `;
+  if(v('q12')) t+=`\n아쉬운 점은 ${v('q12')} `;
+  if(v('q13')) t+=`\n이 작품을 ${v('q13')}에게 추천하고 싶다. `;
+  if(S.star) t+=`내 별점은 ${S.star}이다.`;
+  const rr=['r1','r2','r3'].map(k=>S[k]).filter(Boolean); if(rr.length) t+=`\n연주·발표 평가: 완성도 ${S.r1||'-'} / 음악 요소 ${S.r2||'-'} / 어울림 ${S.r3||'-'}`;
+  document.getElementById('draft').value=t; go(5);
+}
+
+/* ── Gemini ── */
+async function gemini(prompt){
+  if(!apiKey) throw new Error('API 키가 없어요. 프로덕션 대문에서 들어오거나 선생님께 초대 링크를 받으세요.');
+  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.4,maxOutputTokens:2048}})});
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||('오류 '+res.status)); }
+  const d=await res.json(); return d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+}
+function busy(on,msg,err){ document.getElementById('polishBtn').disabled=on; document.getElementById('bar').classList.toggle('show',on); const s=document.getElementById('st'); s.textContent=msg||''; s.classList.toggle('err',!!err); }
+async function polish(){
+  const raw=v('draft'); if(raw.length<80){ busy(false,'조금 더 써주세요. 80자는 넘어야 다듬을 게 있어요',true); return; }
+  busy(true,'문장을 다듬고 있어요…');
+  try{
+    const out=await gemini(`다음은 중학생이 쓴 음악 감상문 초안입니다. 아래 규칙으로 다듬어 주세요.
+규칙:
+1) 학생의 생각·판단·표현·어휘 수준을 그대로 두고, 문장 연결·맞춤법·중복·어색한 조사만 고친다.
+2) 새로운 내용이나 평가를 추가하지 않는다. [듣기] [느끼기] [평론] 같은 대괄호 표시는 지우고 자연스러운 문단으로 만든다.
+3) 분량은 원문의 0.9~1.2배. 마지막에 "AI 선생님의 한마디" 같은 칭찬을 붙이지 않는다.
+4) 다듬은 감상문만 출력하고, 그 뒤에 구분선(---) 한 줄과 "고친 부분" 3가지를 짧게 적는다.
+
+초안:
+${raw}`);
+    const [body,notes]=out.split(/\n-{3,}\n/);
+    if(body&&body.trim()) document.getElementById('draft').value=body.trim();
+    document.getElementById('aiNote').textContent=notes?('고친 부분\n'+notes.trim()):'';
+    busy(false,'✅ 다듬었어요. 마음에 안 드는 문장은 다시 고쳐도 됩니다.'); persist();
+  }catch(e){ busy(false,'❌ '+e.message,true); }
+}
+async function askBetter(){
+  busy(true,'질문을 만들고 있어요…');
+  try{
+    const out=await gemini(`중학생이 쓴 음악 감상문 초안입니다. 더 깊게 쓰도록 돕는 질문 3개를 만드세요. 각 질문은 초안에서 언급한 구체적 요소(악기·빠르기·가사·장면 등)를 짚어 "왜/어떻게"를 묻는 형태로, 한 줄씩. 다른 말은 쓰지 마세요.
+
+초안:
+${v('draft')}`);
+    document.getElementById('aiNote').textContent='더 써볼 질문\n'+out.trim(); busy(false,'');
+  }catch(e){ busy(false,'❌ '+e.message,true); }
+}
+
+/* ── 완성 ── */
+function finalText(){ return `< ${v('title')} 감상문 >\n${v('cls')} ${v('name')}\n\n${v('draft')}`; }
+function renderFinal(){ document.getElementById('final').textContent=finalText(); localStorage.setItem('eaim_review_done','1'); }
+function saveTxt(){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([finalText()],{type:'text/plain;charset=utf-8'})); a.download=`${v('title')||'감상문'}_${v('name')||'학생'}.txt`; a.click(); }
+async function submitTeacher(){
+  const st=document.getElementById('st6');
+  if(!(db&&teacherUid)){ st.textContent='선생님 초대 링크로 들어온 경우에만 제출할 수 있어요. 대신 저장한 파일을 내주세요.'; return; }
+  try{
+    await db.collection('teachers').doc(teacherUid).collection('reviews').add({ student:v('name'), group:v('cls'), title:v('title'), how:S.how, before:{emotion:S.e1||'',color:S.c1?.n||''}, after:{emotion:S.e2||'',color:S.c2?.n||''}, star:S.star||'', rubric:{r1:S.r1||'',r2:S.r2||'',r3:S.r3||''}, text:v('draft'), createdAt:firebase.firestore.FieldValue.serverTimestamp() });
+    st.textContent='✅ 제출됐어요'; document.getElementById('submitBtn').disabled=true;
+  }catch(e){ st.textContent='❌ 제출 실패: '+e.message; }
+}
+</script>
+</body>
+</html>
