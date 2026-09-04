@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📢 홍보팀 | EAIM 프로덕션</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.7}
+button,input,textarea,select{font-family:inherit;font-size:inherit}
+header{background:var(--slate);color:#fff;padding:26px 20px}
+.hin{max-width:980px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hin a{color:rgba(255,255,255,.55);font-size:.82rem;text-decoration:none;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4px 10px}
+h1{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:700;line-height:1}
+h1 small{display:block;font-family:'Noto Serif KR',serif;font-size:.78rem;font-weight:400;color:var(--gold2);letter-spacing:.2em;margin-bottom:6px}
+.keydot{font-size:.75rem;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:6px}
+.keydot i{width:8px;height:8px;border-radius:50%;background:#e0453f;display:inline-block}
+.keydot.on i{background:#52c27a;box-shadow:0 0 6px #52c27a}
+main{max-width:980px;margin:0 auto;padding:28px 20px 90px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+@media(max-width:760px){main{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+.card h2{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:10px}
+.lbl{font-size:.8rem;color:var(--sub);margin:14px 0 6px;letter-spacing:.08em}
+.lbl:first-of-type{margin-top:0}
+.tags{display:flex;flex-wrap:wrap;gap:7px}
+.tag{padding:7px 13px;border-radius:20px;cursor:pointer;font-size:.9rem;border:2px solid rgba(124,58,237,.28);background:#fff;color:#3a3050;font-weight:600;user-select:none;transition:all .15s}
+.tag:hover{border-color:var(--gold)}
+.tag.on{background:rgba(122,83,18,.14);border-color:var(--gold);color:var(--gold);font-weight:700}
+.in{width:100%;background:#f3ecff;border:2px solid rgba(124,58,237,.3);border-radius:9px;padding:10px 12px;color:var(--ink);outline:none;font-size:.98rem}
+.in:focus{border-color:var(--purple)}
+textarea.in{min-height:70px;resize:vertical;line-height:1.7}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gen{width:100%;padding:15px;border-radius:12px;border:0;cursor:pointer;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-weight:800;font-size:1.1rem;margin-top:16px;box-shadow:0 4px 18px rgba(124,58,237,.25)}
+.gen:disabled{opacity:.5;cursor:wait}
+.sec{padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:#faf8ff;cursor:pointer;font-size:.9rem;color:var(--ink)}
+.sec:hover{border-color:var(--purple)}
+.poster{background:#f3ecff;border:1px solid var(--line);border-radius:12px;min-height:320px;display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:.9rem;text-align:center;padding:16px;overflow:hidden}
+.poster img{max-width:100%;max-height:70vh;border-radius:8px;display:block;box-shadow:0 8px 30px rgba(45,36,56,.18)}
+.bar{height:4px;border-radius:2px;background:rgba(124,58,237,.12);overflow:hidden;display:none;margin-top:10px}
+.bar.show{display:block}.bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--purple),var(--pink));animation:sl 1.2s infinite}
+@keyframes sl{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+@media(prefers-reduced-motion:reduce){.bar i{animation:none;width:100%}}
+.st{font-size:.8rem;color:var(--sub);margin-top:8px;min-height:20px}.st.err{color:#c0392b}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.copy-box{background:#faf8ff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px;font-size:.95rem;white-space:pre-wrap;line-height:1.8}
+.prompt{font-family:monospace;font-size:.75rem;color:var(--sub);background:#faf8ff;border:1px solid var(--line);border-radius:8px;padding:10px;white-space:pre-wrap;margin-top:8px;line-height:1.6}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:8px}
+.gallery img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:pointer}
+.hint{font-size:.78rem;color:var(--sub);margin-top:6px;line-height:1.6}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(46,125,79,.95);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;display:none;z-index:99}
+</style>
+</head>
+<body>
+<header><div class="hin">
+  <div><h1><small>EAIM PRODUCTION · 홍보팀</small>포스터와 티저</h1></div>
+  <div style="display:flex;gap:10px;align-items:center"><span class="keydot" id="keydot"><i></i><span id="keytext">키 확인 중</span></span><a href="index.html">🏠 프로덕션</a></div>
+</div></header>
+
+<main>
+<section>
+  <div class="card">
+    <h2>작품 정보</h2>
+    <div class="hint" id="fromMaker"></div>
+    <div class="lbl">작품 제목</div><input class="in" id="title" placeholder="예: 봄날의 이야기">
+    <div class="lbl">한 줄 소개 (포스터 부제)</div><input class="in" id="tagline" placeholder="예: 전학생 민준이 음악으로 친구를 만나는 이야기">
+    <div class="row"><div><div class="lbl">공연 일시</div><input class="in" id="when" placeholder="예: 12월 20일 (금) 2시"></div>
+      <div><div class="lbl">장소</div><input class="in" id="where" placeholder="예: 시청각실"></div></div>
+    <div class="lbl">제작사</div><input class="in" id="studio" placeholder="예: 3반 2모둠 프로덕션">
+  </div>
+
+  <div class="card">
+    <h2>어떤 홍보물인가요</h2>
+    <div class="lbl">종류</div>
+    <div class="tags" id="kind">
+      <div class="tag on" data-v="poster" data-ar="3:4">🎭 공연 포스터 (세로)</div>
+      <div class="tag" data-v="teaser" data-ar="16:9">🎬 티저 썸네일 (가로)</div>
+      <div class="tag" data-v="sns" data-ar="1:1">📱 SNS 카드 (정사각)</div>
+    </div>
+    <div class="lbl">그림체</div>
+    <div class="tags" id="style">
+      <div class="tag on" data-v="warm hand-painted storybook illustration, soft brush texture, gentle colors">📖 따뜻한 그림책</div>
+      <div class="tag" data-v="clean 2D animation cel style, bright flat colors, expressive characters">🎨 밝은 2D 애니메이션</div>
+      <div class="tag" data-v="dramatic theatrical poster painting, spotlight and deep shadows, rich saturated colors">🎪 극장 포스터 유화</div>
+      <div class="tag" data-v="soft watercolor wash with ink outlines, airy and dreamy">💧 수채화</div>
+      <div class="tag" data-v="bold graphic poster design, large shapes, limited palette, screen-print texture">🟥 그래픽 포스터</div>
+      <div class="tag" data-v="cozy 3D rendered characters, rounded shapes, soft studio lighting">🧸 3D 캐릭터</div>
+    </div>
+    <div class="lbl">분위기</div>
+    <div class="tags" id="mood">
+      <div class="tag on" data-v="hopeful, warm golden light">🌅 희망찬</div>
+      <div class="tag" data-v="playful and energetic, confetti">🎉 신나는</div>
+      <div class="tag" data-v="tender and nostalgic, dusk light">🌙 아련한</div>
+      <div class="tag" data-v="mysterious, glowing particles, night">🔮 신비로운</div>
+      <div class="tag" data-v="epic and grand, wide stage, dramatic sky">⚡ 웅장한</div>
+    </div>
+    <div class="lbl">주인공과 장면 <span style="font-weight:400">(자유롭게)</span></div>
+    <textarea class="in" id="scene" placeholder="예: 교복을 입은 남학생과 여학생이 벚꽃 흩날리는 운동장에서 마주 보며 노래한다"></textarea>
+    <div class="lbl">포스터에 넣을 글자</div>
+    <div class="tags" id="texts">
+      <div class="tag on" data-v="title">제목</div>
+      <div class="tag on" data-v="tagline">부제</div>
+      <div class="tag" data-v="when">일시·장소</div>
+      <div class="tag" data-v="studio">제작사</div>
+      <div class="tag" data-v="none">글자 없이 그림만</div>
+    </div>
+    <div class="hint">글자는 한글로 그려지지만 가끔 틀리게 나와요. 그럴 땐 "글자 없이"로 만든 뒤 편집 앱에서 글자를 얹는 게 깔끔합니다.</div>
+    <button class="gen" id="go" onclick="makePoster()">🎨 포스터 만들기</button>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="st" id="st"></div>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <h2>결과</h2>
+    <div class="poster" id="out">아직 만든 포스터가 없어요.<br>왼쪽에서 정보를 채우고 "포스터 만들기"를 누르세요.</div>
+    <div class="acts" id="acts" style="display:none">
+      <a class="sec" id="dl" download="poster.png">⬇ 저장</a>
+      <button class="sec" onclick="makePoster()">🔄 다시 만들기</button>
+      <button class="sec" onclick="toggleEl('promptBox')">📜 프롬프트 보기</button>
+    </div>
+    <div class="prompt" id="promptBox" style="display:none"></div>
+    <div class="lbl" style="margin-top:14px">이번에 만든 것들</div>
+    <div class="gallery" id="gallery"></div>
+  </div>
+
+  <div class="card">
+    <h2>홍보 문구</h2>
+    <p class="hint">작품 정보로 SNS 소개글·한 줄 카피·안내 방송 문구를 만들어요. 마음에 드는 걸 골라 고쳐 쓰세요.</p>
+    <button class="sec" style="margin-top:8px" onclick="makeCopy()">✍️ 문구 3가지 만들기</button>
+    <div class="copy-box" id="copyBox" style="display:none"></div>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ── 키: 허브/메이커에서 넘어온 teacher UID로 설정 읽기, 없으면 메이커가 남긴 로컬 키 ── */
+const FIREBASE_CONFIG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-classroom.firebaseapp.com",projectId:"eaim-classroom",storageBucket:"eaim-classroom.firebasestorage.app",messagingSenderId:"294479576192",appId:"1:294479576192:web:c60e994e319dbd2f11ba65"};
+const P=new URLSearchParams(location.search);
+let apiKey=localStorage.getItem('mm_teacher_api')||'';
+let mediaOn=true;
+(function(){
+  const t=P.get('teacher'); if(!t) return setKey(apiKey);
+  try{ firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.firestore().collection('teachers').doc(t).collection('meta').doc('settings').onSnapshot(s=>{ const d=s.data()||{}; mediaOn=d.mediaOn!==false; setKey(d.apiKey||apiKey); },()=>setKey(apiKey));
+  }catch(e){ setKey(apiKey); }
+})();
+function setKey(k){ apiKey=(k||'').trim(); const el=document.getElementById('keydot'); el.classList.toggle('on',!!apiKey); document.getElementById('keytext').textContent=apiKey?(mediaOn?'생성 준비됨':'선생님이 생성을 꺼두었어요'):'API 키 없음 — 뮤지컬메이커를 먼저 열어주세요'; }
+
+/* ── 뮤지컬메이커 작품 정보 채우기 ── */
+(function prefill(){
+  let d=null; try{ d=JSON.parse(localStorage.getItem('mm_draft')||localStorage.getItem('eaim_musical_data')||'null'); }catch{}
+  const studio=localStorage.getItem('eaim_production_name'); if(studio) document.getElementById('studio').value=studio+' 프로덕션';
+  if(!d) return;
+  if(d.title) document.getElementById('title').value=d.title;
+  if(d.synopsis) document.getElementById('tagline').value=String(d.synopsis).split(/[.。!?]/)[0].trim().slice(0,40);
+  const chars=Array.isArray(d.characters)?d.characters.map(c=>typeof c==='string'?c:c.role).slice(0,3).join(', '):'';
+  const first=(d.scenes&&d.scenes[0])||{}; const sceneHint=first.sceneTitle||first.title||'';
+  if(chars||sceneHint) document.getElementById('scene').value=`${chars?chars+' — ':''}${sceneHint}`;
+  document.getElementById('fromMaker').textContent=`뮤지컬메이커의 "${d.title||'작품'}"에서 가져왔어요. 고쳐 써도 됩니다.`;
+})();
+
+/* ── 선택 태그 ── */
+function wire(id,multi){ document.getElementById(id).querySelectorAll('.tag').forEach(t=>t.onclick=()=>{ if(multi){ if(t.dataset.v==='none'){ t.parentElement.querySelectorAll('.tag').forEach(x=>x.classList.remove('on')); t.classList.add('on'); } else { t.parentElement.querySelector('[data-v=none]').classList.remove('on'); t.classList.toggle('on'); } } else { t.parentElement.querySelectorAll('.tag').forEach(x=>x.classList.remove('on')); t.classList.add('on'); } }); }
+['kind','style','mood'].forEach(id=>wire(id,false)); wire('texts',true);
+const sel=(id)=>document.getElementById(id).querySelector('.tag.on');
+const sels=(id)=>[...document.getElementById(id).querySelectorAll('.tag.on')].map(t=>t.dataset.v);
+const v=(id)=>document.getElementById(id).value.trim();
+function toggleEl(id){ const e=document.getElementById(id); e.style.display=e.style.display==='none'?'block':'none'; }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200); }
+function status(m,err){ const s=document.getElementById('st'); s.textContent=m||''; s.classList.toggle('err',!!err); }
+
+/* ── 프롬프트 ── */
+function buildPrompt(){
+  const kind=sel('kind').dataset.v, style=sel('style').dataset.v, mood=sel('mood').dataset.v;
+  const texts=sels('texts'); const wantText=!texts.includes('none');
+  const lines=[];
+  if(wantText){ if(texts.includes('title')&&v('title')) lines.push(`Title text (large, prominent): "${v('title')}"`);
+    if(texts.includes('tagline')&&v('tagline')) lines.push(`Subtitle text: "${v('tagline')}"`);
+    if(texts.includes('when')&&(v('when')||v('where'))) lines.push(`Small info text: "${[v('when'),v('where')].filter(Boolean).join(' · ')}"`);
+    if(texts.includes('studio')&&v('studio')) lines.push(`Credit text at the bottom: "${v('studio')}"`); }
+  const kindDesc={poster:'A vertical theatre poster for a school musical',teaser:'A widescreen teaser thumbnail for a school musical video',sns:'A square social media announcement card for a school musical'}[kind];
+  return `${kindDesc}. Scene: ${v('scene')||'the main characters on a stage under a spotlight'}. Style: ${style}. Mood: ${mood}. Composition leaves clear space for text. No real people, no logos, no watermarks.${lines.length?'\n\nRender the following Korean text exactly as written, with clean legible typography that fits the poster design:\n'+lines.join('\n'):'\n\nNo text or letters anywhere in the image.'}`;
+}
+
+/* ── Gemini 이미지 ── */
+async function geminiImage(prompt,aspect){
+  if(!apiKey) throw new Error('API 키가 없어요. 뮤지컬메이커(대본팀)를 먼저 열어 로그인하거나 초대 링크로 들어오세요.');
+  if(!mediaOn) throw new Error('선생님이 그림 생성을 꺼두었어요.');
+  const cfgs=[{responseModalities:['IMAGE'],responseFormat:{image:{aspectRatio:aspect}}},{responseModalities:['IMAGE'],imageConfig:{aspectRatio:aspect}},{responseModalities:['IMAGE']}];
+  let last;
+  for(const cfg of cfgs){
+    const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:cfg})});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); last=new Error(e?.error?.message||('오류 '+res.status)); if(res.status===400) continue; throw last; }
+    const data=await res.json(); const ps=data.candidates?.[0]?.content?.parts||[];
+    const img=ps.filter(p=>p.inlineData&&!p.thought).pop();
+    if(!img) throw new Error('그림이 나오지 않았어요'+(data.candidates?.[0]?.finishReason?` (${data.candidates[0].finishReason})`:'')+'. 장면 설명을 조금 바꿔보세요.');
+    return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
+  }
+  throw last||new Error('생성 실패');
+}
+async function geminiText(prompt){
+  if(!apiKey) throw new Error('API 키가 없어요.');
+  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.9,maxOutputTokens:1024}})});
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||('오류 '+res.status)); }
+  const d=await res.json(); return d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+}
+
+/* ── 보관함 ── */
+const IDB={db:null,open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);const r=indexedDB.open('eaim-media',1);r.onupgradeneeded=()=>r.result.createObjectStore('media',{keyPath:'key'});r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error)})},
+  async put(rec){const db=await this.open();return new Promise((res,rej)=>{const t=db.transaction('media','readwrite');t.objectStore('media').put(rec);t.oncomplete=res;t.onerror=()=>rej(t.error)})}};
+async function dataUrlToBlob(u){ return (await fetch(u)).blob(); }
+
+/* ── 실행 ── */
+let made=[];
+async function makePoster(){
+  if(!v('scene')&&!v('title')){ status('제목이나 장면 중 하나는 적어주세요',true); return; }
+  const btn=document.getElementById('go'); btn.disabled=true; document.getElementById('bar').classList.add('show'); status('포스터를 그리고 있어요 (15~40초)…');
+  const prompt=buildPrompt(); document.getElementById('promptBox').textContent=prompt;
+  try{
+    const url=await geminiImage(prompt, sel('kind').dataset.ar);
+    const out=document.getElementById('out'); out.innerHTML=`<img src="${url}" alt="포스터">`;
+    const dl=document.getElementById('dl'); dl.href=url; dl.download=`${v('title')||'poster'}_${sel('kind').dataset.v}.png`;
+    document.getElementById('acts').style.display='flex';
+    made.unshift(url); renderGallery();
+    try{ const blob=await dataUrlToBlob(url); await IDB.put({key:`promo|image|${Date.now()}`,kind:'image',id:'poster',blob,work:'promo',title:v('title'),song:sel('kind').dataset.v,ts:Date.now()}); }catch{}
+    localStorage.setItem('eaim_promo_done','1');
+    status('✅ 완성. 마음에 안 들면 장면 설명을 고치고 다시 만들어보세요.');
+  }catch(e){ status('❌ '+e.message,true); }
+  finally{ btn.disabled=false; document.getElementById('bar').classList.remove('show'); }
+}
+function renderGallery(){ document.getElementById('gallery').innerHTML=made.map((u,i)=>`<img src="${u}" alt="포스터 ${i+1}" onclick="showMade(${i})">`).join(''); }
+function showMade(i){ document.getElementById('out').innerHTML=`<img src="${made[i]}" alt="포스터">`; document.getElementById('dl').href=made[i]; }
+async function makeCopy(){
+  const box=document.getElementById('copyBox'); box.style.display='block'; box.textContent='문구를 만들고 있어요…';
+  try{
+    const t=await geminiText(`중학교 학생들이 만든 창작 뮤지컬 "${v('title')||'(제목 미정)'}"의 홍보 문구를 써주세요.
+작품 소개: ${v('tagline')||'(없음)'} / 주요 장면: ${v('scene')||'(없음)'} / 공연: ${v('when')||''} ${v('where')||''} / 제작: ${v('studio')||''}
+다음 세 가지를 한국어로, 각각 제목 줄 뒤에 내용만:
+1) 한 줄 카피 (15자 이내, 포스터용)
+2) SNS 소개글 (3~4문장, 이모지 1~2개, 해시태그 3개)
+3) 교내 안내 방송 문구 (2~3문장, 정중한 말투)
+과장된 표현보다 작품의 감정을 담아 주세요.`);
+    box.textContent=t.trim(); localStorage.setItem('eaim_promo_done','1');
+  }catch(e){ box.textContent='❌ '+e.message; }
+}
+</script>
+</body>
+</html>
