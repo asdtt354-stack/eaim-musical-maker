@@ -3,296 +3,86 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎬 EAIM 프로덕션</title>
+<title>🎹 EAIM 연주실</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
-/* ── 뮤지컬메이커와 같은 계열의 팔레트 ── */
-:root{
-  --paper:#fdfbf6; --ink:#170f22; --sub:#5a4f70; --line:rgba(124,58,237,.22);
-  --gold:#7a5312; --gold2:#d4a843; --purple:#7c3aed; --pink:#c778dd; --blue:#5DADE2; --green:#2e7d4f;
-  --slate:#1f1730;
-}
+:root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
 body{font-family:'Noto Serif KR',serif;background:var(--paper);color:var(--ink);font-size:17px;line-height:1.7;
   background-image:radial-gradient(ellipse at 15% 0%,rgba(124,58,237,.07),transparent 45%),radial-gradient(ellipse at 90% 100%,rgba(93,173,226,.07),transparent 45%)}
 a{color:inherit;text-decoration:none}
-button,input{font-family:inherit;font-size:inherit}
-
-/* ── 상단: 제작사 명판 ── */
-.marquee{background:var(--slate);color:#fff;padding:52px 20px 44px;position:relative;overflow:hidden}
-.marquee::before{content:'';position:absolute;inset:0;background:
-  repeating-linear-gradient(90deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px);pointer-events:none}
-.marquee-inner{max-width:920px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:end;position:relative}
+.marquee{background:var(--slate);color:#fff;padding:50px 20px 44px;position:relative;overflow:hidden}
+.marquee::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px);pointer-events:none}
+.min{max-width:940px;margin:0 auto;position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
 .eyebrow{font-family:'Cormorant Garamond',serif;font-size:1rem;letter-spacing:.35em;color:var(--gold2);font-weight:700}
-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.6rem,7vw,4.4rem);font-weight:700;line-height:1;margin:6px 0 14px;color:#fff}
-.plate{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.plate-label{font-size:.82rem;color:rgba(255,255,255,.55)}
-.plate input{background:transparent;border:0;border-bottom:2px solid var(--gold2);color:#fff;font-size:1.5rem;font-weight:700;padding:2px 4px;min-width:200px;outline:none}
-.plate input::placeholder{color:rgba(255,255,255,.3);font-weight:400}
-.plate .suffix{font-size:1.5rem;font-weight:700;color:var(--gold2)}
-.show-card{background:rgba(255,255,255,.06);border:1px solid rgba(212,168,67,.35);border-radius:14px;padding:16px 20px;min-width:230px}
-.show-card .k{font-size:.72rem;color:rgba(255,255,255,.5);letter-spacing:.15em}
-.show-card .v{font-size:1.15rem;font-weight:700;margin-top:2px;color:#fff}
-.show-card .v.empty{color:rgba(255,255,255,.35);font-weight:400;font-size:.95rem}
-.progress{margin-top:12px;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
-.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold2),var(--pink));transition:width .6s ease}
-.progress-t{font-size:.72rem;color:rgba(255,255,255,.55);margin-top:6px}
-
-/* ── 본문 ── */
-main{max-width:920px;margin:0 auto;padding:36px 20px 90px}
-.intro{display:grid;grid-template-columns:1.3fr 1fr;gap:28px;align-items:start;margin-bottom:38px}
-.intro p{color:var(--sub);font-size:1rem}
-.crew{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px}
-.crew h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--gold);margin-bottom:8px}
-.crew-row{display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:center;margin-bottom:6px;font-size:.9rem}
-.crew-row input{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#faf8ff;outline:none;font-size:.9rem}
-.crew-row input:focus{border-color:var(--purple)}
-.crew small{display:block;color:var(--sub);font-size:.72rem;margin-top:8px}
-
-/* ── 제작 순서: 세로 트랙 ── */
-.track{position:relative;padding-left:56px}
-.track::before{content:'';position:absolute;left:19px;top:14px;bottom:14px;width:2px;background:linear-gradient(var(--gold2),var(--purple),var(--blue))}
-.stage{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:16px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;transition:border-color .2s,transform .2s}
-.stage:hover{border-color:var(--purple);transform:translateX(2px)}
-.stage.done{border-color:rgba(46,125,79,.45)}
-.stage.soon{opacity:.6}
-.num{position:absolute;left:-56px;top:20px;width:40px;height:40px;border-radius:50%;background:var(--paper);border:2px solid var(--gold2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.15rem;color:var(--gold)}
-.stage.done .num{background:var(--green);border-color:var(--green);color:#fff}
-.stage h2{font-size:1.2rem;font-weight:900;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.stage h2 .team{font-size:.72rem;font-weight:700;letter-spacing:.12em;color:var(--purple);background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:2px 9px}
-.stage p{color:var(--sub);font-size:.93rem;margin-top:4px}
-.stage .out{font-size:.8rem;color:var(--gold);margin-top:8px}
-.stage .out b{font-weight:700}
-.status{font-size:.74rem;font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid;white-space:nowrap}
-.st-done{color:var(--green);border-color:rgba(46,125,79,.4);background:rgba(46,125,79,.08)}
-.st-todo{color:var(--sub);border-color:var(--line);background:#faf8ff}
-.st-soon{color:#a05a00;border-color:rgba(160,90,0,.3);background:rgba(212,168,67,.12)}
-.go{display:inline-flex;align-items:center;gap:6px;padding:12px 18px;border-radius:10px;font-weight:700;background:linear-gradient(135deg,var(--gold2),#e8a020);color:#000;border:0;cursor:pointer;white-space:nowrap;transition:transform .15s,box-shadow .15s}
-.go:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(212,168,67,.35)}
-.go[aria-disabled="true"]{background:#e9e4f5;color:#9a90b0;cursor:not-allowed;box-shadow:none;transform:none}
-.right{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
-
-/* ── 하단 ── */
-.foot{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+h1{font-family:'Cormorant Garamond',serif;font-size:clamp(2.6rem,7vw,4.2rem);font-weight:700;line-height:1;margin:6px 0 10px}
+.lead{color:rgba(255,255,255,.62);font-size:.95rem;max-width:520px}
+.back{color:rgba(255,255,255,.55);font-size:.82rem;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 10px}
+main{max-width:940px;margin:0 auto;padding:36px 20px 90px}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:26px}
+@media(max-width:680px){.rooms{grid-template-columns:1fr}}
+.room{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px 24px 22px;display:grid;grid-template-columns:56px 1fr;gap:16px;align-items:start;transition:border-color .2s,transform .2s}
+.room:hover{border-color:var(--purple);transform:translateY(-2px)}
+.ico{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;background:#f3ecff;border:1px solid var(--line)}
+.room h2{font-size:1.2rem;font-weight:900;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.room h2 .en{font-family:'Cormorant Garamond',serif;font-weight:500;font-style:italic;color:var(--gold);font-size:1rem}
+.room p{color:var(--sub);font-size:.92rem;margin:4px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:9px;border:1px solid rgba(122,83,18,.3);background:rgba(122,83,18,.07);color:var(--gold)}
+.room .for{font-size:.76rem;color:var(--sub);margin-top:8px}
 .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px}
 .box h3{font-family:'Cormorant Garamond',serif;font-size:1.25rem;color:var(--gold);margin-bottom:6px}
 .box p{font-size:.88rem;color:var(--sub)}
-.btn2{margin-top:10px;display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid var(--line);background:#faf8ff;color:var(--ink);font-size:.88rem;cursor:pointer}
-.btn2:hover{border-color:var(--purple)}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(46,125,79,.95);color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;display:none;z-index:99}
-
-@media(max-width:700px){
-  .marquee-inner,.intro,.foot{grid-template-columns:1fr}
-  .stage{grid-template-columns:1fr}.right{align-items:flex-start;flex-direction:row;flex-wrap:wrap}
-  .track{padding-left:48px}.num{left:-48px}
-}
-@media(prefers-reduced-motion:reduce){.stage,.go,.progress i{transition:none}}
+.box b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){.room{transition:none}}
 </style>
 </head>
 <body>
-
-<header class="marquee">
-  <div class="marquee-inner">
-    <div>
-      <div class="eyebrow">EAIM · MUSIC MEDIA</div>
-      <h1>프로덕션</h1>
-      <div class="plate">
-        <span class="plate-label">우리 모둠 제작사</span>
-        <input id="studioName" placeholder="이름을 지어주세요" maxlength="16" autocomplete="off">
-        <span class="suffix">프로덕션</span>
-      </div>
-    </div>
-    <div class="show-card">
-      <div class="k">제작 중인 작품</div>
-      <div class="v empty" id="showTitle">아직 대본이 없어요</div>
-      <div class="progress"><i id="progBar"></i></div>
-      <div class="progress-t" id="progText">0 / 7 단계</div>
-    </div>
+<header class="marquee"><div class="min">
+  <div>
+    <div class="eyebrow">EAIM · MUSIC CLASS · PLAY</div>
+    <h1>연주실</h1>
+    <p class="lead">건반을 누르고, 멜로디를 녹음하고, 이야기로 곡을 짓고, 내 악기의 계이름을 확인하는 곳. 태블릿이나 노트북 하나면 됩니다.</p>
   </div>
-</header>
+  <a class="back" href="../index.html">← 음악과 플랫폼</a>
+</div></header>
 
 <main>
-  <section class="intro">
-    <div>
-      <p>한 편의 이야기를 정해서 대본·노래·그림·음향을 직접 만들고, 상영해서 영상으로 남기고, 포스터로 알리고, 마지막에 우리 작품을 스스로 평론하는 곳입니다. 아래 순서대로 가면 됩니다. 팀을 나눠 동시에 진행해도 좋아요.</p>
-    </div>
-    <aside class="crew">
-      <h3>팀 배정</h3>
-      <div class="crew-row"><span>대본팀</span><input data-crew="script" placeholder="이름"></div>
-      <div class="crew-row"><span>음악팀</span><input data-crew="music" placeholder="이름"></div>
-      <div class="crew-row"><span>미술팀</span><input data-crew="art" placeholder="이름"></div>
-      <div class="crew-row"><span>음향팀</span><input data-crew="sound" placeholder="이름"></div>
-      <div class="crew-row"><span>홍보팀</span><input data-crew="promo" placeholder="이름"></div>
-      <small>이 기기에 저장돼요. 제작 보고서에 함께 들어갑니다.</small>
-    </aside>
+  <section class="rooms">
+    <a class="room" href="keyboard.html">
+      <div class="ico">🎹</div>
+      <div><h2>건반실 <span class="en">Keyboard</span></h2>
+        <p>코드 이름을 넣으면 눌러야 할 건반이 켜져요. 원하는 키로 옮기고, 4비트·아르페지오·왈츠 반주를 켜고 꾹 누르면 반주가 나와요.</p>
+        <div class="chips"><span>코드 → 건반 점등</span><span>키 변경</span><span>리듬 반주</span><span>피아노·신디·스트링·브라스</span></div>
+        <div class="for">코드 반주를 처음 배울 때 · 프로덕션 넘버의 코드 연습</div></div>
+    </a>
+    <a class="room" href="band.html">
+      <div class="ico">🎸</div>
+      <div><h2>합주실 <span class="en">Band</span></h2>
+        <p>기분을 고르면 코드 진행이 정해지고, 마디마다 건반으로 멜로디를 녹음해요. "프로듀서 도깨비"가 틀린 음을 다듬어 주고, 밴드 반주와 합쳐서 한 곡이 돼요.</p>
+        <div class="chips"><span>감정별 코드 진행</span><span>마디 녹음</span><span>자동 보정</span><span>리듬 정리</span><span>WAV 저장</span></div>
+        <div class="for">즉흥 연주 · 화성 안에서 멜로디 만들기</div></div>
+    </a>
+    <a class="room" href="composer.html">
+      <div class="ico">🎼</div>
+      <div><h2>작곡실 <span class="en">Composer</span></h2>
+        <p>감정과 육하원칙으로 이야기 한 줄을 만들고, 리듬을 고른 뒤 4박 멜로디를 눌러 넣어요. 변주를 붙여 한 곡으로 만들고 탐구 질문에 답해요.</p>
+        <div class="chips"><span>이야기 → 멜로디</span><span>리듬·음높이 변주</span><span>악기 합주</span><span>탐구 일지</span></div>
+        <div class="for">작곡 첫걸음 · 변주 개념 · 표현과 성찰</div></div>
+    </a>
+    <a class="room" href="wind.html">
+      <div class="ico">🎺</div>
+      <div><h2>관악실 <span class="en">Wind</span></h2>
+        <p>C 악보의 도레미가 내 악기(Bb 트럼펫·클라리넷, Eb 색소폰, F 호른)에서는 어떤 계이름이 되는지 실시간으로 보여줘요.</p>
+        <div class="chips"><span>이조 계이름</span><span>운지 표시</span><span>한글 가이드북 인쇄</span></div>
+        <div class="for">관악부 · 이조 악기 이해</div></div>
+    </a>
   </section>
 
-  <section class="track" id="track"></section>
-
-  <section class="foot">
-    <div class="box">
-      <h3>제작 보고서</h3>
-      <p>제작사 이름, 팀 배정, 작품 제목, 완료한 단계를 한 장으로 정리합니다. 발표 자료나 활동지에 붙여 쓰세요.</p>
-      <button class="btn2" onclick="makeReport()">📄 보고서 만들기</button>
-      <button class="btn2" onclick="resetProgress()">진행 상태 초기화</button>
-    </div>
-    <div class="box">
-      <h3>선생님</h3>
-      <p>대본팀 화면에서 구글 로그인하면 반·모둠 초대 QR, 학생 결과물 승인, AI 사용 한도를 관리할 수 있어요.</p>
-      <a class="btn2" id="teacherLink" href="#">🎓 제작 일지(교사 대시보드) 열기</a>
-    </div>
-  </section>
+  <div class="box">
+    <h3>쓰는 법</h3>
+    <p>모든 방은 <b>로그인 없이</b> 바로 열립니다. 첫 화면의 시작 버튼을 눌러야 소리가 나요(브라우저 규칙). 합주실·작곡실의 결과물은 <b>WAV·TXT로 내려받아</b> 프로덕션 음향팀에 가져갈 수 있습니다.</p>
+  </div>
 </main>
-<div id="toast"></div>
-
-<script>
-'use strict';
-/* ═══════════════════════════════════════════════════════
-   각 방(앱)의 주소 — 여기만 고치면 됩니다.
-   같은 폴더면 파일명만, 다른 저장소면 https:// 전체 주소.
-   비워두면 "준비 중"으로 표시됩니다.
-   ═══════════════════════════════════════════════════════ */
-const APPS = {
-  script:    'maker.html',          // 뮤지컬메이커 (대본·가사·노래·배경 그림)
-  art:       'maker.html',          // 그림 만들기는 뮤지컬메이커 안 🎨 버튼 (production-media.js)
-  sound:     'audio-mixer.html',    // EAIM 오디오 믹서
-  screen:    'slideshow.html',      // 슬라이드쇼 (녹화·자동진행·대사 말풍선)
-  promo:     '',                    // 홍보 스튜디오 → 다음 단계에서 만들기
-  review:    '',                    // 감상문·평론 → 다음 단계에서 만들기
-  letter:    '',                    // (선택) 미디어레터 그림책
-};
-
-const STAGES = [
-  { id:'script', team:'대본팀', emoji:'📝', title:'이야기와 대본 만들기',
-    desc:'주제·장르·등장인물을 정하면 막별 대본, 넘버 가사, 배경 프롬프트가 만들어져요. 어색한 문장은 직접 고쳐요.',
-    out:'대본 · 가사 · 인터뷰글', app:'script',
-    done:()=>!!store('eaim_musical_data')||!!store('mm_draft') },
-  { id:'music', team:'음악팀', emoji:'🎵', title:'넘버 노래 만들기',
-    desc:'대본팀 화면의 각 넘버 아래 "30초 들어보기 / 전체 곡 만들기"로 가사가 실제 노래가 돼요. 마음에 드는 곡을 내려받아 음향팀에 넘겨요.',
-    out:'넘버 MP3', app:'script',
-    done:()=>hasMedia('audioUrl') },
-  { id:'art', team:'미술팀', emoji:'🖼', title:'막별 배경 그림 만들기',
-    desc:'같은 화면의 배경 프롬프트 아래 "그림 만들기"를 눌러요. 프롬프트를 고치면 다른 그림이 나와요. 캐릭터 그림은 따로 그려서 슬라이드쇼에 올려도 돼요.',
-    out:'막별 배경 이미지', app:'art',
-    done:()=>hasMedia('imageUrl') },
-  { id:'sound', team:'음향팀', emoji:'🎚', title:'음향 믹싱',
-    desc:'BGM·넘버 MR·효과음을 채널에 올려 볼륨과 분위기 프리셋을 정하고, 막마다 큐를 저장해요. 완성 믹스는 WAV로 내려받아요.',
-    out:'큐 리스트 · 믹싱 WAV', app:'sound',
-    done:()=>!!store('eaim_mixer_cues') },
-  { id:'screen', team:'상영관', emoji:'🎬', title:'상영과 영상 녹화',
-    desc:'배경 그림·가사·말풍선 대사가 무대처럼 흐르는 슬라이드쇼예요. 음악 길이에 맞춰 장면이 넘어가고, 화면 녹화로 영상 파일을 만들어요.',
-    out:'공연 영상 (webm) · PPT', app:'screen',
-    done:()=>!!store('eaim_mm_slideshow_decorations')||!!store('eaim_slide_timing') },
-  { id:'promo', team:'홍보팀', emoji:'📢', title:'포스터와 티저',
-    desc:'작품 제목·주제·그림체를 골라 포스터 이미지를 만들고, 공연 안내 문구를 붙여요.',
-    out:'포스터 · 안내문', app:'promo',
-    done:()=>!!store('eaim_promo_done') },
-  { id:'review', team:'평론실', emoji:'✍️', title:'감상문과 평론',
-    desc:'완성작을 보고 들은 뒤, 감상 전·후의 감정과 색을 비교하고 한 편의 감상문을 써요. AI가 문장을 다듬어 줘요.',
-    out:'감상문', app:'review',
-    done:()=>!!store('eaim_review_done') },
-];
-
-/* ── 상태 ── */
-const P = new URLSearchParams(location.search);
-const passthrough = ['role','teacher','group'].filter(k=>P.get(k)).map(k=>`${k}=${encodeURIComponent(P.get(k))}`);
-const isTeacherEntry = P.get('role')!=='student';
-
-function store(k){ try{ return localStorage.getItem(k); }catch{ return null; } }
-function hasMedia(field){
-  try{ const d=JSON.parse(store('mm_draft')||'null'); if(!d||!d.media) return false;
-    return Object.values(d.media).some(m=>m&&m[field]); }catch{ return false; }
-}
-function showTitle(){
-  try{ const d=JSON.parse(store('eaim_musical_data')||store('mm_draft')||'null'); return d&&d.title?d.title:''; }catch{ return ''; }
-}
-function link(app){
-  const base=APPS[app]; if(!base) return '';
-  const q=[...passthrough];
-  const s=store('eaim_production_name'); if(s) q.push('studio='+encodeURIComponent(s));
-  return base+(q.length?(base.includes('?')?'&':'?')+q.join('&'):'');
-}
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2000); }
-
-/* ── 그리기 ── */
-function render(){
-  const track=document.getElementById('track'); track.innerHTML='';
-  let doneCount=0;
-  STAGES.forEach((s,i)=>{
-    const url=link(s.app), isDone=s.done(), soon=!url;
-    if(isDone) doneCount++;
-    const el=document.createElement('article');
-    el.className='stage'+(isDone?' done':'')+(soon?' soon':'');
-    el.innerHTML=`
-      <div class="num">${isDone?'✓':i+1}</div>
-      <div>
-        <h2>${s.emoji} ${s.title} <span class="team">${s.team}</span></h2>
-        <p>${s.desc}</p>
-        <div class="out">결과물 · <b>${s.out}</b></div>
-      </div>
-      <div class="right">
-        <span class="status ${isDone?'st-done':soon?'st-soon':'st-todo'}">${isDone?'완료':soon?'준비 중':'시작 전'}</span>
-        ${soon?`<span class="go" aria-disabled="true">곧 열려요</span>`:`<a class="go" href="${url}">입장 →</a>`}
-      </div>`;
-    track.appendChild(el);
-  });
-  const t=showTitle();
-  const st=document.getElementById('showTitle');
-  st.textContent=t||'아직 대본이 없어요'; st.classList.toggle('empty',!t);
-  document.getElementById('progBar').style.width=(doneCount/STAGES.length*100)+'%';
-  document.getElementById('progText').textContent=`${doneCount} / ${STAGES.length} 단계`;
-  const tl=document.getElementById('teacherLink');
-  if(APPS.script){ tl.href=APPS.script; } else { tl.removeAttribute('href'); }
-}
-
-/* ── 제작사 이름 · 팀 배정 ── */
-const nameEl=document.getElementById('studioName');
-nameEl.value=store('eaim_production_name')||'';
-nameEl.addEventListener('input',()=>{ localStorage.setItem('eaim_production_name',nameEl.value.trim()); render(); });
-document.querySelectorAll('[data-crew]').forEach(inp=>{
-  const k='eaim_crew_'+inp.dataset.crew; inp.value=store(k)||'';
-  inp.addEventListener('input',()=>localStorage.setItem(k,inp.value.trim()));
-});
-
-/* ── 보고서 ── */
-function makeReport(){
-  const name=(store('eaim_production_name')||'이름 없는')+' 프로덕션';
-  const crew=[...document.querySelectorAll('[data-crew]')].map(i=>`  ${i.previousElementSibling.textContent}: ${i.value||'-'}`).join('\n');
-  const t=showTitle()||'(제목 없음)';
-  const stages=STAGES.map((s,i)=>`  ${s.done()?'✓':'○'} ${i+1}. ${s.title} (${s.team})`).join('\n');
-  const d=new Date().toLocaleDateString('ko-KR');
-  const text=`════════════════════════════════
-  EAIM 프로덕션 제작 보고서
-════════════════════════════════
-제작사: ${name}
-작품: ${t}
-날짜: ${d}
-
-[팀 배정]
-${crew}
-
-[제작 단계]
-${stages}
-
-[한 줄 소감]
-  
-
-────────────────────────────────
-EAIM · Emotion · Artscape · Interactive · Musicalization`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));
-  a.download=`${name}_제작보고서.txt`; a.click();
-  navigator.clipboard?.writeText(text).then(()=>toast('📄 보고서 저장 + 복사됨')).catch(()=>toast('📄 보고서 저장됨'));
-}
-function resetProgress(){
-  if(!confirm('이 기기에 저장된 진행 상태(제작사 이름·팀 배정·완료 표시)를 지울까요?\n만든 대본·그림·노래는 지워지지 않아요.')) return;
-  ['eaim_production_name','eaim_promo_done','eaim_review_done','eaim_crew_script','eaim_crew_music','eaim_crew_art','eaim_crew_sound','eaim_crew_promo'].forEach(k=>localStorage.removeItem(k));
-  nameEl.value=''; document.querySelectorAll('[data-crew]').forEach(i=>i.value=''); render(); toast('초기화됨');
-}
-
-render();
-window.addEventListener('focus',render); // 다른 방에서 돌아오면 상태 갱신
-</script>
 </body>
 </html>
