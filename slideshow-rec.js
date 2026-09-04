@@ -59,6 +59,27 @@
   const $ = (id) => document.getElementById(id);
   const toast = (m) => (typeof showToast === 'function' ? showToast(m) : console.log(m));
 
+  // ── 이 기기 보관함 (뮤지컬메이커가 IndexedDB에 넣어둔 노래·그림) ──
+  const IDB = {
+    db: null,
+    open() { return new Promise((res, rej) => { if (this.db) return res(this.db); const r = indexedDB.open('eaim-media', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('media', { keyPath: 'key' });
+      r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); }); },
+    async get(key) { try { const db = await this.open(); return await new Promise((res, rej) => { const r = db.transaction('media').objectStore('media').get(key); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); }); } catch { return null; } },
+  };
+  const blobToDataUrl = (blob) => new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(null); fr.readAsDataURL(blob); });
+  const localAudioUrls = {};
+  async function localAudio(key) { if (!key) return null; if (localAudioUrls[key]) return localAudioUrls[key]; const r = await IDB.get(key); if (!r || !r.blob) return null; return (localAudioUrls[key] = URL.createObjectURL(r.blob)); }
+
+  // 배경 그림: 원격 URL이 없고 보관함 키가 있으면 꺼내서 씀
+  if (typeof window.loadBgImage === 'function') {
+    const orig = window.loadBgImage;
+    window.loadBgImage = async function (scene, idx) {
+      try { if (scene && !scene.imageUrl && scene.imageLocal) { const r = await IDB.get(scene.imageLocal); if (r && r.blob) scene.imageUrl = await blobToDataUrl(r.blob); } } catch {}
+      return orig.apply(this, arguments);
+    };
+  }
+
 
   // ══════════════════════════════════════════════════════════
   // ⏱ 자동 진행 타이밍 — 음악 길이에 장면을 맞추기
@@ -130,7 +151,7 @@
     if (timing.mode === 'music') {
       if (a && a.src) return startMusicSync(a);
       toast('⚠️ 편곡본이 없어 장면별 노래/고정 시간으로 진행해요');
-      const anyScene = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl);
+      const anyScene = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl || s.audioLocal);
       return anyScene ? startSceneSync() : startFixedSync(timing.fixedSec);
     }
     if (timing.mode === 'scene') return startSceneSync();
@@ -144,7 +165,7 @@
   function renderTimingPanel() {
     const a = arrangement(); const N = sceneCount();
     const D = a && isFinite(a.duration) ? a.duration : 0;
-    const hasSceneSongs = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl);
+    const hasSceneSongs = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl || s.audioLocal);
     tp.innerHTML = `
       <h4>⏱ 장면 자동 진행</h4>
       <label><input type="radio" name="tm" value="music" ${timing.mode === 'music' ? 'checked' : ''}>
@@ -313,15 +334,20 @@
         if (sceneAudio) { sceneAudio.pause(); sceneAudio = null; }
         const scenes = (typeof SCENES !== 'undefined') ? SCENES : [];
         const total = scenes.length;
-        let url = null;
-        if (idx >= 1 && idx <= total) url = scenes[idx - 1]?.audioUrl || null;
-        else if (idx === total + 1 && typeof DATA !== 'undefined' && DATA) url = DATA.curtainAudioUrl || null;
+        let url = null, lkey = null;
+        if (idx >= 1 && idx <= total) { url = scenes[idx - 1]?.audioUrl || null; lkey = scenes[idx - 1]?.audioLocal || null; }
+        else if (idx === total + 1 && typeof DATA !== 'undefined' && DATA) { url = DATA.curtainAudioUrl || null; lkey = DATA.curtainAudioLocal || null; }
         const hasArrangement = (typeof arrangementAudioEl !== 'undefined') && arrangementAudioEl && !arrangementAudioEl.paused;
-        if (url && !hasArrangement) {
-          sceneAudio = new Audio(url); sceneAudio.crossOrigin = 'anonymous'; sceneAudio.volume = 0.8;
-          sceneAudio.addEventListener('ended', () => { if (window._pmSceneAudioEnded) window._pmSceneAudioEnded(); }, { once: true });
-          sceneAudio.play().catch(() => {});
-        } else if (!url && window._pmSceneAudioEnded && typeof timing !== 'undefined' && timing.mode === 'scene') {
+        if ((url || lkey) && !hasArrangement) {
+          const myIdx = idx;
+          (async () => {
+            const src = (await localAudio(lkey)) || url; if (!src) return;
+            if (typeof current !== 'undefined' && current !== myIdx) return;
+            sceneAudio = new Audio(src); if (!src.startsWith('blob:')) sceneAudio.crossOrigin = 'anonymous'; sceneAudio.volume = 0.8;
+            sceneAudio.addEventListener('ended', () => { if (window._pmSceneAudioEnded) window._pmSceneAudioEnded(); }, { once: true });
+            sceneAudio.play().catch(() => {});
+          })();
+        } else if (!url && !lkey && window._pmSceneAudioEnded && typeof timing !== 'undefined' && timing.mode === 'scene') {
           // 노래 없는 장면은 고정 시간만큼 보여주고 넘어감
           setTimeout(() => { if (typeof current !== 'undefined' && current === idx) window._pmSceneAudioEnded(); }, (timing.fixedSec || 7) * 1000);
         }

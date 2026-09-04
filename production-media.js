@@ -1,0 +1,405 @@
+/* ═══════════════════════════════════════════════════════════
+   EAIM 프로덕션 — 미디어 생성 애드온 (production-media.js)
+   뮤지컬메이커에 "그림 만들기 / 노래 만들기" 버튼을 추가합니다.
+   · 그림: Gemini 3.1 Flash Image (Nano Banana), 16:9 배경 1K
+   · 노래: Lyria 3 Clip(30초) / Lyria 3 Pro(전체 곡)
+   · 같은 Gemini API 키(settings.apiKey) 사용
+   · 결과물은 Firebase Storage에 저장 → 없으면 브라우저에서만 재생/다운로드
+   설치: index.html 의 </body> 바로 앞에
+         <script src="production-media.js"></script>
+         그리고 <head> 에 firebase-storage-compat.js 추가 (안내 문서 참고)
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  // ── 모델 (2026-09 기준 문서 확인) ─────────────────────────
+  const MODELS = {
+    image:   'gemini-3.1-flash-lite-image', // 가장 저렴·빠름, 1K 고정
+    imageHQ: 'gemini-3.1-flash-image',      // 고품질 (텍스트 렌더링 등)
+    clip:    'lyria-3-clip-preview',        // 30초 미리듣기
+    song:    'lyria-3-pro-preview',         // 전체 곡 (2분 내외)
+  };
+  const API = 'https://generativelanguage.googleapis.com/v1beta/models/';
+
+  // ── 스타일 (본체 CSS 변수 재사용) ───────────────────────────
+  const css = document.createElement('style');
+  css.textContent = `
+  .pm-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  .pm-btn{padding:6px 12px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:700;
+    border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.08);color:#7c3aed;transition:all .2s}
+  .pm-btn:hover{background:rgba(124,58,237,.16)}
+  .pm-btn:disabled{opacity:.45;cursor:wait}
+  .pm-btn.music{border-color:rgba(199,120,221,.45);background:rgba(199,120,221,.1);color:#a83fb0}
+  .pm-btn.quiet{border-color:rgba(45,36,56,.15);background:#fff;color:#5a4f70;font-weight:600}
+  .pm-status{font-size:.72rem;color:#5a4f70;flex-basis:100%}
+  .pm-status.err{color:#c0392b}
+  .pm-preview{margin-top:8px;display:none}
+  .pm-preview.show{display:block}
+  .pm-preview img{width:100%;border-radius:8px;border:1px solid rgba(124,58,237,.15);display:block;background:#f3ecff}
+  .pm-preview audio{width:100%;margin-top:4px}
+  .pm-lyric{font-size:.72rem;color:#5a4f70;white-space:pre-wrap;line-height:1.6;margin-top:6px;max-height:120px;overflow:auto;
+    background:#faf8ff;border-radius:6px;padding:8px}
+  .pm-local{font-size:.68rem;color:#b26a00;margin-top:4px}
+  .pm-bar{height:4px;border-radius:2px;background:rgba(124,58,237,.12);overflow:hidden;flex-basis:100%;display:none}
+  .pm-bar.show{display:block}
+  .pm-bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,#7c3aed,#c778dd);animation:pmSlide 1.2s infinite}
+  @keyframes pmSlide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+  @media(prefers-reduced-motion:reduce){.pm-bar i{animation:none;width:100%}}
+  `;
+  document.head.appendChild(css);
+
+  // ── 공용 유틸 ───────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const toast = (m) => (typeof showToast === 'function' ? showToast(m) : console.log(m));
+  const key = () => ((typeof settings !== 'undefined' && settings.apiKey) || '').trim();
+  const mediaOn = () => (typeof settings === 'undefined' ? true : settings.mediaOn !== false);
+  const limitOf = (k) => (typeof settings === 'undefined' ? 0 : (Number(settings[k]) || 0)); // 0 = 무제한
+  const isStudent = () => (typeof isStudentMode !== 'undefined' && isStudentMode);
+
+  function todayKey() {
+    const d = new Date(); const s = typeof stuName === 'string' ? stuName : 'x';
+    return `pm_use_${d.getFullYear()}${d.getMonth() + 1}${d.getDate()}_${s}`;
+  }
+  function usage() { try { return JSON.parse(localStorage.getItem(todayKey()) || '{}'); } catch { return {}; } }
+  function bump(kind) { const u = usage(); u[kind] = (u[kind] || 0) + 1; localStorage.setItem(todayKey(), JSON.stringify(u)); }
+  function checkLimit(kind) {
+    if (!isStudent()) return true;
+    const lim = limitOf(kind === 'image' ? 'imgLimit' : 'songLimit');
+    if (!lim) return true;
+    const used = usage()[kind] || 0;
+    if (used >= lim) { toast(`오늘 ${kind === 'image' ? '그림' : '노래'} 생성 한도(${lim}회)를 다 썼어요`); return false; }
+    return true;
+  }
+
+  async function b64ToBlob(b64, mime) { return (await fetch(`data:${mime};base64,${b64}`)).blob(); }
+
+  // ── 이 기기 보관함 (IndexedDB) — Storage 없이도 슬라이드쇼·믹서가 같은 기기에서 꺼내 씀 ──
+  const IDB = {
+    db: null,
+    open() { return new Promise((res, rej) => { if (this.db) return res(this.db); const r = indexedDB.open('eaim-media', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('media', { keyPath: 'key' });
+      r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); }); },
+    async put(rec) { const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('media', 'readwrite'); t.objectStore('media').put(rec); t.oncomplete = res; t.onerror = () => rej(t.error); }); },
+    async get(key) { const db = await this.open(); return new Promise((res, rej) => { const r = db.transaction('media').objectStore('media').get(key); r.onsuccess = () => res(r.result || null); r.onerror = () => rej(r.error); }); },
+  };
+  const workKey = () => ((typeof currentWorkId === 'string' && currentWorkId) || 'draft');
+
+  // ── 대본 생성 지시문: Suno 프롬프트 → Lyria(제미나이)용 노래 스타일 지시문으로 바꿔 보냄 ──
+  const LYRIA_SPEC = '영문 노래 스타일 지시문 40단어 이내: 장르, 주요 악기, 보컬(성별·음색·솔로/듀엣/합창), 분위기, 빠르기 BPM. 예: warm acoustic pop ballad, piano and strings, female alto solo, hopeful, 88 BPM. 실제 가수 이름이나 기존 곡 제목은 쓰지 말 것';
+  if (typeof window.callGemini === 'function') {
+    const orig = window.callGemini;
+    window.callGemini = function (prompt, ...rest) {
+      if (typeof prompt === 'string' && /Suno/.test(prompt)) {
+        prompt = prompt
+          .replace(/영문 Suno\(emotional finale,\s*50단어이내\)/g, LYRIA_SPEC + ' (감동적인 피날레, 전체 합창)')
+          .replace(/영문 Suno 프롬프트\(50단어이내\)/g, LYRIA_SPEC)
+          .replace(/영문 Suno\(50단어이내\)/g, LYRIA_SPEC);
+      }
+      return orig.call(this, prompt, ...rest);
+    };
+  }
+  // 화면 글자에 남은 "Suno" 표기 정리
+  const RENAMES = [['🎵 Suno & 이미지 프롬프트 완성', '🎵 노래 스타일 & 배경 설계 완성'], ['Suno 프롬프트', '노래 스타일'], ['Suno', '노래 스타일']];
+  function renameText(root) {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let n; while ((n = w.nextNode())) { if (n.nodeValue.includes('Suno')) { let v = n.nodeValue; RENAMES.forEach(([a, b]) => { v = v.split(a).join(b); }); n.nodeValue = v; } }
+  }
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(nd => { if (nd.nodeType === 1) renameText(nd); else if (nd.nodeType === 3 && nd.nodeValue.includes('Suno')) renameText(nd.parentNode); })))
+    .observe(document.body, { childList: true, subtree: true });
+
+  // ── Gemini 미디어 호출 (이미지·음악 공용) ───────────────────
+  async function geminiMedia(model, parts, generationConfig) {
+    const k = key();
+    if (!k) throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
+    const body = { contents: [{ parts }] };
+    if (generationConfig) body.generationConfig = generationConfig;
+    const res = await fetch(API + model + ':generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      const msg = e?.error?.message || `오류 ${res.status}`;
+      const err = new Error(msg); err.status = res.status; throw err;
+    }
+    const data = await res.json();
+    const ps = data.candidates?.[0]?.content?.parts || [];
+    const inline = ps.filter(p => p.inlineData && !p.thought).pop();
+    const text = ps.filter(p => p.text && !p.thought).map(p => p.text).join('\n').trim();
+    if (!inline) {
+      const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || '';
+      throw new Error('결과에 미디어가 없어요' + (reason ? ` (${reason})` : '') + '. 프롬프트를 조금 바꿔서 다시 해보세요.');
+    }
+    return { mime: inline.inlineData.mimeType, b64: inline.inlineData.data, text };
+  }
+
+  async function genImage(prompt, hq) {
+    const p = [{ text: prompt.replace(/--ar\s*[\d:]+/g, '').trim() + ' No text or letters in the image.' }];
+    const model = hq ? MODELS.imageHQ : MODELS.image;
+    // responseFormat(신규) → imageConfig(구형) → 없이 순서로 시도
+    const cfgs = [
+      { responseModalities: ['IMAGE'], responseFormat: { image: { aspectRatio: '16:9' } } },
+      { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9' } },
+      { responseModalities: ['IMAGE'] },
+    ];
+    let last;
+    for (const cfg of cfgs) {
+      try { return await geminiMedia(model, p, cfg); }
+      catch (e) { last = e; if (e.status !== 400) throw e; }
+    }
+    throw last;
+  }
+
+  async function genMusic(stylePrompt, lyrics, full) {
+    const model = full ? MODELS.song : MODELS.clip;
+    let text = (stylePrompt || 'A musical theatre number').trim();
+    text += full ? '. A full song about 2 minutes long with verse and chorus.' : '. A 30-second clip.';
+    text += ' Sing in Korean.';
+    if (lyrics && lyrics.trim()) text += '\n\nLyrics:\n' + lyrics.trim();
+    return geminiMedia(model, [{ text }]);
+  }
+
+  // ── Firebase Storage 업로드 (없으면 null) ───────────────────
+  async function upload(blob, path) {
+    try {
+      if (!(window.firebase && firebase.storage)) return null;
+      const ref = firebase.storage().ref().child(path);
+      await ref.put(blob, { contentType: blob.type });
+      return await ref.getDownloadURL();
+    } catch (e) { console.warn('Storage 업로드 실패 → 브라우저에만 보관', e); return null; }
+  }
+  function mediaPath(id, ext) {
+    const t = typeof teacherUid === 'string' ? teacherUid : 'unknown';
+    const w = (typeof currentWorkId === 'string' && currentWorkId) || 'draft';
+    return `teachers/${t}/media/${w}/${id}_${Date.now()}.${ext}`;
+  }
+
+  // ── 결과 기록 ───────────────────────────────────────────────
+  const localUrls = {}; // Storage 실패 시 세션 한정 object URL
+  function record(id, field, url, extra) {
+    if (typeof generatedData === 'undefined' || !generatedData) return;
+    generatedData.media = generatedData.media || {};
+    generatedData.media[id] = { ...(generatedData.media[id] || {}), [field]: url, ...(extra || {}) };
+    try { if (typeof LS !== 'undefined') LS.set(DRAFT_KEY, generatedData); } catch {}
+    try {
+      if (url && !url.startsWith('blob:') && typeof currentWorkId === 'string' && currentWorkId && typeof worksColRef === 'function') {
+        worksColRef(teacherUid).doc(currentWorkId).set({ media: generatedData.media }, { merge: true }).catch(() => {});
+      }
+    } catch {}
+  }
+
+  // ── 장면 id ↔ 데이터 ────────────────────────────────────────
+  function sceneOf(id) {
+    const d = typeof generatedData !== 'undefined' ? generatedData : null; if (!d) return {};
+    if (id === 'opening') return d.opening || {};
+    if (id === 'curtain') return d.curtain || {};
+    if (id === 'rsong') return d.song || {};
+    const m = id.match(/^scene-(\d+)$/); if (m) return (d.scenes || [])[+m[1]] || {};
+    return {};
+  }
+  function lyricsBox(id) { return $(id === 'rsong' ? 'rsong-lyrics' : `lyrics-${id}`); }
+
+  // ── UI 주입 ─────────────────────────────────────────────────
+  function inject() {
+    if (typeof generatedData === 'undefined' || !generatedData) return;
+    const media = generatedData.media || {};
+    document.querySelectorAll('textarea.prompt-text').forEach((ta) => {
+      if (ta.dataset.pm) return;
+      let kind, id;
+      if (/^bg-/.test(ta.id)) { kind = 'image'; id = ta.id.slice(3); }
+      else if (ta.id === 'rsong-bg') { kind = 'image'; id = 'rsong'; }
+      else if (/^suno-/.test(ta.id)) { kind = 'music'; id = ta.id.slice(5); }
+      else if (ta.id === 'rsong-suno') { kind = 'music'; id = 'rsong'; }
+      else return;
+      ta.dataset.pm = '1';
+      const box = ta.closest('.prompt-box') || ta.parentElement;
+      const wrap = document.createElement('div');
+      wrap.className = 'pm-wrap';
+      const prev = `pm-prev-${kind}-${id}`;
+      if (kind === 'image') {
+        wrap.innerHTML = `
+          <div class="pm-row">
+            <button class="pm-btn" data-act="img">🎨 그림 만들기</button>
+            <button class="pm-btn quiet" data-act="imghq" title="글자·세부 묘사가 중요할 때">고품질</button>
+            <div class="pm-bar"><i></i></div>
+            <div class="pm-status"></div>
+          </div>
+          <div class="pm-preview" id="${prev}"></div>`;
+      } else {
+        wrap.innerHTML = `
+          <div class="pm-row">
+            <button class="pm-btn music" data-act="clip">🎵 30초 들어보기</button>
+            <button class="pm-btn music" data-act="song">🎼 전체 곡 만들기</button>
+            <div class="pm-bar"><i></i></div>
+            <div class="pm-status"></div>
+          </div>
+          <div class="pm-preview" id="${prev}"></div>`;
+      }
+      box.appendChild(wrap);
+      if (kind === 'music') { // 화면 이름: Suno → 노래 스타일
+        const lbl = box.querySelector('.prompt-label');
+        if (lbl && lbl.firstChild && lbl.firstChild.nodeType === 3) lbl.firstChild.textContent = '🎵 노래 스타일 (Gemini가 이 느낌으로 불러요) ';
+        ta.placeholder = '예: warm acoustic pop ballad, female alto, soft piano, 90 BPM';
+      }
+      if (!mediaOn()) { wrap.querySelectorAll('.pm-btn').forEach(b => { b.disabled = true; b.title = '선생님이 미디어 생성을 꺼두었어요'; }); }
+      wrap.querySelectorAll('.pm-btn').forEach(b => b.addEventListener('click', () => run(b.dataset.act, id, ta, wrap)));
+      // 이전 결과 복원 (원격 URL → 세션 URL → 이 기기 보관함 순서)
+      const m = media[id] || {};
+      if (kind === 'image') {
+        if (m.imageUrl || localUrls[id + ':image']) showImage(wrap, m.imageUrl || localUrls[id + ':image'], !m.imageUrl);
+        else if (m.imageLocal) IDB.get(m.imageLocal).then(r => { if (r && r.blob) { localUrls[id + ':image'] = URL.createObjectURL(r.blob); showImage(wrap, localUrls[id + ':image'], true); } }).catch(() => {});
+      }
+      if (kind === 'music') {
+        if (m.audioUrl || localUrls[id + ':music']) showAudio(wrap, m.audioUrl || localUrls[id + ':music'], m.audioLyrics, !m.audioUrl);
+        else if (m.audioLocal) IDB.get(m.audioLocal).then(r => { if (r && r.blob) { localUrls[id + ':music'] = URL.createObjectURL(r.blob); showAudio(wrap, localUrls[id + ':music'], m.audioLyrics, true); } }).catch(() => {});
+      }
+    });
+  }
+
+  function showImage(wrap, url, isLocal) {
+    const p = wrap.querySelector('.pm-preview');
+    p.innerHTML = `<img src="${url}" alt="생성된 배경 그림">
+      <div class="pm-row">
+        <a class="pm-btn quiet" href="${url}" download="eaim_bg.png" ${isLocal ? '' : 'target="_blank"'}>⬇ 그림 저장</a>
+        ${isLocal ? '' : `<button class="pm-btn quiet" data-copy="${url}">🔗 링크 복사</button>`}
+      </div>
+      ${isLocal ? '<div class="pm-local">이 기기에 보관됐어요 (같은 기기의 슬라이드쇼·믹서에서 바로 써요). 다른 기기로 옮기려면 "그림 저장"으로 내려받으세요.</div>' : ''}`;
+    p.classList.add('show');
+    const c = p.querySelector('[data-copy]'); if (c) c.onclick = () => navigator.clipboard.writeText(c.dataset.copy).then(() => toast('✅ 링크 복사됨'));
+  }
+  function showAudio(wrap, url, lyrics, isLocal) {
+    const p = wrap.querySelector('.pm-preview');
+    p.innerHTML = `<audio controls src="${url}"></audio>
+      <div class="pm-row">
+        <a class="pm-btn quiet" href="${url}" download="eaim_song.mp3" ${isLocal ? '' : 'target="_blank"'}>⬇ 노래 저장</a>
+        ${isLocal ? '' : `<button class="pm-btn quiet" data-copy="${url}">🔗 믹서용 링크 복사</button>`}
+      </div>
+      ${lyrics ? `<div class="pm-lyric">${lyrics.replace(/</g, '&lt;')}</div>` : ''}
+      ${isLocal ? '<div class="pm-local">이 기기에 보관됐어요 (같은 기기의 슬라이드쇼·믹서에서 바로 써요). 다른 기기로 옮기려면 "노래 저장"으로 내려받으세요.</div>' : ''}`;
+    p.classList.add('show');
+    const c = p.querySelector('[data-copy]'); if (c) c.onclick = () => navigator.clipboard.writeText(c.dataset.copy).then(() => toast('✅ 링크 복사됨 — 오디오 믹서의 "오디오 URL 입력"에 붙여넣으세요'));
+  }
+
+  function setBusy(wrap, on, msg, isErr) {
+    wrap.querySelectorAll('.pm-btn').forEach(b => { if (mediaOn()) b.disabled = on; });
+    wrap.querySelector('.pm-bar').classList.toggle('show', on);
+    const s = wrap.querySelector('.pm-status'); s.textContent = msg || ''; s.classList.toggle('err', !!isErr);
+  }
+
+  async function run(act, id, ta, wrap) {
+    const kind = (act === 'img' || act === 'imghq') ? 'image' : 'music';
+    if (!checkLimit(kind)) return;
+    try {
+      if (kind === 'image') {
+        setBusy(wrap, true, '배경 그림을 그리고 있어요 (10~30초)…');
+        const r = await genImage(ta.value, act === 'imghq');
+        const blob = await b64ToBlob(r.b64, r.mime);
+        const remote = await upload(blob, mediaPath(id, 'png'));
+        const url = remote || URL.createObjectURL(blob);
+        if (!remote) localUrls[id + ':image'] = url;
+        const lk = `${workKey()}|image|${id}`;
+        await IDB.put({ key: lk, kind: 'image', id, blob, work: workKey(), title: (generatedData && generatedData.title) || '', song: sceneOf(id).songTitle || '', ts: Date.now() }).catch(() => {});
+        record(id, 'imageUrl', remote ? remote : null, { imageLocal: lk });
+        showImage(wrap, url, !remote);
+        bump('image'); setBusy(wrap, false, remote ? '✅ 저장됨' : '✅ 완성 (이 기기에 보관)');
+      } else {
+        const full = act === 'song';
+        setBusy(wrap, true, full ? '전체 곡을 만들고 있어요 (1~3분 걸려요)…' : '30초 미리듣기를 만들고 있어요 (30초~1분)…');
+        const lb = lyricsBox(id);
+        const r = await genMusic(ta.value, lb ? lb.value : sceneOf(id).lyrics, full);
+        const blob = await b64ToBlob(r.b64, r.mime || 'audio/mpeg');
+        const remote = await upload(blob, mediaPath(id, 'mp3'));
+        const url = remote || URL.createObjectURL(blob);
+        if (!remote) localUrls[id + ':music'] = url;
+        const lk = `${workKey()}|audio|${id}`;
+        await IDB.put({ key: lk, kind: 'audio', id, blob, work: workKey(), title: (generatedData && generatedData.title) || '', song: sceneOf(id).songTitle || '', full, ts: Date.now() }).catch(() => {});
+        record(id, 'audioUrl', remote ? remote : null, { audioLyrics: r.text || '', audioFull: full, audioLocal: lk });
+        showAudio(wrap, url, r.text, !remote);
+        bump('music'); setBusy(wrap, false, remote ? '✅ 저장됨' : '✅ 완성 (이 기기에 보관)');
+      }
+    } catch (e) {
+      console.error(e);
+      setBusy(wrap, false, '❌ ' + e.message, true);
+    }
+  }
+
+  // ── 본체 함수 후킹 ──────────────────────────────────────────
+  function hook(name, after) {
+    const orig = window[name];
+    if (typeof orig !== 'function') return;
+    window[name] = function () { const r = orig.apply(this, arguments); try { after.apply(this, arguments); } catch (e) { console.warn(e); } return r; };
+  }
+
+  // 결과 화면이 그려질 때마다 버튼 주입
+  hook('renderResult', () => setTimeout(inject, 0));
+
+  // TXT/Word 내보내기의 [Suno] 표기 → [노래 스타일], 만든 노래·그림 링크도 함께
+  ['buildFullText', 'buildReadingFullText'].forEach(fn => {
+    const orig = window[fn]; if (typeof orig !== 'function') return;
+    window[fn] = function (d) {
+      let t = orig.apply(this, arguments).replace(/\[Suno\]/g, '[노래 스타일]');
+      const media = (d && d.media) || {};
+      const lines = Object.entries(media).flatMap(([id, m]) => [
+        m.audioUrl ? `  ${id}: 노래 ${m.audioUrl}` : null, m.imageUrl ? `  ${id}: 배경 ${m.imageUrl}` : null]).filter(Boolean);
+      if (lines.length) t += `\n\n【 만든 미디어 】\n${'─'.repeat(36)}\n${lines.join('\n')}`;
+      return t;
+    };
+  });
+
+  // 슬라이드쇼로 보낼 때 그림·노래 URL 동봉
+  hook('launchSlideshow', () => {
+    try {
+      const raw = localStorage.getItem('eaim_musical_data'); if (!raw) return;
+      const data = JSON.parse(raw); const media = (generatedData && generatedData.media) || {};
+      (data.scenes || []).forEach((s, i) => {
+        const id = s.type === 'opening' ? 'opening' : `scene-${i - 1}`;
+        const m = media[id] || {};
+        if (m.imageUrl) s.imageUrl = m.imageUrl;
+        if (m.audioUrl) s.audioUrl = m.audioUrl;
+        if (m.imageLocal) s.imageLocal = m.imageLocal;
+        if (m.audioLocal) s.audioLocal = m.audioLocal;
+      });
+      if (media.curtain?.imageUrl) data.curtainImageUrl = media.curtain.imageUrl;
+      if (media.curtain?.audioUrl) data.curtainAudioUrl = media.curtain.audioUrl;
+      if (media.curtain?.imageLocal) data.curtainImageLocal = media.curtain.imageLocal;
+      if (media.curtain?.audioLocal) data.curtainAudioLocal = media.curtain.audioLocal;
+      localStorage.setItem('eaim_musical_data', JSON.stringify(data));
+    } catch (e) { console.warn(e); }
+  });
+
+  // 교사 대시보드 설정 탭에 미디어 카드 추가
+  hook('renderDashContent', () => {
+    if (typeof dashTab === 'undefined' || dashTab !== 'settings') return;
+    const el = $('dash-content'); if (!el || $('pm-teacher-card')) return;
+    const on = mediaOn(), il = limitOf('imgLimit'), sl = limitOf('songLimit');
+    const card = document.createElement('div');
+    card.className = 'card'; card.id = 'pm-teacher-card';
+    card.innerHTML = `
+      <div class="card-title">🎨 그림·노래 생성 (프로덕션)</div>
+      <div class="toggle-row">
+        <div><div style="font-weight:700;font-size:.95rem">${on ? '학생 미디어 생성 켜짐' : '학생 미디어 생성 꺼짐'}</div>
+          <div style="font-size:.72rem;color:var(--sub);margin-top:3px">같은 Gemini 키로 배경 그림(Nano Banana)과 노래(Lyria 3)를 만들어요</div></div>
+        <div class="toggle-track ${on ? 'on' : ''}" id="pm-toggle"><div class="toggle-thumb"></div></div>
+      </div>
+      <div class="row2" style="margin-top:12px">
+        <div><div class="field-label">학생 1인 하루 그림 한도 (0 = 무제한)</div>
+          <input class="t-input" type="number" min="0" id="pm-img-limit" value="${il}"></div>
+        <div><div class="field-label">학생 1인 하루 노래 한도 (0 = 무제한)</div>
+          <input class="t-input" type="number" min="0" id="pm-song-limit" value="${sl}"></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--sub);line-height:1.7">
+        전체 곡 1개는 30초 클립보다 훨씬 비싸요. 처음엔 그림 5 · 노래 2 정도로 시작해보세요.<br>
+        한도는 학생 기기 기준으로 세어요(브라우저를 바꾸면 초기화). 결과물 저장은 Firebase Storage가 켜져 있어야 해요.
+      </div>`;
+    el.appendChild(card);
+    $('pm-toggle').onclick = () => { setSettings(teacherUid, { mediaOn: !on }); renderDashContent(); };
+    $('pm-img-limit').oninput = (e) => setSettings(teacherUid, { imgLimit: Number(e.target.value) || 0 });
+    $('pm-song-limit').oninput = (e) => setSettings(teacherUid, { songLimit: Number(e.target.value) || 0 });
+  });
+
+  // 이미 결과 화면이 떠 있으면 바로 주입
+  if (document.querySelector('textarea.prompt-text')) inject();
+
+  window.EAIM_MEDIA = { genImage, genMusic, MODELS }; // 다른 앱(포스터·감상문)에서 재사용
+})();
