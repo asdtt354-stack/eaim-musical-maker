@@ -214,6 +214,26 @@
     throw last;
   }
 
+  /* 배경음악(연주곡): 보컬 없이, 대사 위에 깔리게, 반복 가능하게 */
+  const MOOD_EN = { '기쁨':'warm and bright','신남':'lively and upbeat','설렘':'gentle and hopeful','평온':'calm and still','슬픔':'wistful and tender','외로움':'lonely and sparse','화남':'tense and driving','무서움':'dark and suspenseful','신비':'mysterious and floating','뿌듯':'proud and rising' };
+  function bgmPrompt(kind, ctx) {
+    const base = 'Instrumental only, absolutely no vocals, no singing, no lyrics, no vocal chops. Soft background underscore that sits under spoken dialogue: gentle dynamics, simple repeating harmony, no sudden loud hits, seamless loop feel.';
+    const inst = ctx.inst || 'soft piano with light strings and warm pad';
+    const mood = ctx.mood || 'gentle';
+    const bpm = ctx.bpm || 76;
+    const K = {
+      scene:  `Background music for a scene of a Korean middle-school musical. Mood: ${mood}. ${inst}. About ${bpm} BPM.`,
+      intro:  `Opening prelude before a school musical begins — the audience is settling in, curtain about to rise. Mood: ${mood}, expectant. ${inst}. About ${bpm} BPM.`,
+      transition: `Short transition music between two acts of a school musical — a bridge that carries the mood from one scene to the next. Mood: ${mood}. ${inst}. About ${bpm} BPM.`,
+      ending: `Closing music after the curtain call of a school musical — warm, satisfied, letting the audience go home. Mood: ${mood}, tender. ${inst}. About ${bpm} BPM.`,
+    };
+    const head = K[kind] || K.scene;
+    return `${head}\n\n${base}${ctx.story ? `\n\nScene: ${ctx.story}` : ''}`;
+  }
+  async function genBgm(kind, ctx, onWait) {
+    return geminiMedia(MODELS.clip, [{ text: bgmPrompt(kind, ctx) }], undefined, onWait);
+  }
+
   async function genMusic(stylePrompt, lyrics, full, onWait) {
     const model = full ? MODELS.song : MODELS.clip;
     let text = (stylePrompt || 'A musical theatre number').trim();
@@ -250,6 +270,20 @@
         worksColRef(teacherUid).doc(currentWorkId).set({ media: generatedData.media }, { merge: true }).catch(() => {});
       }
     } catch {}
+  }
+
+  const SCENE_KO = (id) => id === 'opening' ? '오프닝' : id === 'curtain' ? '커튼콜' : id === 'rsong' ? '낭독극' : (/^scene-(\d+)$/.test(id) ? (Number(id.slice(6)) + 1) + '막' : id);
+  function sceneCtx(id, sc) {
+    sc = sc || {};
+    const style = (sc.sunoPrompt || '').toLowerCase();
+    const bpmM = style.match(/(\d{2,3})\s*bpm/);
+    const slow = /ballad|slow|gentle|tender|sad/.test(style), fast = /dance|upbeat|fast|energetic|driving/.test(style);
+    return {
+      mood: sc.emotion ? (MOOD_EN[sc.emotion] || sc.emotion) : (slow ? 'tender and calm' : fast ? 'bright and moving' : 'gentle'),
+      bpm: bpmM ? Number(bpmM[1]) : (slow ? 68 : fast ? 100 : 80),
+      inst: /rock|band|guitar/.test(style) ? 'clean electric guitar, soft bass and brushed drums' : /synth|electronic|dance/.test(style) ? 'warm synth pad and soft arpeggio' : 'soft piano with light strings and warm pad',
+      story: (sc.sceneTitle || '') + (sc.script ? ' — ' + String(sc.script).replace(/\n/g, ' ').slice(0, 160) : ''),
+    };
   }
 
   // ── 장면 id ↔ 데이터 ────────────────────────────────────────
@@ -294,10 +328,12 @@
           <div class="pm-row">
             <button class="pm-btn music" data-act="clip">🎵 30초 들어보기</button>
             <button class="pm-btn music" data-act="song">🎼 전체 곡 만들기</button>
+            <button class="pm-btn" data-act="bgm" title="가사·보컬 없이 대사 아래 깔리는 연주곡">🎻 배경음악 (연주곡)</button>
             <div class="pm-bar"><i></i></div>
             <div class="pm-status"></div>
           </div>
-          <div class="pm-preview" id="${prev}"></div>`;
+          <div class="pm-preview" id="${prev}"></div>
+          <div class="pm-bgm" style="display:none;margin-top:6px"></div>`;
       }
       box.appendChild(wrap);
       if (kind === 'music') { // 화면 이름: Suno → 노래 스타일
@@ -389,6 +425,22 @@
         record(id, 'imageUrl', remote ? remote : null, { imageLocal: lk });
         showImage(wrap, url, !remote);
         bump('image'); setBusy(wrap, false, remote ? '✅ 저장됨' : '✅ 완성 (이 기기에 보관)');
+      } else if (act === 'bgm') {
+        const sc = sceneOf(id);
+        const box = wrap.querySelector('.pm-bgm'); box.style.display = 'block';
+        setBusy(wrap, true, '배경음악(연주곡)을 만들고 있어요 (30초~1분)…');
+        const r = await genBgm('scene', sceneCtx(id, sc), (sec, n) => setBusy(wrap, true, `⏳ 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)…`));
+        const blob = await b64ToBlob(r.b64, r.mime || 'audio/mpeg');
+        const remote = await upload(blob, mediaPath(id + '_bgm', 'mp3'));
+        const url = remote || URL.createObjectURL(blob);
+        const lk = `${workKey()}|bgm|${id}`;
+        await IDB.put({ key: lk, kind: 'audio', id: id + '_bgm', blob, work: workKey(), title: (generatedData && generatedData.title) || '', song: (sc.songTitle || SCENE_KO(id)) + ' 배경음악', ts: Date.now() }).catch(() => {});
+        record(id, 'bgmUrl', remote ? remote : null, { bgmLocal: lk });
+        box.innerHTML = `<div class="pm-status">🎻 배경음악 — 대사 장면에 깔아 보세요</div>
+          <audio controls src="${url}" style="width:100%"></audio>
+          <div class="pm-row"><a class="pm-btn quiet" href="${url}" download="eaim_bgm.mp3" ${remote ? 'target="_blank"' : ''}>⬇ 저장</a>
+          <span class="pm-status">오디오 믹서 목록에 "${SCENE_KO(id)} BGM"으로 들어가요</span></div>`;
+        bump('music'); setBusy(wrap, false, '✅ 배경음악 완성');
       } else {
         const full = act === 'song';
         setBusy(wrap, true, full ? '전체 곡을 만들고 있어요 (1~3분 걸려요)…' : '30초 미리듣기를 만들고 있어요 (30초~1분)…');
@@ -417,8 +469,65 @@
     window[name] = function () { const r = orig.apply(this, arguments); try { after.apply(this, arguments); } catch (e) { console.warn(e); } return r; };
   }
 
+  /* ═══ 공연 음악: 인트로(전주) · 막간 전환 · 커튼콜 후(엔딩) ═══ */
+  const STAGE = [
+    { k: 'intro', n: '🎬 인트로 (전주)', d: '공연 시작 전, 관객이 자리에 앉는 동안' },
+    { k: 'transition', n: '↔️ 막간 전환', d: '막과 막 사이를 이어 주는 짧은 음악' },
+    { k: 'ending', n: '🌙 커튼콜 후 (엔딩)', d: '인사가 끝나고 관객이 돌아갈 때' },
+  ];
+  function injectStage() {
+    if (typeof generatedData === 'undefined' || !generatedData) return;
+    if (document.getElementById('pm-stage')) return;
+    const first = document.querySelector('.scene-card'); if (!first) return;
+    const card = document.createElement('div');
+    card.className = 'card'; card.id = 'pm-stage'; card.style.marginBottom = '14px';
+    card.innerHTML = `<div class="card-title" style="margin-bottom:6px">🎻 공연 음악 (연주곡)</div>
+      <div style="font-size:.78rem;color:var(--sub);line-height:1.7;margin-bottom:10px">노래(넘버)와 달리 <b>가사·보컬 없이</b> 흐르는 음악이에요. 만들면 오디오 믹서 목록과 슬라이드쇼로 함께 넘어가요.</div>
+      ${STAGE.map(x => `<div class="pm-stage-row" data-k="${x.k}" style="border-top:1px solid var(--border);padding:10px 0">
+        <div class="pm-row"><b style="font-size:.9rem">${x.n}</b><span class="pm-status" style="flex-basis:auto">${x.d}</span></div>
+        <div class="pm-row"><button class="pm-btn" data-stage="${x.k}">🎻 만들기</button><div class="pm-bar"><i></i></div><div class="pm-status"></div></div>
+        <div class="pm-out"></div></div>`).join('')}`;
+    first.parentNode.insertBefore(card, first);
+    if (!mediaOn()) card.querySelectorAll('.pm-btn').forEach(b => { b.disabled = true; b.title = '선생님이 미디어 생성을 꺼두었어요'; });
+    card.querySelectorAll('[data-stage]').forEach(b => b.addEventListener('click', () => runStage(b.dataset.stage, b.closest('.pm-stage-row'))));
+    // 이전 결과 복원
+    const media = generatedData.media || {};
+    STAGE.forEach(x => { const m = media['stage_' + x.k] || {}; const row = card.querySelector(`.pm-stage-row[data-k="${x.k}"]`);
+      if (m.bgmUrl) showStage(row, m.bgmUrl, x, false);
+      else if (m.bgmLocal) IDB.get(m.bgmLocal).then(r => { if (r && r.blob) showStage(row, URL.createObjectURL(r.blob), x, true); }).catch(() => {}); });
+  }
+  function showStage(row, url, x, isLocal) {
+    row.querySelector('.pm-out').innerHTML = `<audio controls src="${url}" style="width:100%;margin-top:6px"></audio>
+      <div class="pm-row"><a class="pm-btn quiet" href="${url}" download="eaim_${x.k}.mp3" ${isLocal ? '' : 'target="_blank"'}>⬇ 저장</a></div>`;
+  }
+  async function runStage(kind, row) {
+    if (!checkLimit('music')) return;
+    const bar = row.querySelector('.pm-bar'), st = row.querySelector('.pm-status:last-of-type') || row.querySelectorAll('.pm-status')[1];
+    const btn = row.querySelector('[data-stage]');
+    btn.disabled = true; bar.classList.add('show'); st.textContent = '만들고 있어요 (30초~1분)…';
+    try {
+      const d = generatedData || {};
+      const scenes = d.scenes || [];
+      const base = kind === 'intro' ? (d.opening || scenes[0] || {}) : kind === 'ending' ? (d.curtain || scenes[scenes.length - 1] || {}) : (scenes[Math.floor(scenes.length / 2)] || {});
+      const ctx = sceneCtx(kind, base);
+      ctx.story = (d.title ? `"${d.title}" — ` : '') + (d.synopsis ? String(d.synopsis).slice(0, 150) : ctx.story);
+      const r = await genBgm(kind, ctx, (sec, n) => { st.textContent = `⏳ 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)…`; });
+      const blob = await b64ToBlob(r.b64, r.mime || 'audio/mpeg');
+      const id = 'stage_' + kind;
+      const remote = await upload(blob, mediaPath(id, 'mp3'));
+      const url = remote || URL.createObjectURL(blob);
+      const lk = `${workKey()}|bgm|${id}`;
+      await IDB.put({ key: lk, kind: 'audio', id, blob, work: workKey(), title: d.title || '', song: STAGE.find(x => x.k === kind).n.replace(/^\S+\s/, ''), ts: Date.now() }).catch(() => {});
+      record(id, 'bgmUrl', remote ? remote : null, { bgmLocal: lk });
+      showStage(row, url, STAGE.find(x => x.k === kind), !remote);
+      bump('music'); st.textContent = '✅ 완성 — 믹서 목록에도 들어갔어요';
+    } catch (e) { st.textContent = '❌ ' + e.message; }
+    finally { btn.disabled = false; bar.classList.remove('show'); }
+  }
+
   // 결과 화면이 그려질 때마다 버튼 주입
-  hook('renderResult', () => setTimeout(inject, 0));
+  hook('renderResult', () => setTimeout(() => { inject(); injectStage(); }, 0));
+  hook('renderReadingResult', () => setTimeout(() => { inject(); injectStage(); }, 0));
 
   // TXT/Word 내보내기의 [Suno] 표기 → [노래 스타일], 만든 노래·그림 링크도 함께
   ['buildFullText', 'buildReadingFullText'].forEach(fn => {
@@ -446,12 +555,15 @@
         if (m.imageLocal) s.imageLocal = m.imageLocal;
         if (m.audioLocal) s.audioLocal = m.audioLocal;
         if (m.mrUrl) s.mrUrl = m.mrUrl;
+        if (m.bgmUrl) s.bgmUrl = m.bgmUrl;
+        if (m.bgmLocal) s.bgmLocal = m.bgmLocal;
         if (m.mrLocal) s.mrLocal = m.mrLocal;
       });
       if (media.curtain?.imageUrl) data.curtainImageUrl = media.curtain.imageUrl;
       if (media.curtain?.audioUrl) data.curtainAudioUrl = media.curtain.audioUrl;
       if (media.curtain?.imageLocal) data.curtainImageLocal = media.curtain.imageLocal;
       if (media.curtain?.audioLocal) data.curtainAudioLocal = media.curtain.audioLocal;
+      ['intro','transition','ending'].forEach(k => { const m = media['stage_' + k] || {}; if (m.bgmUrl) data['stage_' + k + 'Url'] = m.bgmUrl; if (m.bgmLocal) data['stage_' + k + 'Local'] = m.bgmLocal; });
       localStorage.setItem('eaim_musical_data', JSON.stringify(data));
     } catch (e) { console.warn(e); }
   });
@@ -487,7 +599,7 @@
   });
 
   // 이미 결과 화면이 떠 있으면 바로 주입
-  if (document.querySelector('textarea.prompt-text')) inject();
+  if (document.querySelector('textarea.prompt-text')) { inject(); injectStage(); }
 
-  window.EAIM_MEDIA = { genImage, genMusic, MODELS }; // 다른 앱(포스터·감상문)에서 재사용
+  window.EAIM_MEDIA = { genImage, genMusic, genBgm, MODELS }; // 다른 앱(포스터·감상문)에서 재사용
 })();

@@ -23,7 +23,14 @@
   const say = (m) => (typeof toast === 'function' ? toast(m) : console.log(m));
   const urls = {};
   const urlOf = (rec) => urls[rec.key] || (urls[rec.key] = URL.createObjectURL(rec.blob));
-  const SCENE_LABEL = (id) => { const mr = /_mr$/.test(id); const base = id.replace(/_mr$/, ''); const n = base === 'opening' ? '오프닝' : base === 'curtain' ? '커튼콜' : base === 'rsong' ? '낭독극 노래' : (/^scene-(\d+)$/.test(base) ? (Number(base.slice(6)) + 1) + '막' : base); return n + (mr ? ' MR' : ''); };
+  const STAGE_KO = { stage_intro:'🎬 인트로 (전주)', stage_transition:'↔️ 막간 전환', stage_ending:'🌙 커튼콜 후' };
+  const SCENE_LABEL = (id) => {
+    if (STAGE_KO[id]) return STAGE_KO[id];
+    const mr = /_mr$/.test(id), bgm = /_bgm$/.test(id);
+    const base = id.replace(/_(mr|bgm)$/, '');
+    const n = base === 'opening' ? '오프닝' : base === 'curtain' ? '커튼콜' : base === 'rsong' ? '낭독극 노래' : (/^scene-(\d+)$/.test(base) ? (Number(base.slice(6)) + 1) + '막' : base);
+    return n + (mr ? ' MR' : bgm ? ' BGM' : '');
+  };
 
   const css = document.createElement('style');
   css.textContent = `
@@ -59,7 +66,7 @@
     songs.forEach(r => { const k = r.title || '(제목 없음)'; (byWork[k] = byWork[k] || []).push(r); });
     list.innerHTML = Object.entries(byWork).map(([title, rs]) => `<div class="mm-work">🎼 ${esc(title)}</div>` + rs.map(r => `
       <div class="mm-row" data-key="${esc(r.key)}">
-        <div class="nm">${esc(r.song || SCENE_LABEL(r.id))}<small>${SCENE_LABEL(r.id)} · ${/_mr$/.test(r.id) ? '반주(MR)' : (r.full ? '전체 곡' : '30초')} · ${new Date(r.ts || 0).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</small></div>
+        <div class="nm">${esc(r.song || SCENE_LABEL(r.id))}<small>${SCENE_LABEL(r.id)} · ${/_mr$/.test(r.id) ? '반주(MR)' : (/_bgm$/.test(r.id)||/^stage_/.test(r.id)) ? '배경음악' : (r.full ? '전체 곡' : '30초')} · ${new Date(r.ts || 0).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</small></div>
         <button class="p" data-ch="bgm" title="BGM 채널에 올리기">BGM</button>
         <button class="p" data-ch="mr" title="넘버 MR 채널에 올리기">MR</button>
         <button class="p" data-ch="sfx2" title="앰비언스 채널에 올리기">AMB</button>
@@ -98,6 +105,9 @@
         else { const m = c.name.match(/^(\d+)막/); if (m) rec = byId['scene-' + (Number(m[1]) - 1)]; }
       }
       if (rec) { c.mr = { ...(c.mr || {}), url: urlOf(rec), fname: '🎭 ' + (rec.song || SCENE_LABEL(rec.id)), vol: Math.max(c.mr?.vol ?? 1, 0.9), loop: false }; n++; }
+      // 같은 장면의 배경음악(BGM)이 있으면 BGM 채널에
+      const bgmRec = songs.find(x => x.id === (rec ? rec.id.replace(/_(mr|bgm)$/, '') : '') + '_bgm');
+      if (bgmRec) { c.bgm = { ...(c.bgm || {}), url: urlOf(bgmRec), fname: '🎻 ' + SCENE_LABEL(bgmRec.id), vol: Math.max(c.bgm?.vol ?? 1, 0.55), loop: true }; }
     });
     if (typeof rebuildCueList === 'function') rebuildCueList();
     say(n ? `🎭 ${n}개 큐에 넘버를 연결했어요 — 큐를 누르면 MR 채널에 올라와요` : '⚠️ 큐 이름과 맞는 노래를 못 찾았어요');

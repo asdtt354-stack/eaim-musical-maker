@@ -8,7 +8,7 @@
    · 🗑  복제한 장면 삭제
    · 말풍선은 장면 데이터(scene.bubbles)에 저장돼 새로고침·녹화에도 유지
    · 말풍선 더블클릭 = 이름·대사 수정, 드래그 = 위치, ✕ = 삭제
-   · 대사로 나눈 화면은 가사 자막을 자동으로 숨김 (가사 보기 버튼으로 다시 켤 수 있음)
+   · 대사로 나눈 화면은 가사 자막을 숨기고, 넘버 대신 배경음악만 흐름 (가사 보기 버튼으로 다시 켤 수 있음)
 
    설치: slideshow.html 의 </body> 앞, slideshow-rec.js 다음 줄에
          <script src="slideshow-dialogue.js"></script>
@@ -146,6 +146,8 @@
   function cloneOf(sc, bubbles, extra) {
     const c = JSON.parse(JSON.stringify(sc));
     c.bubbles = bubbles; c.clonedFrom = sc.clonedFrom ?? (scenes().indexOf(sc));
+    // 복제한 화면에서는 넘버(노래)를 다시 틀지 않는다 — 배경음악만 이어서 흐름
+    c.dialogue = true; delete c.audioUrl; delete c.audioLocal; delete c.mrUrl;
     return Object.assign(c, extra || {});
   }
   function reloadTo(idx) { localStorage.setItem(JUMP_KEY, String(idx)); location.reload(); }
@@ -170,15 +172,17 @@
     const perRaw = prompt(`대사가 ${lines.length}줄이에요. 한 화면에 몇 줄씩 넣을까요?`, '1'); if (perRaw === null) return;
     const per = Math.max(1, parseInt(perRaw, 10) || 1);
     const groups = []; for (let i = 0; i < lines.length; i += per) groups.push(lines.slice(i, i + per));
-    if (!confirm(`${groups.length}개 화면으로 만들어요. 지금 장면은 그대로 두고 바로 뒤에 추가돼요.`)) return;
+    const before = confirm(`${groups.length}개 대사 화면을 만들어요.\n\n[확인] 노래 앞에 넣기 (대사 → 노래, 뮤지컬 순서)\n[취소] 노래 뒤에 넣기`);
     const news = groups.map((g, gi) => cloneOf(sc, g.map((l, k) => {
       const p = POS[l.posIdx]; const same = g.slice(0, k).filter(x => x.posIdx === l.posIdx).length;
       return { name: l.speaker, text: l.text, tail: p.tail, left: p.left, top: (parseFloat(p.top) + same * 14) + '%' };
     }), { hideLyrics: true, cut: gi + 1 }));
-    scenes().splice(si + 1, 0, ...news);
+    const at = before ? si : si + 1;
+    scenes().splice(at, 0, ...news);
     if (!save()) return;
-    remapDeco(si + 1, news.length, si);
-    toast(`✂ ${news.length}개 화면 추가`); reloadTo(cur() + 1);
+    remapDeco(at, news.length, si);
+    toast(`✂ ${news.length}개 대사 화면을 노래 ${before ? '앞' : '뒤'}에 넣었어요 — 대사 화면엔 배경음악만 흘러요`);
+    reloadTo(before ? cur() : cur() + 1);
   }
   function deleteCurrent() {
     const si = cur() - 1; if (si < 0 || si >= scenes().length) { toast('⚠️ 장면 화면에서만 삭제할 수 있어요'); return; }

@@ -174,13 +174,20 @@
         <span><b>장면별 노래에 맞추기</b><br><span class="info" style="margin:0">${hasSceneSongs ? '각 장면의 노래가 끝나면 다음 장면으로' : '장면에 붙은 노래가 아직 없어요'}</span></span></label>
       <label><input type="radio" name="tm" value="fixed" ${timing.mode === 'fixed' ? 'checked' : ''}>
         <span><b>고정 시간</b> &nbsp;<input type="number" id="tm-sec" min="2" max="120" value="${timing.fixedSec}"> 초마다</span></label>
+      <div class="info" style="border-top:1px solid rgba(255,255,255,.12);padding-top:8px;margin-top:8px">
+        <label style="display:flex;align-items:center;gap:6px;color:#fff"><input type="checkbox" id="tm-bgm" ${bgmPref.on ? 'checked' : ''}> 🎻 배경음악 깔기</label>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">볼륨 <input type="range" id="tm-bgmvol" min="10" max="80" value="${Math.round(bgmPref.vol * 100)}"> <span id="tm-bgmvol-l">${Math.round(bgmPref.vol * 100)}</span></div>
+        표지=인트로 · 막=그 막 배경음악(없으면 막간 전환) · 커튼콜=엔딩. 노래가 나오는 동안엔 저절로 작아져요.
+      </div>
       <div class="info">녹화를 시작하면 이 설정대로 1장면부터 자동으로 넘어가요. 녹화 중에도 ← → 로 직접 넘길 수 있어요.</div>
       <div class="row"><button id="tm-preview">▶ 미리보기</button><button class="quiet" id="tm-stop">■ 멈춤</button><button class="quiet" id="tm-close">닫기</button></div>`;
     tp.querySelectorAll('input[name=tm]').forEach(r => r.onchange = () => { timing.mode = r.value; saveTiming(); });
     tp.querySelector('#tm-sec').oninput = (e) => { timing.fixedSec = Number(e.target.value) || 7; saveTiming(); };
     tp.querySelector('#tm-preview').onclick = () => { startAutoRun(); };
-    tp.querySelector('#tm-stop').onclick = () => { stopSync(); const a2 = arrangement(); if (a2) { a2.pause(); a2.loop = true; } toast('■ 자동 진행 멈춤'); };
+    tp.querySelector('#tm-stop').onclick = () => { stopSync(); stopBgm(); const a2 = arrangement(); if (a2) { a2.pause(); a2.loop = true; } toast('■ 자동 진행 멈춤'); };
     tp.querySelector('#tm-close').onclick = () => tp.classList.remove('show');
+    tp.querySelector('#tm-bgm').onchange = (e) => { bgmPref.on = e.target.checked; saveBgm(); if (!bgmPref.on) stopBgm(); else { const b = bgmForSlide(typeof current !== 'undefined' ? current : 0); setBgm(b.url, b.lkey, b.key); } };
+    tp.querySelector('#tm-bgmvol').oninput = (e) => { bgmPref.vol = Number(e.target.value) / 100; tp.querySelector('#tm-bgmvol-l').textContent = e.target.value; saveBgm(); if (bgmAudio) bgmAudio.volume = bgmPref.vol; };
   }
   function toggleTimingPanel() { if (tp.classList.contains('show')) tp.classList.remove('show'); else { renderTimingPanel(); tp.classList.add('show'); } }
   window.toggleTimingPanel = toggleTimingPanel;
@@ -324,6 +331,42 @@
     window.toggleRecording = function () { if (isRecording()) stopClean(); else startClean(); };
   }
 
+  /* ═══ 배경음악(BGM) 층: 표지=인트로, 장면=그 막 배경음악(없으면 막간 전환), 커튼콜=엔딩 ═══
+     노래(넘버)가 흐르는 동안에는 볼륨을 낮춰(더킹) 대사·노래를 가립니다. */
+  let bgmAudio = null, bgmKeyNow = '';
+  const BGM_ON = () => bgmPref.on, BGM_VOL = () => bgmPref.vol;
+  let bgmPref = { on: true, vol: .35 };
+  try { bgmPref = { ...bgmPref, ...JSON.parse(localStorage.getItem('eaim_slide_bgm') || '{}') }; } catch {}
+  const saveBgm = () => localStorage.setItem('eaim_slide_bgm', JSON.stringify(bgmPref));
+  function stopBgm() { if (bgmAudio) { const a = bgmAudio; bgmAudio = null; bgmKeyNow = ''; fade(a, 0, .35, () => a.pause()); } }
+  function fade(a, to, sec, done) { if (!a) return; const from = a.volume, t0 = performance.now();
+    const step = () => { const k = Math.min(1, (performance.now() - t0) / (sec * 1000)); a.volume = Math.max(0, Math.min(1, from + (to - from) * k)); if (k < 1) requestAnimationFrame(step); else done && done(); }; step(); }
+  function duck(on) { if (bgmAudio) fade(bgmAudio, on ? BGM_VOL() * .45 : BGM_VOL(), .5); }
+  async function setBgm(url, lkey, key) {
+    if (!BGM_ON()) { stopBgm(); return; }
+    if ((typeof arrangementAudioEl !== 'undefined') && arrangementAudioEl && !arrangementAudioEl.paused) { stopBgm(); return; }  // 편곡본이 있으면 양보
+    if (!url && !lkey) { stopBgm(); return; }
+    if (key && key === bgmKeyNow) return;                       // 같은 곡이면 끊지 않고 이어서
+    const src = (await localAudio(lkey)) || url; if (!src) { stopBgm(); return; }
+    const old = bgmAudio;
+    const a = new Audio(src); if (!src.startsWith('blob:')) a.crossOrigin = 'anonymous';
+    a.loop = true; a.volume = 0; bgmAudio = a; bgmKeyNow = key || src;
+    a.play().then(() => fade(a, BGM_VOL(), .8)).catch(() => {});
+    if (old) fade(old, 0, .8, () => old.pause());
+  }
+  function bgmForSlide(idx) {
+    const scenes = (typeof SCENES !== 'undefined') ? SCENES : [];
+    const total = scenes.length, D = (typeof DATA !== 'undefined' && DATA) ? DATA : {};
+    if (idx <= 0) return { url: D.stage_introUrl, lkey: D.stage_introLocal, key: D.stage_introUrl || D.stage_introLocal || 'intro' };
+    if (idx >= 1 && idx <= total) {
+      const sc = scenes[idx - 1] || {};
+      if (sc.bgmUrl || sc.bgmLocal) return { url: sc.bgmUrl, lkey: sc.bgmLocal, key: sc.bgmUrl || sc.bgmLocal };   // 키가 같으면 대사 화면을 넘겨도 이어서 흐름
+      return { url: D.stage_transitionUrl, lkey: D.stage_transitionLocal, key: D.stage_transitionUrl || D.stage_transitionLocal || 'transition' };   // 막에 배경음악이 없으면 전환 음악을 깔아 줌
+    }
+    const eu = D.stage_endingUrl || D.curtainBgmUrl, el2 = D.stage_endingLocal || D.curtainBgmLocal;
+    return { url: eu, lkey: el2, key: eu || el2 || 'ending' };
+  }
+
   // ── 보너스: 장면에 audioUrl(생성한 노래)이 있으면 그 장면에서 자동 재생 ──
   let sceneAudio = null;
   if (typeof window.doShowSlide === 'function') {
@@ -331,11 +374,12 @@
     window.doShowSlide = function (idx) {
       const r = orig.apply(this, arguments);
       try {
-        if (sceneAudio) { sceneAudio.pause(); sceneAudio = null; }
+        if (sceneAudio) { sceneAudio.pause(); sceneAudio = null; duck(false); }
+        { const b = bgmForSlide(idx); setBgm(b.url, b.lkey, b.key); }
         const scenes = (typeof SCENES !== 'undefined') ? SCENES : [];
         const total = scenes.length;
         let url = null, lkey = null;
-        if (idx >= 1 && idx <= total) { url = scenes[idx - 1]?.audioUrl || null; lkey = scenes[idx - 1]?.audioLocal || null; }
+        if (idx >= 1 && idx <= total) { const sc0 = scenes[idx - 1] || {}; if (!sc0.dialogue) { url = sc0.audioUrl || null; lkey = sc0.audioLocal || null; } }
         else if (idx === total + 1 && typeof DATA !== 'undefined' && DATA) { url = DATA.curtainAudioUrl || null; lkey = DATA.curtainAudioLocal || null; }
         const hasArrangement = (typeof arrangementAudioEl !== 'undefined') && arrangementAudioEl && !arrangementAudioEl.paused;
         if ((url || lkey) && !hasArrangement) {
@@ -344,7 +388,8 @@
             const src = (await localAudio(lkey)) || url; if (!src) return;
             if (typeof current !== 'undefined' && current !== myIdx) return;
             sceneAudio = new Audio(src); if (!src.startsWith('blob:')) sceneAudio.crossOrigin = 'anonymous'; sceneAudio.volume = 0.8;
-            sceneAudio.addEventListener('ended', () => { if (window._pmSceneAudioEnded) window._pmSceneAudioEnded(); }, { once: true });
+            sceneAudio.addEventListener('play', () => duck(true));
+            sceneAudio.addEventListener('ended', () => { duck(false); if (window._pmSceneAudioEnded) window._pmSceneAudioEnded(); }, { once: true });
             sceneAudio.play().catch(() => {});
           })();
         } else if (!url && !lkey && window._pmSceneAudioEnded && typeof timing !== 'undefined' && timing.mode === 'scene') {
