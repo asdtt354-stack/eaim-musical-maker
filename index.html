@@ -144,6 +144,7 @@ main{max-width:920px;margin:0 auto;padding:36px 20px 90px}
     </div>
   </section>
 </main>
+<footer style="text-align:center;padding:22px 20px 30px;font-size:.78rem;color:rgba(45,36,56,.5);line-height:1.8">© 2017–2026 <b style="color:#7a5312">박성애</b> · EAIM 교실 (Emotion · Artscape · Interactive · Musicalization)<br>설계·교수법·콘텐츠: 박성애 &nbsp;|&nbsp; 이 플랫폼의 구조와 교수법은 저작권의 보호를 받습니다</footer>
 <div id="toast"></div>
 
 <script>
@@ -168,12 +169,12 @@ const STAGES = [
     desc:'주제·장르·등장인물을 정하면 막별 대본, 넘버 가사, 배경 프롬프트가 만들어져요. 어색한 문장은 직접 고쳐요.',
     out:'대본 · 가사 · 인터뷰글', app:'script',
     done:()=>!!store('eaim_musical_data')||!!store('mm_draft') },
-  { id:'music', team:'음악팀', emoji:'🎵', title:'넘버 노래 만들기',
-    desc:'대본팀 화면의 각 넘버 아래 "30초 들어보기 / 전체 곡 만들기"로 가사가 실제 노래가 돼요. 마음에 드는 곡을 내려받아 음향팀에 넘겨요.',
+  { id:'music', team:'음악팀', emoji:'🎵', title:'넘버 노래 만들기', btn:'대본팀 화면에서 →', same:true,
+    desc:'대본이 만들어지면, 대본팀 화면의 각 넘버 아래에 "30초 들어보기 / 전체 곡 만들기"가 생겨요. 가사가 그대로 노래가 되고, 마음에 드는 곡을 내려받아 음향팀에 넘겨요.',
     out:'넘버 MP3', app:'script',
     done:()=>hasMedia('audioUrl') },
-  { id:'art', team:'미술팀', emoji:'🖼', title:'막별 배경 그림 만들기',
-    desc:'같은 화면의 배경 프롬프트 아래 "그림 만들기"를 눌러요. 프롬프트를 고치면 다른 그림이 나와요. 캐릭터 그림은 따로 그려서 슬라이드쇼에 올려도 돼요.',
+  { id:'art', team:'미술팀', emoji:'🖼', title:'막별 배경 그림 만들기', btn:'대본팀 화면에서 →', same:true,
+    desc:'대본이 만들어지면, 같은 화면의 배경 프롬프트 아래에 "그림 만들기"가 생겨요. 프롬프트를 고치면 다른 그림이 나와요. 캐릭터 그림은 따로 그려서 슬라이드쇼에 올려도 돼요.',
     out:'막별 배경 이미지', app:'art',
     done:()=>hasMedia('imageUrl') },
   { id:'sound', team:'음향팀', emoji:'🎚', title:'음향 믹싱',
@@ -222,18 +223,20 @@ function render(){
   STAGES.forEach((s,i)=>{
     const url=link(s.app), isDone=s.done(), soon=!url;
     if(isDone) doneCount++;
+    const hasScript=STAGES[0].done();
+    const locked=s.same&&!hasScript;
     const el=document.createElement('article');
-    el.className='stage'+(isDone?' done':'')+(soon?' soon':'');
+    el.className='stage'+(isDone?' done':'')+(soon||locked?' soon':'');
     el.innerHTML=`
       <div class="num">${isDone?'✓':i+1}</div>
       <div>
         <h2>${s.emoji} ${s.title} <span class="team">${s.team}</span></h2>
         <p>${s.desc}</p>
-        <div class="out">결과물 · <b>${s.out}</b></div>
+        <div class="out">결과물 · <b>${s.out}</b>${s.same?(hasScript?' <span style="color:var(--purple)">· 1번 대본팀과 같은 화면에서 해요</span>':' <span style="color:#a05a00">· 1번 대본을 먼저 만들어야 열려요</span>'):''}</div>
       </div>
       <div class="right">
-        <span class="status ${isDone?'st-done':soon?'st-soon':'st-todo'}">${isDone?'완료':soon?'준비 중':'시작 전'}</span>
-        ${soon?`<span class="go" aria-disabled="true">곧 열려요</span>`:`<a class="go" href="${url}">입장 →</a>`}
+        <span class="status ${isDone?'st-done':(soon||locked)?'st-soon':'st-todo'}">${isDone?'완료':soon?'준비 중':locked?'대본 먼저':'시작 전'}</span>
+        ${soon?`<span class="go" aria-disabled="true">곧 열려요</span>`:locked?`<a class="go" href="${link('script')}" style="background:#e9e4f5;color:#7a5312">📝 1번 대본부터 →</a>`:`<a class="go" href="${url}">${s.btn||'입장 →'}</a>`}
       </div>`;
     track.appendChild(el);
   });
