@@ -293,7 +293,7 @@
 
   function stopClean(msg) {
     if (!isRecording()) return;
-    stopSync();
+    stopSync(); stopSceneAudio();
     recorder.stop();
     clearInterval(timer); document.title = document.title.replace(/^● .*녹화 중$/, 'EAIM 슬라이드쇼');
     document.body.classList.remove('rec-clean');
@@ -342,12 +342,14 @@
   function fade(a, to, sec, done) { if (!a) return; const from = a.volume, t0 = performance.now();
     const step = () => { const k = Math.min(1, (performance.now() - t0) / (sec * 1000)); a.volume = Math.max(0, Math.min(1, from + (to - from) * k)); if (k < 1) requestAnimationFrame(step); else done && done(); }; step(); }
   function duck(on) { if (bgmAudio) fade(bgmAudio, on ? BGM_VOL() * .45 : BGM_VOL(), .5); }
+  let bgmGen = 0;
   async function setBgm(url, lkey, key) {
+    const myGen = ++bgmGen;
     if (!BGM_ON()) { stopBgm(); return; }
     if ((typeof arrangementAudioEl !== 'undefined') && arrangementAudioEl && !arrangementAudioEl.paused) { stopBgm(); return; }  // 편곡본이 있으면 양보
     if (!url && !lkey) { stopBgm(); return; }
     if (key && key === bgmKeyNow) return;                       // 같은 곡이면 끊지 않고 이어서
-    const src = (await localAudio(lkey)) || url; if (!src) { stopBgm(); return; }
+    const src = (await localAudio(lkey)) || url; if (myGen !== bgmGen) return; if (!src) { stopBgm(); return; }
     const old = bgmAudio;
     const a = new Audio(src); if (!src.startsWith('blob:')) a.crossOrigin = 'anonymous';
     a.loop = true; a.volume = 0; bgmAudio = a; bgmKeyNow = key || src;
@@ -368,24 +370,26 @@
   }
 
   // ── 보너스: 장면에 audioUrl(생성한 노래)이 있으면 그 장면에서 자동 재생 ──
-  let sceneAudio = null;
+  let sceneAudio = null, audioGen = 0;
+  function stopSceneAudio() { audioGen++; if (sceneAudio) { try { sceneAudio.pause(); sceneAudio.currentTime = 0; } catch {} sceneAudio = null; } duck(false); }
   if (typeof window.doShowSlide === 'function') {
     const orig = window.doShowSlide;
     window.doShowSlide = function (idx) {
       const r = orig.apply(this, arguments);
       try {
-        if (sceneAudio) { sceneAudio.pause(); sceneAudio = null; duck(false); }
+        stopSceneAudio();
         { const b = bgmForSlide(idx); setBgm(b.url, b.lkey, b.key); }
         const scenes = (typeof SCENES !== 'undefined') ? SCENES : [];
         const total = scenes.length;
         let url = null, lkey = null;
-        if (idx >= 1 && idx <= total) { const sc0 = scenes[idx - 1] || {}; if (!sc0.dialogue) { url = sc0.audioUrl || null; lkey = sc0.audioLocal || null; } }
+        if (idx >= 1 && idx <= total) { const sc0 = scenes[idx - 1] || {}; if (!sc0.dialogue && !sc0.clean) { url = sc0.audioUrl || null; lkey = sc0.audioLocal || null; } }
         else if (idx === total + 1 && typeof DATA !== 'undefined' && DATA) { url = DATA.curtainAudioUrl || null; lkey = DATA.curtainAudioLocal || null; }
         const hasArrangement = (typeof arrangementAudioEl !== 'undefined') && arrangementAudioEl && !arrangementAudioEl.paused;
         if ((url || lkey) && !hasArrangement) {
-          const myIdx = idx;
+          const myIdx = idx, myGen = ++audioGen;
           (async () => {
             const src = (await localAudio(lkey)) || url; if (!src) return;
+            if (myGen !== audioGen) return;                                   // 그 사이 슬라이드가 넘어갔으면 재생하지 않음
             if (typeof current !== 'undefined' && current !== myIdx) return;
             sceneAudio = new Audio(src); if (!src.startsWith('blob:')) sceneAudio.crossOrigin = 'anonymous'; sceneAudio.volume = 0.8;
             sceneAudio.addEventListener('play', () => duck(true));

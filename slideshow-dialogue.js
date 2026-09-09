@@ -38,6 +38,9 @@
   .speech-bubble.pm-scene-bubble { cursor: move; }
   .pm-clone-badge { position:absolute; top:56px; left:28px; z-index:11; font-size:10px; letter-spacing:2px;
     color:rgba(255,255,255,.45); background:rgba(0,0,0,.35); border-radius:8px; padding:2px 8px; }
+  .slide.pm-clean .main-content, .slide.pm-clean .lyrics-panel, .slide.pm-clean .top-bar { opacity:0 !important; pointer-events:none; }
+  .pm-caption { position:absolute; left:0; right:0; bottom:16%; text-align:center; z-index:11;
+    font-size:clamp(20px,3vw,40px); font-weight:900; color:#fff; text-shadow:0 4px 24px rgba(0,0,0,.9); letter-spacing:.02em; }
   body.rec-clean .pm-clone-badge { display:none !important; }
   `;
   document.head.appendChild(css);
@@ -114,9 +117,13 @@
       ['nlb-', 'lp-'].forEach(p => { const e = $(p + si); if (e) e.style.display = 'none'; });
       const t = $(`lyr-toggle-${si}`); if (t) t.textContent = '가사 보기';
     }
+    if (sc.clean) {
+      slide.classList.add('pm-clean');
+      if (sc.caption && !slide.querySelector('.pm-caption')) { const cp = document.createElement('div'); cp.className = 'pm-caption'; cp.textContent = sc.caption; slide.appendChild(cp); }
+    }
     if (sc.clonedFrom !== undefined && !slide.querySelector('.pm-clone-badge')) {
       const bd = document.createElement('div'); bd.className = 'pm-clone-badge';
-      bd.textContent = `${sc.clonedFrom + 1}막 · 컷 ${sc.cut || ''}`.replace(/ · 컷 $/, ' · 복제');
+      bd.textContent = sc.clean ? `${sc.clonedFrom + 1}막 · 배경만` : `${sc.clonedFrom + 1}막 · 컷 ${sc.cut || ''}`.replace(/ · 컷 $/, ' · 복제');
       slide.appendChild(bd);
     }
   }
@@ -195,7 +202,56 @@
     remapDeco(si, -1);
     reloadTo(Math.min(cur(), scenes().length));
   }
-  window.pmDuplicateScene = duplicateCurrent; window.pmSplitDialogue = splitCurrentByDialogue; window.pmDeleteScene = deleteCurrent;
+  /* 전체 막을 한 번에 대사 화면으로 (대사 → 노래 순서) */
+  function splitAll() {
+    if (!canEdit()) { toast('⚠️ 선생님 원격 보기 모드에서는 편집할 수 없어요'); return; }
+    const src = scenes().filter(sc => sc.clonedFrom === undefined && (sc.script || '').trim());
+    if (!src.length) { toast('⚠️ 대본 대사가 있는 막이 없어요 ("인물: 대사" 형식이 필요해요)'); return; }
+    const perRaw = prompt(`대본이 있는 막 ${src.length}개를 한 번에 대사 화면으로 만들어요.\n한 화면에 대사 몇 줄씩 넣을까요?`, '1');
+    if (perRaw === null) return; const per = Math.max(1, parseInt(perRaw, 10) || 1);
+    let made = 0;
+    // 뒤에서부터 넣어야 인덱스가 안 밀림
+    for (let i = scenes().length - 1; i >= 0; i--) {
+      const sc = scenes()[i]; if (sc.clonedFrom !== undefined) continue;
+      const lines = parseScript(sc.script || ''); if (!lines.length) continue;
+      const groups = []; for (let k = 0; k < lines.length; k += per) groups.push(lines.slice(k, k + per));
+      const news = groups.map((g, gi) => cloneOf(sc, g.map((l, k) => {
+        const p = POS[l.posIdx]; const same = g.slice(0, k).filter(x => x.posIdx === l.posIdx).length;
+        return { name: l.speaker, text: l.text, tail: p.tail, left: p.left, top: (parseFloat(p.top) + same * 14) + '%' };
+      }), { hideLyrics: true, cut: gi + 1 }));
+      scenes().splice(i, 0, ...news); remapDeco(i, news.length, i + news.length); made += news.length;
+    }
+    if (!made) { toast('⚠️ 만들 대사가 없었어요'); return; }
+    if (!save()) return;
+    toast(`🎭 ${made}개 대사 화면을 만들었어요 — 각 막이 "대사 → 노래" 순서가 됐어요`);
+    reloadTo(1);
+  }
+  /* 대사 화면 모두 지우기 (넘버만 남기기) */
+  function clearDialogue() {
+    if (!canEdit()) { toast('⚠️ 선생님 원격 보기 모드에서는 편집할 수 없어요'); return; }
+    const n = scenes().filter(sc => sc.clonedFrom !== undefined).length;
+    if (!n) { toast('지울 대사 화면이 없어요'); return; }
+    if (!confirm(`복제·대사 화면 ${n}개를 모두 지우고 원래 막만 남길까요?\n(말풍선 없이 노래·그림만 보고 싶을 때)`)) return;
+    for (let i = scenes().length - 1; i >= 0; i--) if (scenes()[i].clonedFrom !== undefined) { scenes().splice(i, 1); remapDeco(i, -1); }
+    if (!save()) return; toast('🧹 원래 막만 남겼어요'); reloadTo(1);
+  }
+  /* 🖼 배경만 화면 — 노래·가사·말풍선 없이 배경 그림과 배경음악만 */
+  function addCleanScene() {
+    const si = cur() - 1; if (si < 0 || si >= scenes().length) { toast('⚠️ 장면 화면에서 눌러주세요'); return; }
+    if (!canEdit()) { toast('⚠️ 선생님 원격 보기 모드에서는 편집할 수 없어요'); return; }
+    const cap = prompt('이 화면에 크게 띄울 글 (비우면 그림만)\n예: 3년 뒤 / 그날 밤 / 막간', '');
+    if (cap === null) return;
+    const sc = scenes()[si];
+    const c = cloneOf(sc, []);                 // cloneOf 가 노래·MR 을 이미 빼 줌
+    c.clean = true; c.hideLyrics = true; c.caption = cap.trim();
+    scenes().splice(si + 1, 0, c);
+    if (!save()) return;
+    remapDeco(si + 1, 1, si);
+    toast('🖼 배경만 화면을 넣었어요 — 배경음악만 흐릅니다');
+    reloadTo(cur() + 1);
+  }
+  window.pmAddClean = addCleanScene;
+  window.pmDuplicateScene = duplicateCurrent; window.pmSplitDialogue = splitCurrentByDialogue; window.pmDeleteScene = deleteCurrent; window.pmSplitAll = splitAll; window.pmClearDialogue = clearDialogue;
 
   // ── 컨트롤바 버튼 ──
   (function addButtons() {
@@ -203,8 +259,11 @@
     const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'ctrl-btn'; b.textContent = txt; b.title = title; b.setAttribute('data-tip', title); b.onclick = fn; return b; };
     const anchor = $('btn-bubble') || $('btn-char');
     const btns = [
+      mk('🎭', '대본대로 전체 구성 — 모든 막을 "대사 → 노래" 순서로', splitAll),
+      mk('🖼', '배경만 화면 추가 (노래·가사·말풍선 없이 그림과 배경음악만)', addCleanScene),
       mk('⧉', '이 장면 복제 (말풍선만 다르게)', duplicateCurrent),
-      mk('✂', '대본 대사를 한 줄씩 화면으로 나누기', splitCurrentByDialogue),
+      mk('✂', '이 막의 대사를 화면으로 나누기', splitCurrentByDialogue),
+      mk('🧹', '대사 화면 모두 지우기 (노래·그림만 보기)', clearDialogue),
       mk('🗑', '이 장면 삭제', deleteCurrent),
     ];
     btns.forEach(b => anchor && anchor.parentElement === c ? c.insertBefore(b, anchor) : c.appendChild(b));
