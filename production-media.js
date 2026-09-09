@@ -73,6 +73,51 @@
 
   async function b64ToBlob(b64, mime) { return (await fetch(`data:${mime};base64,${b64}`)).blob(); }
 
+  /* ═══ MR 만들기: 만든 노래에서 보컬 빼기 (가운데 소리 상쇄 + 중역 살짝 깎기) ═══ */
+  let AC = null;
+  const audioCtx = () => (AC = AC || new (window.AudioContext || window.webkitAudioContext)());
+  async function makeMR(blob, { amount = 1, keepBass = true } = {}) {
+    const ctx = audioCtx();
+    const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+    const off = new OfflineAudioContext(2, buf.length, buf.sampleRate);
+    const src = off.createBufferSource(); src.buffer = buf;
+    const out = off.createGain();
+    if (buf.numberOfChannels < 2) {
+      // 모노는 좌우 차이가 없어 상쇄가 안 됨 → 보컬 대역만 살짝 눌러줌
+      const notch = off.createBiquadFilter(); notch.type = 'peaking'; notch.frequency.value = 1200; notch.Q.value = .7; notch.gain.value = -10 * amount;
+      src.connect(notch); notch.connect(out);
+    } else {
+      const sp = off.createChannelSplitter(2), mg = off.createChannelMerger(2);
+      const inv = off.createGain(); inv.gain.value = -1;
+      const side = off.createGain(); side.gain.value = amount;      // L−R (가운데 제거)
+      const mid = off.createGain(); mid.gain.value = 1 - amount;    // 원본 살짝 남기기
+      src.connect(sp); sp.connect(side, 0); sp.connect(inv, 1); inv.connect(side);
+      src.connect(mid);
+      let node = side;
+      if (keepBass) { // 베이스·킥은 가운데에 있어 같이 지워지므로 저역만 원본에서 되살림
+        const low = off.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = 180;
+        const lowG = off.createGain(); lowG.gain.value = .9 * amount;
+        src.connect(low); low.connect(lowG); lowG.connect(out);
+      }
+      node.connect(mg, 0, 0); node.connect(mg, 0, 1); mg.connect(out); mid.connect(out);
+    }
+    out.connect(off.destination); src.start();
+    const rendered = await off.startRendering();
+    return bufferToWavBlob(rendered);
+  }
+  function bufferToWavBlob(buf) {
+    const ch = Math.min(2, buf.numberOfChannels), len = buf.length, rate = buf.sampleRate;
+    const data = new DataView(new ArrayBuffer(44 + len * ch * 2));
+    const wr = (o, s) => { for (let i = 0; i < s.length; i++) data.setUint8(o + i, s.charCodeAt(i)); };
+    wr(0, 'RIFF'); data.setUint32(4, 36 + len * ch * 2, true); wr(8, 'WAVEfmt ');
+    data.setUint32(16, 16, true); data.setUint16(20, 1, true); data.setUint16(22, ch, true);
+    data.setUint32(24, rate, true); data.setUint32(28, rate * ch * 2, true); data.setUint16(32, ch * 2, true); data.setUint16(34, 16, true);
+    wr(36, 'data'); data.setUint32(40, len * ch * 2, true);
+    const chans = []; for (let c = 0; c < ch; c++) chans.push(buf.getChannelData(c));
+    let off = 44; for (let i = 0; i < len; i++) for (let c = 0; c < ch; c++) { const v = Math.max(-1, Math.min(1, chans[c][i])); data.setInt16(off, v < 0 ? v * 32768 : v * 32767, true); off += 2; }
+    return new Blob([data.buffer], { type: 'audio/wav' });
+  }
+
   // ── 이 기기 보관함 (IndexedDB) — Storage 없이도 슬라이드쇼·믹서가 같은 기기에서 꺼내 씀 ──
   const IDB = {
     db: null,
@@ -107,20 +152,37 @@
   new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(nd => { if (nd.nodeType === 1) renameText(nd); else if (nd.nodeType === 3 && nd.nodeValue.includes('Suno')) renameText(nd.parentNode); })))
     .observe(document.body, { childList: true, subtree: true });
 
+  // ── 줄 서기 + 재시도 (한 기기에서 동시 요청 방지, 429/503이면 기다렸다 다시) ──
+  let chain = Promise.resolve();
+  const queued = (fn) => { const run = chain.then(fn, fn); chain = run.catch(() => {}); return run; };
+  async function withRetry(doFetch, onWait) {
+    const delays = [3000, 6000, 12000, 20000];
+    for (let i = 0; ; i++) {
+      const r = await doFetch();
+      if (r.ok) return r;
+      if ((r.status === 429 || r.status === 503 || r.status === 500) && i < delays.length) {
+        const ra = Number(r.headers.get('retry-after')) * 1000; const wait = ra > 0 ? Math.min(ra, 40000) : delays[i];
+        onWait && onWait(Math.round(wait / 1000), i + 1); await new Promise(res => setTimeout(res, wait)); continue;
+      }
+      return r;
+    }
+  }
+
   // ── Gemini 미디어 호출 (이미지·음악 공용) ───────────────────
-  async function geminiMedia(model, parts, generationConfig) {
+  async function geminiMedia(model, parts, generationConfig, onWait) {
     const k = key();
     if (!k) throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
     const body = { contents: [{ parts }] };
     if (generationConfig) body.generationConfig = generationConfig;
-    const res = await fetch(API + model + ':generateContent', {
+    return queued(async () => {
+    const res = await withRetry(() => fetch(API + model + ':generateContent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k },
       body: JSON.stringify(body),
-    });
+    }), onWait);
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      const msg = e?.error?.message || `오류 ${res.status}`;
+      const msg = res.status === 429 ? '지금 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요 (모둠별로 순서대로 누르면 좋아요).' : (e?.error?.message || `오류 ${res.status}`);
       const err = new Error(msg); err.status = res.status; throw err;
     }
     const data = await res.json();
@@ -132,9 +194,10 @@
       throw new Error('결과에 미디어가 없어요' + (reason ? ` (${reason})` : '') + '. 프롬프트를 조금 바꿔서 다시 해보세요.');
     }
     return { mime: inline.inlineData.mimeType, b64: inline.inlineData.data, text };
+    });
   }
 
-  async function genImage(prompt, hq) {
+  async function genImage(prompt, hq, onWait) {
     const p = [{ text: prompt.replace(/--ar\s*[\d:]+/g, '').trim() + ' No text or letters in the image.' }];
     const model = hq ? MODELS.imageHQ : MODELS.image;
     // responseFormat(신규) → imageConfig(구형) → 없이 순서로 시도
@@ -145,19 +208,19 @@
     ];
     let last;
     for (const cfg of cfgs) {
-      try { return await geminiMedia(model, p, cfg); }
+      try { return await geminiMedia(model, p, cfg, onWait); }
       catch (e) { last = e; if (e.status !== 400) throw e; }
     }
     throw last;
   }
 
-  async function genMusic(stylePrompt, lyrics, full) {
+  async function genMusic(stylePrompt, lyrics, full, onWait) {
     const model = full ? MODELS.song : MODELS.clip;
     let text = (stylePrompt || 'A musical theatre number').trim();
     text += full ? '. A full song about 2 minutes long with verse and chorus.' : '. A 30-second clip.';
     text += ' Sing in Korean.';
     if (lyrics && lyrics.trim()) text += '\n\nLyrics:\n' + lyrics.trim();
-    return geminiMedia(model, [{ text }]);
+    return geminiMedia(model, [{ text }], undefined, onWait);
   }
 
   // ── Firebase Storage 업로드 (없으면 null) ───────────────────
@@ -251,8 +314,8 @@
         else if (m.imageLocal) IDB.get(m.imageLocal).then(r => { if (r && r.blob) { localUrls[id + ':image'] = URL.createObjectURL(r.blob); showImage(wrap, localUrls[id + ':image'], true); } }).catch(() => {});
       }
       if (kind === 'music') {
-        if (m.audioUrl || localUrls[id + ':music']) showAudio(wrap, m.audioUrl || localUrls[id + ':music'], m.audioLyrics, !m.audioUrl);
-        else if (m.audioLocal) IDB.get(m.audioLocal).then(r => { if (r && r.blob) { localUrls[id + ':music'] = URL.createObjectURL(r.blob); showAudio(wrap, localUrls[id + ':music'], m.audioLyrics, true); } }).catch(() => {});
+        if (m.audioUrl || localUrls[id + ':music']) showAudio(wrap, m.audioUrl || localUrls[id + ':music'], m.audioLyrics, !m.audioUrl, id);
+        else if (m.audioLocal) IDB.get(m.audioLocal).then(r => { if (r && r.blob) { localUrls[id + ':music'] = URL.createObjectURL(r.blob); showAudio(wrap, localUrls[id + ':music'], m.audioLyrics, true, id); } }).catch(() => {});
       }
     });
   }
@@ -268,17 +331,40 @@
     p.classList.add('show');
     const c = p.querySelector('[data-copy]'); if (c) c.onclick = () => navigator.clipboard.writeText(c.dataset.copy).then(() => toast('✅ 링크 복사됨'));
   }
-  function showAudio(wrap, url, lyrics, isLocal) {
+  function showAudio(wrap, url, lyrics, isLocal, id) {
     const p = wrap.querySelector('.pm-preview');
     p.innerHTML = `<audio controls src="${url}"></audio>
       <div class="pm-row">
         <a class="pm-btn quiet" href="${url}" download="eaim_song.mp3" ${isLocal ? '' : 'target="_blank"'}>⬇ 노래 저장</a>
+        <button class="pm-btn" data-mr="${id || ''}">🎤 MR 만들기 (보컬 빼기)</button>
         ${isLocal ? '' : `<button class="pm-btn quiet" data-copy="${url}">🔗 믹서용 링크 복사</button>`}
       </div>
+      <div class="pm-mr" style="display:none;margin-top:6px"></div>
       ${lyrics ? `<div class="pm-lyric">${lyrics.replace(/</g, '&lt;')}</div>` : ''}
       ${isLocal ? '<div class="pm-local">이 기기에 보관됐어요 (같은 기기의 슬라이드쇼·믹서에서 바로 써요). 다른 기기로 옮기려면 "노래 저장"으로 내려받으세요.</div>' : ''}`;
     p.classList.add('show');
     const c = p.querySelector('[data-copy]'); if (c) c.onclick = () => navigator.clipboard.writeText(c.dataset.copy).then(() => toast('✅ 링크 복사됨 — 오디오 믹서의 "오디오 URL 입력"에 붙여넣으세요'));
+    const mr = p.querySelector('[data-mr]'); if (mr) mr.onclick = () => buildMR(wrap, url, mr.dataset.mr, mr);
+  }
+
+  /* MR 만들기 실행 */
+  async function buildMR(wrap, url, id, btn) {
+    const box = wrap.querySelector('.pm-mr'); box.style.display = 'block';
+    box.innerHTML = '<div class="pm-status">🎤 보컬을 빼는 중…</div>'; btn.disabled = true;
+    try {
+      const blob = await (await fetch(url)).blob();
+      const mrBlob = await makeMR(blob, { amount: 1 });
+      const remote = await upload(mrBlob, mediaPath((id || 'song') + '_mr', 'wav'));
+      const mrUrl = remote || URL.createObjectURL(mrBlob);
+      if (id) { localUrls[id + ':mr'] = mrUrl; try { await IDB.put({ key: `${workKey()}|mr|${id}`, kind: 'audio', id: id + '_mr', blob: mrBlob, work: workKey(), title: (generatedData && generatedData.title) || '', song: (sceneOf(id).songTitle || '') + ' (MR)', ts: Date.now() }); } catch {} 
+        record(id, 'mrUrl', remote ? remote : null, { mrLocal: `${workKey()}|mr|${id}` }); }
+      box.innerHTML = `<div class="pm-status">🎤 MR (보컬 뺀 반주) — 이 위에서 직접 불러보세요</div>
+        <audio controls src="${mrUrl}" style="width:100%"></audio>
+        <div class="pm-row"><a class="pm-btn quiet" href="${mrUrl}" download="eaim_mr.wav" ${remote ? 'target="_blank"' : ''}>⬇ MR 저장</a>
+        <span class="pm-status">오디오 믹서 "🎭 뮤지컬메이커 노래" 목록에도 들어가요</span></div>
+        <div class="pm-local">가운데 소리를 지우는 방식이라 잔향이 조금 남을 수 있어요. 베이스·드럼은 살려 두었습니다.</div>`;
+    } catch (e) { box.innerHTML = `<div class="pm-status err">❌ ${e.message}</div>`; }
+    finally { btn.disabled = false; }
   }
 
   function setBusy(wrap, on, msg, isErr) {
@@ -293,7 +379,7 @@
     try {
       if (kind === 'image') {
         setBusy(wrap, true, '배경 그림을 그리고 있어요 (10~30초)…');
-        const r = await genImage(ta.value, act === 'imghq');
+        const r = await genImage(ta.value, act === 'imghq', (sec, n) => setBusy(wrap, true, `⏳ 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)…`));
         const blob = await b64ToBlob(r.b64, r.mime);
         const remote = await upload(blob, mediaPath(id, 'png'));
         const url = remote || URL.createObjectURL(blob);
@@ -307,7 +393,7 @@
         const full = act === 'song';
         setBusy(wrap, true, full ? '전체 곡을 만들고 있어요 (1~3분 걸려요)…' : '30초 미리듣기를 만들고 있어요 (30초~1분)…');
         const lb = lyricsBox(id);
-        const r = await genMusic(ta.value, lb ? lb.value : sceneOf(id).lyrics, full);
+        const r = await genMusic(ta.value, lb ? lb.value : sceneOf(id).lyrics, full, (sec, n) => setBusy(wrap, true, `⏳ 노래 요청이 몰려서 ${sec}초 기다렸다 다시 보내요 (${n}번째)…`));
         const blob = await b64ToBlob(r.b64, r.mime || 'audio/mpeg');
         const remote = await upload(blob, mediaPath(id, 'mp3'));
         const url = remote || URL.createObjectURL(blob);
@@ -315,7 +401,7 @@
         const lk = `${workKey()}|audio|${id}`;
         await IDB.put({ key: lk, kind: 'audio', id, blob, work: workKey(), title: (generatedData && generatedData.title) || '', song: sceneOf(id).songTitle || '', full, ts: Date.now() }).catch(() => {});
         record(id, 'audioUrl', remote ? remote : null, { audioLyrics: r.text || '', audioFull: full, audioLocal: lk });
-        showAudio(wrap, url, r.text, !remote);
+        showAudio(wrap, url, r.text, !remote, id);
         bump('music'); setBusy(wrap, false, remote ? '✅ 저장됨' : '✅ 완성 (이 기기에 보관)');
       }
     } catch (e) {
@@ -359,6 +445,8 @@
         if (m.audioUrl) s.audioUrl = m.audioUrl;
         if (m.imageLocal) s.imageLocal = m.imageLocal;
         if (m.audioLocal) s.audioLocal = m.audioLocal;
+        if (m.mrUrl) s.mrUrl = m.mrUrl;
+        if (m.mrLocal) s.mrLocal = m.mrLocal;
       });
       if (media.curtain?.imageUrl) data.curtainImageUrl = media.curtain.imageUrl;
       if (media.curtain?.audioUrl) data.curtainAudioUrl = media.curtain.audioUrl;

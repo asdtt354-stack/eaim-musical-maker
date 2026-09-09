@@ -23,7 +23,7 @@
   const say = (m) => (typeof toast === 'function' ? toast(m) : console.log(m));
   const urls = {};
   const urlOf = (rec) => urls[rec.key] || (urls[rec.key] = URL.createObjectURL(rec.blob));
-  const SCENE_LABEL = (id) => id === 'opening' ? '오프닝' : id === 'curtain' ? '커튼콜' : id === 'rsong' ? '낭독극 노래' : (/^scene-(\d+)$/.test(id) ? (Number(id.slice(6)) + 1) + '막' : id);
+  const SCENE_LABEL = (id) => { const mr = /_mr$/.test(id); const base = id.replace(/_mr$/, ''); const n = base === 'opening' ? '오프닝' : base === 'curtain' ? '커튼콜' : base === 'rsong' ? '낭독극 노래' : (/^scene-(\d+)$/.test(base) ? (Number(base.slice(6)) + 1) + '막' : base); return n + (mr ? ' MR' : ''); };
 
   const css = document.createElement('style');
   css.textContent = `
@@ -59,7 +59,7 @@
     songs.forEach(r => { const k = r.title || '(제목 없음)'; (byWork[k] = byWork[k] || []).push(r); });
     list.innerHTML = Object.entries(byWork).map(([title, rs]) => `<div class="mm-work">🎼 ${esc(title)}</div>` + rs.map(r => `
       <div class="mm-row" data-key="${esc(r.key)}">
-        <div class="nm">${esc(r.song || SCENE_LABEL(r.id))}<small>${SCENE_LABEL(r.id)} · ${r.full ? '전체 곡' : '30초'} · ${new Date(r.ts || 0).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</small></div>
+        <div class="nm">${esc(r.song || SCENE_LABEL(r.id))}<small>${SCENE_LABEL(r.id)} · ${/_mr$/.test(r.id) ? '반주(MR)' : (r.full ? '전체 곡' : '30초')} · ${new Date(r.ts || 0).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</small></div>
         <button class="p" data-ch="bgm" title="BGM 채널에 올리기">BGM</button>
         <button class="p" data-ch="mr" title="넘버 MR 채널에 올리기">MR</button>
         <button class="p" data-ch="sfx2" title="앰비언스 채널에 올리기">AMB</button>
