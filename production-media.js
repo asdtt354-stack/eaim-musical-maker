@@ -598,6 +598,44 @@
     $('pm-song-limit').oninput = (e) => setSettings(teacherUid, { songLimit: Number(e.target.value) || 0 });
   });
 
+  /* ═══ 이전에 만든 대본 이어서 하기 ═══
+     maker.html 은 대본을 mm_draft 에 저장하지만 다시 열 때 복원하지 않는다.
+     프로덕션 2·3번(노래·그림)으로 들어오면 대본이 사라진 것처럼 보이므로, 입력 화면 위에 이어서 하기 띠를 띄운다. */
+  function draftPeek() { try { const d = JSON.parse(localStorage.getItem('mm_draft') || 'null'); return (d && d.title) ? d : null; } catch { return null; } }
+  function injectResume() {
+    const main = document.getElementById('student-main'); if (!main) return;
+    if (document.querySelector('.scene-card')) return;            // 이미 결과 화면
+    if (document.getElementById('pm-resume')) return;
+    const d = draftPeek(); if (!d) return;
+    const bar = document.createElement('div');
+    bar.id = 'pm-resume';
+    bar.style.cssText = 'background:#f3ecff;border:1.5px solid rgba(124,58,237,.35);border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+    const n = (d.scenes || []).length;
+    bar.innerHTML = `<div style="flex:1;min-width:200px;font-size:.9rem;line-height:1.6">
+        📝 이전에 만든 대본 <b>"${(d.title || '').replace(/</g, '&lt;')}"</b>${n ? ` · ${n}막` : ''}이 있어요.
+        <div style="font-size:.76rem;color:#5a4f70">이어서 하면 넘버 노래·배경 그림·배경음악을 그 대본에 이어서 만들 수 있어요.</div></div>
+      <button id="pm-resume-go" style="padding:9px 16px;border-radius:9px;border:0;background:linear-gradient(135deg,#d4a843,#e8a020);font-weight:700;cursor:pointer;font-family:inherit">이어서 하기 →</button>
+      <button id="pm-resume-new" style="padding:9px 14px;border-radius:9px;border:1px solid rgba(124,58,237,.3);background:#fff;cursor:pointer;font-family:inherit;font-size:.85rem">새로 만들기</button>`;
+    main.insertBefore(bar, main.firstChild);
+    document.getElementById('pm-resume-go').onclick = () => resumeDraft(d);
+    document.getElementById('pm-resume-new').onclick = () => { bar.remove(); };
+  }
+  function resumeDraft(d) {
+    try {
+      generatedData = d;
+      if (typeof performanceType !== 'undefined') performanceType = d.performanceType || 'general';
+      if (typeof actCount !== 'undefined' && (d.scenes || []).length) actCount = d.scenes.length;
+      if (typeof castCount !== 'undefined' && (d.characters || []).length) castCount = d.characters.length;
+      if (d.performanceType === 'reading' && typeof renderReadingResult === 'function') renderReadingResult();
+      else renderResult();
+      setTimeout(() => { inject(); injectStage(); }, 0);
+      toast('📝 이전 대본을 불러왔어요');
+    } catch (e) { alert('불러오기 실패: ' + e.message); }
+  }
+  hook('renderStudentInput', () => setTimeout(injectResume, 0));
+  hook('renderStudent', () => setTimeout(injectResume, 0));
+  setTimeout(injectResume, 400);
+
   // 이미 결과 화면이 떠 있으면 바로 주입
   if (document.querySelector('textarea.prompt-text')) { inject(); injectStage(); }
 
