@@ -24,7 +24,7 @@
   body.rec-clean #controls, body.rec-clean #key-hint, body.rec-clean #api-status,
   body.rec-clean #signal-indicator, body.rec-clean #rec-indicator, body.rec-clean #music-upload-bar,
   body.rec-clean #char-panel, body.rec-clean #char-anim-panel, body.rec-clean #bubble-panel,
-  body.rec-clean #fx-panel, body.rec-clean #dialogue-bar, body.rec-clean #hover-tooltip,
+  body.rec-clean #fx-panel, body.rec-clean #dialogue-bar, body.rec-clean #hover-tooltip, body.rec-clean #pm-menu,
   body.rec-clean #back-btn, body.rec-clean #toast-msg, body.rec-clean #ppt-progress,
   body.rec-clean .lyrics-toggle-btn, body.rec-clean .char-del-btn, body.rec-clean .bubble-del,
   body.rec-clean [id^="src-badge-"] { display: none !important; }
@@ -72,6 +72,36 @@
   async function localAudio(key) { if (!key) return null; if (localAudioUrls[key]) return localAudioUrls[key]; const r = await IDB.get(key); if (!r || !r.blob) return null; return (localAudioUrls[key] = URL.createObjectURL(r.blob)); }
 
   // 배경 그림: 원격 URL이 없고 보관함 키가 있으면 꺼내서 씀
+  /* 배경 이미지가 들어와도 "AI 배경 생성 중…" 스피너가 남는 문제 (원본 setImgSrc 가 스피너를 안 끔) */
+  if (typeof window.setImgSrc === 'function') {
+    const origSet = window.setImgSrc;
+    window.setImgSrc = function (idx, src, label) {
+      const r = origSet.apply(this, arguments);
+      const sp = document.getElementById(`bg-spinner-${idx}`);
+      const img = document.getElementById(`bgimg-${idx}`);
+      const hide = () => { if (sp) sp.style.display = 'none'; };
+      if (img) { img.addEventListener('load', hide, { once: true }); img.addEventListener('error', () => setTimeout(hide, 1200), { once: true }); if (img.complete && img.naturalWidth) hide(); }
+      setTimeout(hide, 4000);                    // 그래도 남으면 4초 뒤 정리
+      return r;
+    };
+  }
+  /* 화면 아래쪽이 컨트롤바에 가리는 문제 · 커튼콜 버튼 겹침 · 긴 제목 넘침 */
+  (function layoutFix() {
+    const st = document.createElement('style');
+    st.textContent = `
+      .number-lyrics-bar{ bottom:96px !important; }
+      #subtitle-bar{ bottom:96px !important; }
+      .lyrics-toggle-btn{ bottom:100px !important; }
+      .main-content{ padding-bottom:72px; }
+      .curtain-lyrics-wrap{ padding-bottom:86px; }
+      .scene-title{ font-size:clamp(18px,2.4vw,30px) !important; max-height:2.6em; overflow:hidden; }
+      .lyrics-panel{ max-height:58% !important; }
+      body.rec-clean .number-lyrics-bar, body.rec-clean #subtitle-bar{ bottom:40px !important; }
+      body.rec-clean .main-content{ padding-bottom:16px; }
+      body.rec-clean .curtain-lyrics-wrap{ padding-bottom:20px; }`;
+    document.head.appendChild(st);
+  })();
+
   if (typeof window.loadBgImage === 'function') {
     const orig = window.loadBgImage;
     window.loadBgImage = async function (scene, idx) {

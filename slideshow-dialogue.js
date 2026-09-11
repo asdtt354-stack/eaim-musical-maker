@@ -250,6 +250,44 @@
     toast('🖼 배경만 화면을 넣었어요 — 배경음악만 흐릅니다');
     reloadTo(cur() + 1);
   }
+  /* ✎ 편집 메뉴 — 버튼이 너무 많아 보이지 않도록 하나로 모음 */
+  let menuEl = null;
+  function buildMenu() {
+    if (menuEl) return menuEl;
+    menuEl = document.createElement('div');
+    menuEl.id = 'pm-menu';
+    menuEl.style.cssText = 'position:fixed;bottom:86px;left:50%;transform:translateX(-50%);z-index:300;background:rgba(18,14,28,.97);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:8px;min-width:270px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:none;font-family:inherit';
+    menuEl.innerHTML = ACTIONS.map((a, i) => `<div class="pm-mi" data-i="${i}" style="display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;cursor:pointer">
+        <span style="font-size:18px;width:22px;text-align:center">${a.i}</span>
+        <span><span style="display:block;font-size:13px;font-weight:700;color:${a.danger ? '#f87171' : '#fff'}">${a.t}</span>
+        <span style="display:block;font-size:11px;color:rgba(255,255,255,.5)">${a.d}</span></span></div>`).join('')
+      + `<div id="pm-mi-extra" style="border-top:1px solid rgba(255,255,255,.12);margin-top:6px;padding-top:6px"></div>`;
+    document.body.appendChild(menuEl);
+    menuEl.querySelectorAll('.pm-mi').forEach(el => {
+      el.onmouseenter = () => el.style.background = 'rgba(255,255,255,.08)';
+      el.onmouseleave = () => el.style.background = 'transparent';
+      el.onclick = () => { closeMenu(); ACTIONS[Number(el.dataset.i)].f(); };
+    });
+    // ⏱ 자동 진행 · ⏺ 녹화 버튼을 메뉴 안으로 옮김 (컨트롤바 정리)
+    const extra = menuEl.querySelector('#pm-mi-extra');
+    ['⏱', '⏺'].forEach(sym => {
+      const b = [...document.querySelectorAll('#controls button, #controls .ctrl-btn')].find(x => (x.textContent || '').trim() === sym);
+      if (!b) return;
+      const label = sym === '⏱' ? ['자동 진행 · 배경음악', '장면 넘김 시간과 음악 볼륨'] : ['화면 녹화', '버튼 없이 깨끗한 영상으로'];
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;cursor:pointer';
+      row.innerHTML = `<span style="font-size:18px;width:22px;text-align:center">${sym}</span><span><span style="display:block;font-size:13px;font-weight:700;color:#fff">${label[0]}</span><span style="display:block;font-size:11px;color:rgba(255,255,255,.5)">${label[1]}</span></span>`;
+      row.onmouseenter = () => row.style.background = 'rgba(255,255,255,.08)';
+      row.onmouseleave = () => row.style.background = 'transparent';
+      row.onclick = () => { closeMenu(); b.click(); };
+      extra.appendChild(row);
+      b.style.display = 'none';
+    });
+    document.addEventListener('click', (e) => { if (menuEl.style.display === 'block' && !menuEl.contains(e.target) && !(e.target.closest && e.target.closest('#controls'))) closeMenu(); });
+    return menuEl;
+  }
+  function closeMenu() { if (menuEl) menuEl.style.display = 'none'; }
+  function toggleMenu() { const m = buildMenu(); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
   window.pmAddClean = addCleanScene;
   window.pmDuplicateScene = duplicateCurrent; window.pmSplitDialogue = splitCurrentByDialogue; window.pmDeleteScene = deleteCurrent; window.pmSplitAll = splitAll; window.pmClearDialogue = clearDialogue;
 
@@ -258,16 +296,16 @@
     const c = $('controls'); if (!c || !canEdit()) return;
     const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'ctrl-btn'; b.textContent = txt; b.title = title; b.setAttribute('data-tip', title); b.onclick = fn; return b; };
     const anchor = $('btn-bubble') || $('btn-char');
-    const btns = [
-      mk('🎭', '대본대로 전체 구성 — 모든 막을 "대사 → 노래" 순서로', splitAll),
-      mk('🖼', '배경만 화면 추가 (노래·가사·말풍선 없이 그림과 배경음악만)', addCleanScene),
-      mk('⧉', '이 장면 복제 (말풍선만 다르게)', duplicateCurrent),
-      mk('✂', '이 막의 대사를 화면으로 나누기', splitCurrentByDialogue),
-      mk('🧹', '대사 화면 모두 지우기 (노래·그림만 보기)', clearDialogue),
-      mk('🗑', '이 장면 삭제', deleteCurrent),
+    const ACTIONS = [
+      { i:'🎭', t:'대본대로 전체 구성',   d:'모든 막을 "대사 화면 → 노래" 순서로', f:splitAll },
+      { i:'✂',  t:'이 막만 대사로 나누기', d:'지금 화면의 대본을 말풍선 화면들로',   f:splitCurrentByDialogue },
+      { i:'🖼', t:'배경만 화면 추가',     d:'노래·가사·말풍선 없이 그림과 배경음악만', f:addCleanScene },
+      { i:'⧉',  t:'이 장면 복제',        d:'같은 그림에 말풍선만 다르게',          f:duplicateCurrent },
+      { i:'🧹', t:'대사 화면 모두 지우기', d:'노래·그림만 보고 싶을 때',            f:clearDialogue },
+      { i:'🗑', t:'이 장면 삭제',        d:'되돌릴 수 없어요',                    f:deleteCurrent, danger:true },
     ];
-    btns.forEach(b => anchor && anchor.parentElement === c ? c.insertBefore(b, anchor) : c.appendChild(b));
-  })();
+    const menuBtn = mk('✎', '화면 구성 편집 (대사·배경·복제·녹화)', toggleMenu);
+    const btns = [menuBtn];  })();
 
   // ── 슬라이드가 보일 때 말풍선 그리기 ──
   if (typeof window.doShowSlide === 'function') {
