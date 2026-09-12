@@ -346,7 +346,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-prev" data-tip="이전 장면으로 이동해요">◀</button>
   <div class="dot-nav" id="dot-nav"></div>
   <button class="ctrl-btn" id="btn-next" data-tip="다음 장면으로 이동해요">▶</button>
-  <button class="ctrl-btn" id="btn-auto" data-tip="⚠️ 7초마다 자동으로 넘어가요 (미리보기용 — 실제 공연 중엔 ▶ 버튼으로 직접 넘기세요)">🔁</button>
+  <button class="ctrl-btn" id="btn-auto" data-tip="⏱ 설정대로 자동 진행해요 (노래 길이에 맞춰 넘어갑니다 — 공연 중엔 ▶ 로 직접 넘겨도 돼요)">🔁</button>
   <button class="ctrl-btn" id="btn-bubble" data-tip="말풍선 대사를 추가해요" onclick="toggleBubblePanel()">💬</button>
   <button class="ctrl-btn" id="btn-char" data-tip="캐릭터 이미지를 무대에 올려요" onclick="toggleCharPanel()">🎭</button>
   <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()" title="화면 녹화">⏺</button>
@@ -552,16 +552,17 @@ function makeCharDraggable(el) {
     moved = false;
     const r = el.getBoundingClientRect(), pr = el.parentElement.getBoundingClientRect();
     sx = e.clientX; sy = e.clientY; sl = r.left - pr.left; st = r.top - pr.top;
+    const pw = pr.width || 1, ph = pr.height || 1;
     const mv = mv => {
       if (Math.abs(mv.clientX - sx) > 4 || Math.abs(mv.clientY - sy) > 4) moved = true;
-      el.style.left = (sl + mv.clientX - sx) + 'px';
-      el.style.top = (st + mv.clientY - sy) + 'px';
+      el.style.left = ((sl + mv.clientX - sx) / pw * 100).toFixed(2) + '%';
+      el.style.top = ((st + mv.clientY - sy) / ph * 100).toFixed(2) + '%';
       el.style.right = 'auto'; el.style.bottom = 'auto';
     };
     const up = () => {
       document.removeEventListener('mousemove', mv);
       document.removeEventListener('mouseup', up);
-      if (!moved) selectChar(el.dataset.charId);
+      if (!moved) selectChar(el.dataset.charId); else autoSaveDeco();
     };
     document.addEventListener('mousemove', mv);
     document.addEventListener('mouseup', up);
@@ -959,7 +960,15 @@ function updateControls() {
   document.getElementById('btn-next').disabled=current===TOTAL+1;
 }
 function goBack() { window.location.href='index.html'; }
+/* 🔁 는 ⏱ 설정(장면별 노래 / 고정 시간)을 그대로 따른다.
+   예전에는 여기서 7초 고정으로 돌려 음악과 따로 놀았다. */
 function toggleAuto() {
+  if (typeof window.pmToggleAutoRun === 'function') {
+    autoPlay = window.pmToggleAutoRun();
+    document.getElementById('btn-auto').textContent=autoPlay?'⏸':'🔁';
+    document.getElementById('btn-auto').style.color=autoPlay?'#5DADE2':'rgba(255,255,255,.8)';
+    return;
+  }
   autoPlay=!autoPlay;
   document.getElementById('btn-auto').textContent=autoPlay?'⏸':'🔁';
   document.getElementById('btn-auto').style.color=autoPlay?'#5DADE2':'rgba(255,255,255,.8)';
@@ -1092,6 +1101,10 @@ function getCurrentSlideEl(){
   if(current===TOTAL+1)return document.getElementById('end-slide');
   return document.getElementById(`scene-slide-${current-1}`);
 }
+function escHtml(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* ✅ 를 누르지 않아도 저장되도록 */
+let _autoSaveT=null;
+function autoSaveDeco(){ clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ try{ saveDecorations(false); }catch(e){} },600); }
 function addBubble(){
   const text=document.getElementById('bubble-text-input').value.trim();
   if(!text){document.getElementById('bubble-text-input').focus();return;}
@@ -1101,10 +1114,11 @@ function addBubble(){
   const bubble=document.createElement('div');
   bubble.className=`speech-bubble ${tailType}`;
   bubble.style.left='30%';bubble.style.top='55%';
-  bubble.innerHTML=`${name?`<div class="bubble-name">${name}</div>`:''}<span>${text}</span><button class="bubble-del" onclick="this.parentElement.remove()">✕</button>`;
+  bubble.innerHTML=`${name?`<div class="bubble-name">${escHtml(name)}</div>`:''}<span>${escHtml(text)}</span><button class="bubble-del" onclick="this.parentElement.remove();autoSaveDeco();">✕</button>`;
   makeDraggable(bubble);slide.appendChild(bubble);
   document.getElementById('bubble-text-input').value='';
   document.getElementById('bubble-text-input').focus();
+  autoSaveDeco();
 }
 function makeDraggable(el){
   let sx,sy,sl,st;
@@ -1113,8 +1127,13 @@ function makeDraggable(el){
     e.preventDefault();
     const r=el.getBoundingClientRect(),pr=el.parentElement.getBoundingClientRect();
     sx=e.clientX;sy=e.clientY;sl=r.left-pr.left;st=r.top-pr.top;
-    const mv=mv=>{el.style.left=(sl+mv.clientX-sx)+'px';el.style.top=(st+mv.clientY-sy)+'px';};
-    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    const pw=pr.width||1, ph=pr.height||1;
+    /* %로 저장 — px로 두면 전체화면·녹화·다른 기기에서 자리가 틀어집니다 */
+    const mv=mv=>{
+      el.style.left=((sl+mv.clientX-sx)/pw*100).toFixed(2)+'%';
+      el.style.top =((st+mv.clientY-sy)/ph*100).toFixed(2)+'%';
+    };
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);autoSaveDeco();};
     document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
   });
 }

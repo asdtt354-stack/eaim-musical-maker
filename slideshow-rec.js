@@ -118,8 +118,9 @@
   //   fixed : N초마다
   // ══════════════════════════════════════════════════════════
   const TIMING_KEY = 'eaim_slide_timing';
-  let timing = { mode: 'music', fixedSec: 7 };
+  let timing = { mode: 'scene', fixedSec: 7 };   // 뮤지컬메이커는 장면마다 노래를 따로 만든다
   try { timing = { ...timing, ...JSON.parse(localStorage.getItem(TIMING_KEY) || '{}') }; } catch {}
+  if (timing.mode === 'music') timing.mode = 'scene';   // 쓰지 않는 모드가 저장돼 있던 경우
   function saveTiming() { localStorage.setItem(TIMING_KEY, JSON.stringify(timing)); }
 
   const sceneCount = () => (typeof TOTAL !== 'undefined' ? TOTAL : ((typeof SCENES !== 'undefined' && SCENES.length) || 0));
@@ -182,66 +183,7 @@
     return { kind: 'song', sec: 0 };
   }
 
-  // 곡 길이 D 를 화면 성격에 맞게 배분 → [{start,end,kind,sec}, ...]
-  function buildSegments(D, N) {
-    const segs = []; let fixedTotal = 0, songN = 0;
-    for (let i = 1; i <= N; i++) { const w = sceneKind(i); segs.push(w); if (w.kind === 'song') songN++; else fixedTotal += w.sec; }
 
-    if (songN > 0) {
-      let remain = D - fixedTotal;
-      const needSong = MIN_SONG * songN;
-      if (remain < needSong) {                       // 대사가 너무 많아 곡이 모자람 → 대사 시간을 눌러 줌
-        const scale = Math.max(0.3, (D - needSong) / Math.max(0.1, fixedTotal));
-        segs.forEach(s => { if (s.kind !== 'song') s.sec *= scale; });
-        fixedTotal *= scale; remain = D - fixedTotal;
-      }
-      const per = Math.max(MIN_SONG, remain / songN);
-      segs.forEach(s => { if (s.kind === 'song') s.sec = per; });
-    } else {                                          // 노래 화면이 하나도 없으면 비율대로
-      const tot = fixedTotal || N;
-      segs.forEach(s => { s.sec = D * (s.sec / tot); });
-    }
-
-    let acc = 0;
-    segs.forEach(s => { s.start = acc; acc += s.sec; s.end = acc; });
-    return segs;
-  }
-
-  // 편곡본 1곡 ↔ 장면 (대사·배경 화면은 필요한 만큼, 노래 화면이 남은 시간을 나눠 가짐)
-  function startMusicSync(audio) {
-    const N = sceneCount(); if (!N || !audio) return false;
-    readDuration(audio, (D) => {
-      if (!D) {                                       // 길이를 못 읽음 → 안전망
-        toast('⚠️ 음악 길이를 읽지 못해 고정 시간으로 진행해요');
-        startFixedSync(timing.fixedSec);
-        audio.loop = false; audio.currentTime = 0; audio.play().catch(() => {});
-        return;
-      }
-      const segs = buildSegments(D, N);
-      const songN = segs.filter(s => s.kind === 'song').length;
-      const songSec = songN ? segs.find(s => s.kind === 'song').sec : 0;
-
-      syncAudio = audio; syncRunning = true;
-      let at = 0;
-      syncHandler = () => {
-        if (!syncRunning) return;
-        const t = audio.currentTime;
-        while (at < segs.length - 1 && t >= segs[at].end) at++;
-        while (at > 0 && t < segs[at].start) at--;     // 되감기 대응
-        const target = at + 1;
-        if (typeof current !== 'undefined' && current !== target && !(typeof isTransitioning !== 'undefined' && isTransitioning)) goto(target);
-      };
-      audio.addEventListener('timeupdate', syncHandler);
-      audio.addEventListener('ended', syncEnded, { once: true });
-      audio.loop = false; audio.currentTime = 0; audio.play().catch(() => {});
-
-      const other = N - songN;
-      toast(songN
-        ? `⏱ ${Math.round(D)}초 — 노래 ${songN}화면은 ${songSec.toFixed(1)}초씩, 대사·배경 ${other}화면은 글자에 맞춰 진행해요`
-        : `⏱ ${Math.round(D)}초를 ${N}화면에 글자 길이대로 나눠 진행해요`);
-    });
-    return true;
-  }
 
   // 장면별 노래가 끝나면 다음 장면
   function startSceneSync() {
@@ -260,17 +202,19 @@
   }
 
   // 현재 설정으로 자동 진행 시작 (1장면부터)
+  function stopAutoRun() { stopSync(); stopSceneAudio(); stopBgm(); const a = arrangement(); if (a) { a.pause(); a.loop = true; } }
+  window.pmStartAutoRun = () => startAutoRun();
+  window.pmStopAutoRun = stopAutoRun;
+  window.pmToggleAutoRun = function () { if (syncRunning) { stopAutoRun(); toast('■ 자동 진행 멈춤'); } else startAutoRun(); return syncRunning; };
   function startAutoRun() {
     stopSync();
     goto(1);
-    const a = arrangement();
-    if (timing.mode === 'music') {
-      if (a && a.src) return startMusicSync(a);
-      toast('⚠️ 편곡본이 없어 장면별 노래/고정 시간으로 진행해요');
+    if (timing.mode === 'scene') {
       const anyScene = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl || s.audioLocal);
-      return anyScene ? startSceneSync() : startFixedSync(timing.fixedSec);
+      if (anyScene) return startSceneSync();
+      toast('⚠️ 아직 장면에 붙은 노래가 없어 고정 시간으로 진행해요');
+      return startFixedSync(timing.fixedSec);
     }
-    if (timing.mode === 'scene') return startSceneSync();
     return startFixedSync(timing.fixedSec);
   }
 
@@ -279,15 +223,12 @@
   tp.id = 'timing-panel';
   document.body.appendChild(tp);
   function renderTimingPanel() {
-    const a = arrangement(); const N = sceneCount();
-    const D = a && isFinite(a.duration) ? a.duration : 0;
+    const N = sceneCount();
     const hasSceneSongs = (typeof SCENES !== 'undefined') && SCENES.some(s => s.audioUrl || s.audioLocal);
     tp.innerHTML = `
       <h4>⏱ 장면 자동 진행</h4>
-      <label><input type="radio" name="tm" value="music" ${timing.mode === 'music' ? 'checked' : ''}>
-        <span><b>편곡 음악에 맞추기</b><br><span class="info" style="margin:0">${D ? `${Math.round(D)}초 · ${N}화면 — 대사는 글자 수만큼, 노래 화면이 남은 시간을 나눠 가져요` : '배경 음악(편곡본)을 올리면 길이를 읽어와요'}</span></span></label>
       <label><input type="radio" name="tm" value="scene" ${timing.mode === 'scene' ? 'checked' : ''}>
-        <span><b>장면별 노래에 맞추기</b><br><span class="info" style="margin:0">${hasSceneSongs ? '각 장면의 노래가 끝나면 다음 장면으로' : '장면에 붙은 노래가 아직 없어요'}</span></span></label>
+        <span><b>노래에 맞추기</b><br><span class="info" style="margin:0">${hasSceneSongs ? `넘버는 노래가 끝나면, 대사·배경 화면은 글자 수만큼 보여줘요 (전체 ${N}화면)` : '아직 장면에 붙은 노래가 없어요 — 대본팀 화면에서 넘버를 만들어 주세요'}</span></span></label>
       <label><input type="radio" name="tm" value="fixed" ${timing.mode === 'fixed' ? 'checked' : ''}>
         <span><b>고정 시간</b> &nbsp;<input type="number" id="tm-sec" min="2" max="120" value="${timing.fixedSec}"> 초마다</span></label>
       <div class="info" style="border-top:1px solid rgba(255,255,255,.12);padding-top:8px;margin-top:8px">
@@ -519,8 +460,9 @@
             sceneAudio.play().catch(() => {});
           })();
         } else if (!url && !lkey && window._pmSceneAudioEnded && typeof timing !== 'undefined' && timing.mode === 'scene') {
-          // 노래 없는 장면은 고정 시간만큼 보여주고 넘어감
-          setTimeout(() => { if (typeof current !== 'undefined' && current === idx) window._pmSceneAudioEnded(); }, (timing.fixedSec || 7) * 1000);
+          // 노래 없는 화면(대사·배경만)은 글자 수만큼 읽을 시간을 준다 — 예전에는 무조건 7초였다
+          const w = (idx >= 1 && idx <= total) ? sceneKind(idx).sec : (timing.fixedSec || 7);
+          setTimeout(() => { if (typeof current !== 'undefined' && current === idx) window._pmSceneAudioEnded(); }, Math.max(2, w) * 1000);
         }
       } catch (e) { console.warn(e); }
       return r;
