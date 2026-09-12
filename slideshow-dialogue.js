@@ -302,7 +302,7 @@
   // ── 컨트롤바 버튼 ──
   (function addButtons() {
     const c = $('controls'); if (!c || !canEdit()) return;
-    const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'ctrl-btn'; b.textContent = txt; b.title = title; b.setAttribute('data-tip', title); b.onclick = fn; return b; };
+    const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'ctrl-btn'; b.textContent = txt; b.setAttribute('data-tip', title); b.onclick = fn; return b; };
     const menuBtn = mk('✎', '화면 구성 편집 (대사·배경·복제·녹화)', toggleMenu);
     const anchor = $('btn-bubble') || $('btn-char');
     if (anchor && anchor.parentElement === c) c.insertBefore(menuBtn, anchor.nextSibling);

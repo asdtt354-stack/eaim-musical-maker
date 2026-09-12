@@ -216,8 +216,12 @@ select.bubble-ctrl-btn{padding:5px 8px}
   font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;
 }
 #hover-tooltip::after{
-  content:'';position:absolute;bottom:-9px;left:20px;
+  content:'';position:absolute;bottom:-9px;left:var(--tip-arrow,20px);margin-left:-6px;
   border:6px solid transparent;border-top-color:rgba(255,255,255,.96);border-bottom:none;
+}
+#hover-tooltip.below::after{
+  bottom:auto;top:-9px;
+  border-top-color:transparent;border-bottom:6px solid rgba(255,255,255,.96);
 }
 #hover-tooltip.show{opacity:1;transform:translateY(0) scale(1)}
 #ppt-progress{position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -349,11 +353,11 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-auto" data-tip="⏱ 설정대로 자동 진행해요 (노래 길이에 맞춰 넘어갑니다 — 공연 중엔 ▶ 로 직접 넘겨도 돼요)">🔁</button>
   <button class="ctrl-btn" id="btn-bubble" data-tip="말풍선 대사를 추가해요" onclick="toggleBubblePanel()">💬</button>
   <button class="ctrl-btn" id="btn-char" data-tip="캐릭터 이미지를 무대에 올려요" onclick="toggleCharPanel()">🎭</button>
-  <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()" title="화면 녹화">⏺</button>
-  <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()" title="배경 효과">🎆</button>
-  <button class="ctrl-btn" id="btn-ppt" data-tip="지금 무대(효과·캐릭터·말풍선 포함)를 PPT 파일로 저장해요" onclick="downloadPPTX()" title="PPT 다운로드">📊</button>
+  <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()">⏺</button>
+  <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()">🎆</button>
+  <button class="ctrl-btn" id="btn-ppt" data-tip="지금 무대(효과·캐릭터·말풍선 포함)를 PPT 파일로 저장해요" onclick="downloadPPTX()">📊</button>
   <button class="ctrl-btn" id="btn-save-deco" data-tip="지금 배치한 캐릭터·말풍선·효과를 저장해요 (새로고침해도 유지)" onclick="saveDecorations(true)" style="color:#69f0ae">✅</button>
-  <button class="ctrl-btn" id="btn-dlg-toggle" data-tip="이 장면의 대사를 한 줄씩 순서대로 말풍선으로 보여줘요" onclick="toggleDialogueBar()" title="대사 진행">🗨</button>
+  <button class="ctrl-btn" id="btn-dlg-toggle" data-tip="이 장면의 대사를 한 줄씩 순서대로 말풍선으로 보여줘요" onclick="toggleDialogueBar()">🗨</button>
 </div>
 <div id="dialogue-bar">
   <button class="dlg-btn reset" data-tip="이 장면의 대사를 처음부터 다시 시작해요" onclick="resetDialogue()">⟲</button>
@@ -1452,14 +1456,26 @@ function attachHoverTooltips(){
   if(!tip) return;
   let hoverEl = null;
 
-  function positionTip(x, y){
-    const pad = 14;
-    let left = x + pad, top = y + pad;
-    const rect = tip.getBoundingClientRect();
-    if(left + rect.width > window.innerWidth - 8) left = x - rect.width - pad;
-    if(top + rect.height > window.innerHeight - 8) top = y - rect.height - pad;
+  /* 설명은 그 버튼 바로 위에, 꼬리는 버튼 가운데를 가리키게.
+     예전에는 커서 오른쪽 14px 에 띄워서 늘 옆 버튼을 가리켰다. */
+  function positionTip(el){
+    if(!el) return;
+    const b = el.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    const gap = 10, edge = 8;
+    const cx = b.left + b.width / 2;
+
+    let left = cx - t.width / 2;
+    left = Math.max(edge, Math.min(left, window.innerWidth - t.width - edge));
+
+    let top = b.top - t.height - gap;
+    const below = top < edge;
+    if(below) top = b.bottom + gap;
+    tip.classList.toggle('below', below);
+
     tip.style.left = left + 'px';
     tip.style.top = top + 'px';
+    tip.style.setProperty('--tip-arrow', Math.max(12, Math.min(cx - left, t.width - 12)) + 'px');
   }
 
   document.addEventListener('mouseover', e => {
@@ -1468,13 +1484,12 @@ function attachHoverTooltips(){
     hoverEl = el;
     tip.textContent = el.getAttribute('data-tip');
     tip.classList.add('show');
-    positionTip(e.clientX, e.clientY);
+    positionTip(el);                 // 글자가 바뀌면 폭도 바뀌므로 한 번 더 잰다
+    requestAnimationFrame(() => { if(hoverEl === el) positionTip(el); });
   });
 
-  document.addEventListener('mousemove', e => {
-    if(!hoverEl) return;
-    positionTip(e.clientX, e.clientY);
-  });
+  window.addEventListener('scroll', () => { if(hoverEl) positionTip(hoverEl); }, true);
+  window.addEventListener('resize', () => { if(hoverEl) positionTip(hoverEl); });
 
   document.addEventListener('mouseout', e => {
     if(!hoverEl) return;

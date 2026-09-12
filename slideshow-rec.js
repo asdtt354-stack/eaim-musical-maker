@@ -253,7 +253,7 @@
   (function addBtn() {
     const c = $('controls'); if (!c) return;
     const b = document.createElement('button');
-    b.className = 'ctrl-btn'; b.id = 'btn-timing'; b.textContent = '⏱'; b.title = '장면 자동 진행 (음악 길이에 맞추기)';
+    b.className = 'ctrl-btn'; b.id = 'btn-timing'; b.textContent = '⏱';
     b.setAttribute('data-tip', '음악 길이에 맞춰 장면이 자동으로 넘어가게 해요');
     b.onclick = toggleTimingPanel;
     const rec = $('btn-rec'); if (rec && rec.parentElement === c) c.insertBefore(b, rec); else c.appendChild(b);
