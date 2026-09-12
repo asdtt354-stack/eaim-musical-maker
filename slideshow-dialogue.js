@@ -251,6 +251,14 @@
     reloadTo(cur() + 1);
   }
   /* ✎ 편집 메뉴 — 버튼이 너무 많아 보이지 않도록 하나로 모음 */
+  const ACTIONS = [
+    { i:'🎭', t:'대본대로 전체 구성',   d:'모든 막을 "대사 화면 → 노래" 순서로', f:splitAll },
+    { i:'✂',  t:'이 막만 대사로 나누기', d:'지금 화면의 대본을 말풍선 화면들로',   f:splitCurrentByDialogue },
+    { i:'🖼', t:'배경만 화면 추가',     d:'노래·가사·말풍선 없이 그림과 배경음악만', f:addCleanScene },
+    { i:'⧉',  t:'이 장면 복제',        d:'같은 그림에 말풍선만 다르게',          f:duplicateCurrent },
+    { i:'🧹', t:'대사 화면 모두 지우기', d:'노래·그림만 보고 싶을 때',            f:clearDialogue },
+    { i:'🗑', t:'이 장면 삭제',        d:'되돌릴 수 없어요',                    f:deleteCurrent, danger:true },
+  ];
   let menuEl = null;
   function buildMenu() {
     if (menuEl) return menuEl;
@@ -295,17 +303,11 @@
   (function addButtons() {
     const c = $('controls'); if (!c || !canEdit()) return;
     const mk = (txt, title, fn) => { const b = document.createElement('button'); b.className = 'ctrl-btn'; b.textContent = txt; b.title = title; b.setAttribute('data-tip', title); b.onclick = fn; return b; };
-    const anchor = $('btn-bubble') || $('btn-char');
-    const ACTIONS = [
-      { i:'🎭', t:'대본대로 전체 구성',   d:'모든 막을 "대사 화면 → 노래" 순서로', f:splitAll },
-      { i:'✂',  t:'이 막만 대사로 나누기', d:'지금 화면의 대본을 말풍선 화면들로',   f:splitCurrentByDialogue },
-      { i:'🖼', t:'배경만 화면 추가',     d:'노래·가사·말풍선 없이 그림과 배경음악만', f:addCleanScene },
-      { i:'⧉',  t:'이 장면 복제',        d:'같은 그림에 말풍선만 다르게',          f:duplicateCurrent },
-      { i:'🧹', t:'대사 화면 모두 지우기', d:'노래·그림만 보고 싶을 때',            f:clearDialogue },
-      { i:'🗑', t:'이 장면 삭제',        d:'되돌릴 수 없어요',                    f:deleteCurrent, danger:true },
-    ];
     const menuBtn = mk('✎', '화면 구성 편집 (대사·배경·복제·녹화)', toggleMenu);
-    const btns = [menuBtn];  })();
+    const anchor = $('btn-bubble') || $('btn-char');
+    if (anchor && anchor.parentElement === c) c.insertBefore(menuBtn, anchor.nextSibling);
+    else c.appendChild(menuBtn);
+  })();
 
   // ── 슬라이드가 보일 때 말풍선 그리기 ──
   if (typeof window.doShowSlide === 'function') {
