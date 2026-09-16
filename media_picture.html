@@ -1,0 +1,2799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미디어픽쳐 — EAIM</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0f;
+  --surface:#13131f;
+  --surface2:#1c1c2e;
+  --accent:#7c4dff;
+  --accent2:#ff6b9d;
+  --accent3:#00e5ff;
+  --gold:#ffd54f;
+  --text:#f0f0ff;
+  --text2:rgba(240,240,255,.5);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+.orb{position:fixed;border-radius:50%;pointer-events:none;filter:blur(80px);opacity:.15;z-index:0}
+.orb1{width:500px;height:500px;top:-100px;left:-100px;background:var(--accent)}
+.orb2{width:400px;height:400px;bottom:-100px;right:-50px;background:var(--accent2)}
+.orb3{width:300px;height:300px;top:40%;left:40%;background:var(--accent3)}
+
+.container{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:32px 20px 80px}
+
+.header{text-align:center;margin-bottom:48px;padding-top:20px}
+.header-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:20px;background:rgba(124,77,255,.15);border:1px solid rgba(124,77,255,.4);font-size:11px;color:var(--accent);letter-spacing:3px;font-weight:700;margin-bottom:16px}
+.header-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(36px,8vw,64px);line-height:1;letter-spacing:-1px;background:linear-gradient(135deg,var(--text) 0%,var(--accent) 50%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.header-sub{font-size:13px;color:var(--text2);letter-spacing:2px}
+
+.step-card{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);padding:28px;margin-bottom:20px;transition:border-color .3s}
+.step-card:focus-within{border-color:rgba(124,77,255,.4)}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.step-title{font-size:16px;font-weight:700;letter-spacing:.5px}
+.step-desc{font-size:12px;color:var(--text2);margin-top:2px}
+
+.music-input-row{display:flex;gap:10px}
+.music-url-input{flex:1;background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--text);padding:12px 16px;border-radius:10px;font-size:13px;outline:none;font-family:inherit;transition:border-color .3s}
+.music-url-input:focus{border-color:var(--accent)}
+.music-url-input::placeholder{color:var(--text2)}
+.btn{padding:11px 20px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .2s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#5c35cc);color:#fff}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,77,255,.4)}
+.btn-secondary{background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--text2)}
+.btn-secondary:hover{border-color:rgba(255,255,255,.3);color:var(--text)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+#music-player{display:none;margin-top:14px;background:var(--surface2);border-radius:12px;padding:14px 18px}
+.player-title{font-size:12px;color:var(--text2);margin-bottom:8px;letter-spacing:1px}
+#music-player audio{width:100%;height:32px;outline:none}
+#music-player audio::-webkit-media-controls-panel{background:var(--surface2)}
+
+.style-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.style-chip{padding:12px 8px;border-radius:12px;border:1.5px solid rgba(255,255,255,.1);background:var(--surface2);cursor:pointer;text-align:center;transition:all .2s;user-select:none}
+.style-chip:hover{border-color:rgba(124,77,255,.5);background:rgba(124,77,255,.1)}
+.style-chip.selected{border-color:var(--accent);background:rgba(124,77,255,.2);box-shadow:0 0 16px rgba(124,77,255,.2)}
+.style-chip .emoji{font-size:24px;display:block;margin-bottom:6px}
+.style-chip .label{font-size:11px;font-weight:600;color:var(--text);letter-spacing:.5px}
+.style-chip .sub{font-size:10px;color:var(--text2);margin-top:2px}
+
+.color-grid{display:flex;flex-wrap:wrap;gap:8px}
+.color-chip{width:44px;height:44px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;position:relative}
+.color-chip:hover{transform:scale(1.1)}
+.color-chip.selected{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.color-chip .check{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:16px}
+.color-chip.selected .check{display:flex}
+
+.mood-grid{display:flex;flex-wrap:wrap;gap:8px}
+.mood-tag{padding:7px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.1);background:var(--surface2);cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;user-select:none}
+.mood-tag:hover{border-color:rgba(255,107,157,.5);color:var(--accent2)}
+.mood-tag.selected{border-color:var(--accent2);background:rgba(255,107,157,.15);color:var(--accent2)}
+
+.prompt-textarea{width:100%;background:var(--surface2);border:1px solid rgba(255,255,255,.1);color:var(--text);padding:14px 16px;border-radius:10px;font-size:14px;line-height:1.7;outline:none;font-family:inherit;resize:vertical;min-height:100px;transition:border-color .3s}
+.prompt-textarea:focus{border-color:var(--accent)}
+.prompt-textarea::placeholder{color:var(--text2)}
+.translate-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.translated-box{flex:1;margin-right:10px;background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent3);font-family:monospace;min-height:40px;line-height:1.6;display:none}
+
+.generate-section{text-align:center;margin:32px 0}
+.btn-generate{padding:16px 48px;border-radius:40px;border:none;cursor:pointer;font-size:16px;font-weight:700;font-family:'Black Han Sans',sans-serif;letter-spacing:2px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:all .3s;position:relative;overflow:hidden}
+.btn-generate:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(124,77,255,.5)}
+.btn-generate:disabled{opacity:.4;cursor:default;transform:none}
+.btn-generate .shine{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);transform:translateX(-100%)}
+.btn-generate:not(:disabled):hover .shine{animation:shine .6s ease}
+@keyframes shine{to{transform:translateX(100%)}}
+
+#result-section{display:none}
+.result-card{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
+.result-img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.result-img-placeholder{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--surface2);font-size:40px}
+.result-body{padding:20px}
+.result-prompt-label{font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:6px;text-transform:uppercase}
+.result-prompt-text{font-size:13px;color:var(--accent3);font-family:monospace;line-height:1.6;background:rgba(0,229,255,.05);padding:10px 14px;border-radius:8px;border:1px solid rgba(0,229,255,.15)}
+.result-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
+.capcut-guide{background:linear-gradient(135deg,rgba(255,107,157,.08),rgba(124,77,255,.08));border:1px solid rgba(255,107,157,.2);border-radius:var(--radius);padding:24px;margin-top:20px}
+.capcut-title{font-size:14px;font-weight:700;color:var(--accent2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.guide-steps{display:flex;flex-direction:column;gap:10px}
+.guide-step{display:flex;align-items:flex-start;gap:12px;font-size:13px;color:var(--text2);line-height:1.6}
+.guide-step-num{width:22px;height:22px;border-radius:50%;background:rgba(255,107,157,.2);border:1px solid var(--accent2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent2);flex-shrink:0;margin-top:1px}
+
+.loading-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(10,10,15,.9);backdrop-filter:blur(8px);align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.loading-ring{width:60px;height:60px;border:3px solid rgba(124,77,255,.2);border-top:3px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+.loading-text{font-size:14px;color:var(--text2);letter-spacing:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid rgba(255,255,255,.1);padding:10px 22px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;z-index:200;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:600px){
+  .style-grid{grid-template-columns:repeat(3,1fr)}
+  .music-input-row{flex-direction:column}
+}
+
+.sketch-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.sketch-color{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
+.sketch-color.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.sketch-size{width:100px}
+#sketch-canvas{background:#fff;border-radius:12px;width:100%;aspect-ratio:16/9;cursor:crosshair;touch-action:none;display:block}
+.sketch-choice-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.sketch-choice{flex:1;min-width:140px;padding:10px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:var(--surface2);cursor:pointer;text-align:center;font-size:12px;font-weight:600;color:var(--text2);transition:all .2s}
+.sketch-choice.selected{border-color:#4CAF82;background:rgba(76,175,130,.15);color:#4CAF82}
+
+.code-table{display:flex;flex-direction:column;gap:8px}
+.code-row{display:grid;grid-template-columns:100px 1fr 1fr 1fr;gap:10px;background:var(--surface2);border-radius:10px;padding:10px 14px;align-items:center}
+.code-row.head{background:transparent;padding:0 14px;font-size:10px;color:var(--text2);letter-spacing:1px;text-transform:uppercase}
+.code-elem{font-size:12px;font-weight:700;color:var(--accent3)}
+.code-signal{font-size:12px;color:var(--text)}
+.code-hint{font-size:12px;color:var(--text2)}
+.code-input{width:100%;background:var(--surface);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none;transition:border-color .2s}
+.code-input:focus{border-color:var(--accent3)}
+.code-input::placeholder{color:var(--text2)}
+.analyze-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+#btn-analyze-song{display:none}
+@media(max-width:600px){
+  .code-row{grid-template-columns:1fr;gap:4px}
+  .code-row.head{display:none}
+  .code-elem{color:var(--accent3)}
+  .code-row:not(.head){padding:12px 14px}
+}
+
+.segment-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.segment-chip{padding:10px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:var(--surface2);cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);transition:all .2s}
+.segment-chip:hover{border-color:rgba(124,77,255,.5)}
+.segment-chip.selected{border-color:var(--accent);background:rgba(124,77,255,.2);color:var(--text)}
+.desc-box{background:var(--surface2);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 14px}
+.desc-textarea{width:100%;background:transparent;border:none;color:var(--text);font-size:13px;line-height:1.7;outline:none;font-family:inherit;resize:vertical;min-height:60px}
+.desc-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--text2)}
+.desc-count.over{color:var(--accent2);font-weight:700}
+
+#newspaper-modal{display:none;position:fixed;inset:0;background:#f5f0e8;z-index:9999;overflow-y:auto}
+#newspaper-modal.open{display:block}
+.np-toolbar{position:sticky;top:0;background:#1a1a1a;color:#fff;padding:10px 16px;display:flex;gap:8px;align-items:center;z-index:10;flex-wrap:wrap}
+.np-toolbar button{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit}
+.np-print-btn{background:#C9A84C;color:#1a1a1a}
+.np-close-btn{background:rgba(255,255,255,.15);color:#fff}
+.np-paper{max-width:800px;margin:20px auto;background:#fff;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.15);font-family:'맑은 고딕','Malgun Gothic',serif}
+.np-masthead{text-align:center;border-bottom:4px solid #1a1a1a;border-top:4px solid #1a1a1a;padding:12px 0;margin-bottom:16px}
+.np-name{font-size:36px;font-weight:900;letter-spacing:2px;color:#1a1a1a;font-family:'맑은 고딕',serif}
+.np-meta{font-size:11px;color:#555;margin-top:4px;display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a}
+.np-headline{font-size:22px;font-weight:900;text-align:center;margin:12px 0 8px;line-height:1.3;color:#1a1a1a}
+.np-grid{display:grid;gap:16px;margin-top:12px}
+.np-grid.col1{grid-template-columns:1fr}
+.np-grid.col2{grid-template-columns:1fr 1fr}
+.np-grid.col3{grid-template-columns:1fr 1fr 1fr}
+.np-article{break-inside:avoid}
+.np-article img{width:100%;border:1px solid #ddd;display:block}
+.np-caption{font-size:11px;color:#333;margin-top:6px;line-height:1.6;border-left:3px solid #C9A84C;padding-left:8px}
+.field-hint{font-size:11px;color:#8B6914;background:#FFF8E0;border:1px dashed #D4B860;border-radius:6px;padding:6px 10px;margin-bottom:6px;line-height:1.6;white-space:pre-wrap}
+.field-hint:empty{display:none}
+#newspaper-modal.np-preview .field-hint{display:none}
+.np-paper textarea,.letter-paper textarea,.interview-paper textarea{overflow:hidden}
+.np-article-title{font-size:14px;font-weight:900;margin-bottom:4px;color:#1a1a1a}
+.np-input{width:100%;border:none;border-bottom:1px dashed #aaa;background:transparent;font-size:inherit;font-family:inherit;outline:none;color:#1a1a1a;padding:2px}
+
+#letter-modal{display:none;position:fixed;inset:0;background:#f9f0e0;z-index:9999;overflow-y:auto}
+#letter-modal.open{display:block}
+.letter-toolbar{position:sticky;top:0;background:#8B4513;color:#fff;padding:10px 16px;display:flex;gap:8px;align-items:center;z-index:10;flex-wrap:wrap}
+.letter-toolbar button{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit}
+.letter-paper{max-width:680px;margin:20px auto;background:#fffdf5;padding:40px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:1px solid #e8d5a3;position:relative;font-family:'맑은 고딕',serif;line-height:2}
+.letter-date{text-align:right;font-size:13px;color:#8B4513;margin-bottom:20px}
+.letter-to{font-size:15px;font-weight:bold;color:#333;margin-bottom:20px}
+.letter-music-box{background:#fff8e7;border:1px solid #e8d5a3;border-radius:8px;padding:12px 16px;margin:16px 0;display:flex;gap:12px;align-items:center}
+.letter-music-img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
+.letter-body{min-height:200px;font-size:15px;color:#333;line-height:2.2}
+.letter-from{text-align:right;margin-top:30px;font-size:14px;color:#555}
+.letter-input{width:100%;border:none;border-bottom:1px dashed #c8a050;background:transparent;font-family:inherit;font-size:inherit;outline:none;color:#333;padding:2px;line-height:2}
+.letter-textarea{width:100%;border:none;background:transparent;font-family:inherit;font-size:15px;outline:none;color:#333;resize:vertical;line-height:2.2;min-height:180px}
+.letter-scene-select{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit}
+
+#interview-modal{display:none;position:fixed;inset:0;background:#1a1a2e;z-index:9999;overflow-y:auto}
+#interview-modal.open{display:block}
+.interview-toolbar{position:sticky;top:0;background:#0f0f1a;color:#fff;padding:10px 16px;display:flex;gap:8px;align-items:center;z-index:10;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.1)}
+.interview-toolbar button{padding:7px 14px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:bold;font-family:inherit}
+.interview-paper{max-width:720px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.interview-header{background:linear-gradient(135deg,#1a1a2e,#7C4DFF);padding:24px;color:#fff;text-align:center}
+.interview-title{font-size:22px;font-weight:900;letter-spacing:1px}
+.interview-subtitle{font-size:12px;opacity:.7;margin-top:4px}
+.interview-music{display:flex;gap:16px;align-items:center;background:rgba(255,255,255,.1);border-radius:8px;padding:12px;margin-top:16px}
+.interview-music-img{width:70px;height:70px;object-fit:cover;border-radius:6px}
+.qa-section{padding:24px}
+.qa-item{margin-bottom:24px;border-left:3px solid #7C4DFF;padding-left:16px}
+.qa-q{font-size:13px;font-weight:900;color:#7C4DFF;margin-bottom:8px;letter-spacing:.5px}
+.qa-textarea{width:100%;border:none;border-bottom:1px dashed #ccc;background:transparent;font-family:inherit;font-size:14px;outline:none;color:#333;resize:vertical;line-height:1.8;min-height:60px;padding:4px 0}
+.interview-signature{padding:16px 24px;background:#f8f8f8;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#888}
+
+@media print{
+  #newspaper-modal .np-toolbar,#letter-modal .letter-toolbar,#interview-modal .interview-toolbar{display:none!important}
+  #newspaper-modal,#letter-modal,#interview-modal{
+    position:static !important;
+    inset:auto !important;
+    height:auto !important;
+    max-height:none !important;
+    overflow:visible !important;
+  }
+  .np-paper,.letter-paper,.interview-paper{box-shadow:none;margin:0;padding:16px;overflow:visible}
+  .np-paper textarea,.letter-paper textarea,.interview-paper textarea{overflow:hidden!important;resize:none}
+  .np-article img{break-inside:avoid;page-break-inside:avoid}
+  body>*:not(#newspaper-modal):not(#letter-modal):not(#interview-modal){display:none!important}
+  .field-hint{display:none!important}
+}
+
+/* ══ 로그인 / 교사 대시보드 (신규) ══ */
+.google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:none;border-radius:12px;font-weight:700;font-size:.95rem;padding:14px;width:100%;cursor:pointer;transition:all .2s;font-family:inherit;}
+.google-btn:hover{box-shadow:0 4px 16px rgba(0,0,0,.35);transform:translateY(-1px);}
+.google-icon{width:20px;height:20px;flex-shrink:0;}
+.gate-overlay{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#0a0a0f,#1c1c2e);}
+.gate-box{background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:1.5rem;width:100%;max-width:400px;padding:32px 26px;box-shadow:0 24px 60px rgba(0,0,0,.5);text-align:center;}
+.gate-box h2{font-family:'Black Han Sans',sans-serif;font-size:1.5rem;color:var(--text);margin-bottom:6px;}
+.gate-box p{font-size:.85rem;color:var(--text2);margin-bottom:22px;}
+.gate-box input{width:100%;text-align:center;font-size:1.05rem;font-weight:700;background:var(--surface2);border:1px solid rgba(255,255,255,.12);border-radius:.9rem;padding:11px;outline:none;color:var(--text);margin-bottom:14px;font-family:inherit}
+.locked-notice{background:rgba(255,107,157,.1);border:1.5px solid rgba(255,107,157,.3);border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;font-size:.82rem;color:var(--accent2)}
+.no-teacher-wrap,.loading-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--text2)}
+.dash-header{background:linear-gradient(135deg,#1c1c2e,#13131f);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08)}
+.dash-header .hub-link{font-size:.7rem;color:var(--text2);text-decoration:none;padding:4px 9px;border:1px solid rgba(255,255,255,.15);border-radius:7px}
+.dash-header h1{font-family:'Black Han Sans',sans-serif;font-size:1.2rem;color:var(--text)}
+.dash-logout{font-size:.68rem;color:var(--text2);background:none;border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
+.dash-tab-bar{display:flex;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.08)}
+.dash-tab{flex:1;padding:12px 4px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;background:none;color:var(--text2);font-family:inherit;transition:all .2s;border-bottom:2px solid transparent;}
+.dash-tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.badge-count{background:rgba(124,77,255,.2);color:var(--accent);border-radius:8px;padding:1px 6px;font-size:.62rem;margin-left:4px;}
+.dash-main{max-width:640px;margin:0 auto;padding:24px 16px}
+.dash-card{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);padding:22px;margin-bottom:16px}
+.dash-card-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:14px}
+.teacher-chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;margin-bottom:16px}
+.teacher-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border-radius:10px;border:1px solid rgba(255,255,255,.08)}
+.toggle-track{width:50px;height:26px;border-radius:13px;background:rgba(255,255,255,.12);position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}
+.toggle-track.on{background:rgba(76,175,130,.4);border:1px solid #4CAF82}
+.toggle-thumb{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:all .3s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle-track.on .toggle-thumb{left:26px}
+.invite-box{background:var(--surface2);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;font-size:.72rem;color:var(--text2);word-break:break-all;font-family:monospace;margin-top:8px}
+.invite-qr-box{background:#fff;border-radius:10px;padding:14px;display:inline-block;margin-top:12px}
+.invite-qr-caption{font-size:.62rem;color:var(--text2);margin-top:6px}
+.api-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-on{background:#4CAF82;box-shadow:0 0 6px #4CAF82}
+.student-row{padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:.82rem;color:var(--text)}
+.student-row .s-meta{color:var(--text2);font-size:.73rem;display:block;margin-top:2px}
+.dash-input{width:100%;padding:11px 14px;background:var(--surface2);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--text);font-family:inherit;font-size:.9rem;outline:none}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text" id="loading-text">이미지 생성 중...</div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ 로딩 ══ -->
+<div class="loading-wrap" id="loadingOverlay">✦ 불러오는 중...</div>
+
+<!-- ══ 학생: 초대 링크 없음 ══ -->
+<div class="no-teacher-wrap" id="noTeacherOverlay" style="display:none">
+  <div>
+    <div style="font-size:1.6rem;margin-bottom:10px">🔗</div>
+    <div style="font-size:.95rem;margin-bottom:8px">선생님께 받은 초대 링크로 접속해주세요</div>
+    <div style="font-size:.75rem;color:var(--text2)">이 링크에는 우리 반 정보가 담겨 있어요</div>
+  </div>
+</div>
+
+<!-- ══ 교사: 구글 로그인 ══ -->
+<div class="gate-overlay" id="teacherGoogleOverlay" style="display:none">
+  <div class="gate-box">
+    <div style="font-size:2.8rem;margin-bottom:12px">🎵</div>
+    <h2>미디어픽쳐</h2>
+    <p>교사 로그인</p>
+    <div id="googleLoginErr" style="font-size:.72rem;color:var(--accent2);margin-bottom:10px"></div>
+    <button class="google-btn" onclick="googleLogin()">
+      <svg class="google-icon" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.6 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.1 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.3 0 10.2-2 13.8-5.4l-6.4-5.4C29.3 34.9 26.8 35.8 24 35.8c-5.3 0-9.8-3.4-11.4-8.1l-6.6 5.1C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.8l6.4 5.4C40.6 36.4 44 30.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+      구글 계정으로 로그인
+    </button>
+    <a href="index.html" style="display:block;margin-top:16px;font-size:.7rem;color:var(--text2);text-decoration:none">← 허브로 돌아가기</a>
+  </div>
+</div>
+
+<!-- ══ 학생: 번호 입력 ══ -->
+<div class="gate-overlay" id="studentLoginOverlay" style="display:none">
+  <div class="gate-box">
+    <div style="font-size:2.8rem;margin-bottom:12px">🎨</div>
+    <h2>미디어픽쳐</h2>
+    <p>음악을 듣고 · 느끼고 · 그림으로 표현하다</p>
+    <div id="studentRoomName" style="font-size:.8rem;color:var(--accent3);margin-bottom:10px;font-weight:700"></div>
+    <div class="locked-notice" id="lockedNotice" style="display:none">🔒 선생님이 아직 수업을 열지 않았어요</div>
+    <div id="studentGroupWrap" style="display:none">
+      <input type="text" id="studentGroupInput" placeholder="모둠 번호 (예: 1)" inputmode="numeric" onkeydown="if(event.key==='Enter')doStudentLogin()">
+    </div>
+    <input type="text" id="studentNumberInput" placeholder="내 번호 (예: 7)" inputmode="numeric" onkeydown="if(event.key==='Enter')doStudentLogin()">
+    <button class="btn btn-primary" id="studentLoginBtn" style="width:100%;padding:13px" onclick="doStudentLogin()">🎨 시작하기</button>
+  </div>
+</div>
+
+<!-- ══ 교사 대시보드 ══ -->
+<div id="teacherDashboardPage" style="display:none">
+  <div class="dash-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="index.html" class="hub-link">🏠 허브</a>
+      <h1>🎵 미디어픽쳐 · 교사</h1>
+    </div>
+    <button class="dash-logout" onclick="teacherLogout()">로그아웃</button>
+  </div>
+  <div class="dash-tab-bar">
+    <button class="dash-tab on" id="dashTabSettings" onclick="setDashTab('settings')">⚙️ 설정</button>
+    <button class="dash-tab" id="dashTabRooms" onclick="setDashTab('rooms')">🏫 반 관리<span class="badge-count" id="roomCountBadge" style="display:none"></span></button>
+  </div>
+  <div class="dash-main"><div id="dashContent"></div></div>
+</div>
+
+<!-- ══ 학생 앱 화면 ══ -->
+<div id="mainAppPage" style="display:none">
+<div class="container">
+
+  <div class="header">
+    <a href="index.html" style="display:inline-block;margin-bottom:14px;font-size:11px;color:var(--text2);text-decoration:none;letter-spacing:1px">← 에임뮤직-미디어-레터</a>
+    <div class="header-badge">🎵 EAIM · Musical Maker</div>
+    <div class="header-title">미디어픽쳐</div>
+    <div class="header-sub">음악을 듣고 · 느끼고 · 그림으로 표현하다</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(124,77,255,.2);border:1.5px solid var(--accent);color:var(--accent)">1</div>
+      <div>
+        <div class="step-title">🎵 음악 감상</div>
+        <div class="step-desc">음악 파일을 업로드하거나 URL을 입력하세요</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-primary" id="tab-youtube" onclick="switchTab('youtube')">▶ 유튜브</button>
+      <button class="btn btn-secondary" id="tab-file" onclick="switchTab('file')">📂 파일 업로드</button>
+    </div>
+
+    <div id="panel-youtube">
+      <div class="music-input-row" style="margin-bottom:10px">
+        <input class="music-url-input" id="yt-search-query" placeholder="검색어 입력 (예: 재즈 연주곡, 국악 합주)">
+        <button class="btn btn-secondary" onclick="searchYoutube()">🔍 유튜브에서 찾기</button>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:14px">새 탭에 검색 결과가 열려요. 마음에 드는 영상의 주소를 복사해서 아래에 붙여넣어주세요.</div>
+      <div class="music-input-row">
+        <input class="music-url-input" id="music-url" placeholder="유튜브 URL 붙여넣기... (예: https://youtu.be/xxx)">
+        <button class="btn btn-primary" onclick="loadYoutube()">▶ 재생</button>
+      </div>
+      <div id="youtube-player" style="display:none;margin-top:14px;border-radius:12px;overflow:hidden;aspect-ratio:16/9">
+        <iframe id="yt-iframe" width="100%" height="100%" frameborder="0" allow="autoplay;encrypted-media" allowfullscreen style="display:block"></iframe>
+      </div>
+    </div>
+
+    <div id="panel-file" style="display:none">
+      <label style="display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;border:2px dashed rgba(255,255,255,.15);border-radius:12px;cursor:pointer;transition:border-color .3s" onmouseover="this.style.borderColor='rgba(124,77,255,.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,.15)'">
+        <span style="font-size:28px">📂</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">음악 파일 업로드</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">MP3, WAV, OGG 등 지원</div>
+        </div>
+        <input type="file" id="music-file" accept="audio/*" style="display:none" onchange="loadMusicFile(event)">
+      </label>
+      <div id="music-player" style="display:none;margin-top:14px;background:var(--surface2);border-radius:12px;padding:14px 18px">
+        <div class="player-title" id="file-name">🎵 재생 중</div>
+        <audio id="audio-el" controls style="width:100%;margin-top:8px"></audio>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(76,175,130,.15);border:1.5px solid #4CAF82;color:#4CAF82">2</div>
+      <div>
+        <div class="step-title">✂️ 구간 나누기 &amp; 음악 설명</div>
+        <div class="step-desc">몇 부분으로 나눠서 감상할지 고르고, AI가 짧은 설명을 만들어줘요</div>
+      </div>
+    </div>
+    <div class="segment-row" id="segment-row"></div>
+    <div class="desc-box">
+      <textarea class="desc-textarea" id="music-desc" maxlength="100" placeholder="AI 설명 생성을 누르면 여기에 짧은 설명이 채워져요 (직접 수정 가능)"></textarea>
+      <div class="desc-meta">
+        <span id="desc-count">0/100자</span>
+        <button class="btn btn-secondary" id="btn-gen-desc" onclick="generateMusicDescription()">✨ AI 설명 생성</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(255,213,79,.15);border:1.5px solid var(--gold);color:var(--gold)">3</div>
+      <div>
+        <div class="step-title">🗺️ 번역코드표 참고하기</div>
+        <div class="step-desc">음악을 들으며 아래를 참고해서 스타일·색감·분위기를 골라보세요</div>
+      </div>
+    </div>
+    <div class="analyze-row">
+      <button class="btn btn-primary" id="btn-analyze-song" onclick="analyzeSongForCodeTable()">🤖 이 노래로 분석하기</button>
+      <span style="font-size:11px;color:var(--text2)">음악 파일을 업로드하면 AI가 이 곡을 실제로 듣고 채워줘요 (직접 수정 가능)</span>
+    </div>
+    <div class="code-table">
+      <div class="code-row head"><div>음악 요소</div><div>무엇이 들리나요?</div><div>서사 번역 힌트</div><div>내가 들은 것 ✏️</div></div>
+      <div class="code-row"><div class="code-elem">셈여림</div><div class="code-signal">소리가 커지거나 작아진다</div><div class="code-hint">감정의 강도 — 조용함 ↔ 폭발적임</div><input class="code-input" id="obs-dynamics" placeholder="예: 중간부터 점점 커짐"></div>
+      <div class="code-row"><div class="code-elem">선율 윤곽</div><div class="code-signal">음이 올라가거나 내려간다</div><div class="code-hint">긴장 고조/이완, 사건의 방향</div><input class="code-input" id="obs-melody" placeholder="예: 후렴에서 계속 올라감"></div>
+      <div class="code-row"><div class="code-elem">형식·반복</div><div class="code-signal">같은 부분이 다시 나온다</div><div class="code-hint">회상, 순환하는 이야기 구조</div><input class="code-input" id="obs-form" placeholder="예: 도입부가 끝에 다시 나옴"></div>
+      <div class="code-row"><div class="code-elem">리듬·템포</div><div class="code-signal">빠르기가 바뀐다</div><div class="code-hint">안정 ↔ 혼란·긴박함</div><input class="code-input" id="obs-rhythm" placeholder="예: 중간에 빨라짐"></div>
+      <div class="code-row"><div class="code-elem">음색·악기</div><div class="code-signal">어떤 악기·목소리가 쓰이는가</div><div class="code-hint">정체성, 장면의 배경·분위기</div><input class="code-input" id="obs-timbre" placeholder="예: 가야금 소리가 두드러짐"></div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(255,107,157,.15);border:1.5px solid var(--accent2);color:var(--accent2)">4</div>
+      <div>
+        <div class="step-title">🎨 그림 스타일 선택</div>
+        <div class="step-desc">음악의 느낌에 맞는 스타일을 골라보세요</div>
+      </div>
+    </div>
+    <div class="style-grid" id="style-grid"></div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(0,229,255,.1);border:1.5px solid var(--accent3);color:var(--accent3)">5</div>
+      <div>
+        <div class="step-title">🌈 색감 선택</div>
+        <div class="step-desc">음악의 색깔을 골라보세요 (여러 개 가능)</div>
+      </div>
+    </div>
+    <div class="color-grid" id="color-grid"></div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(255,213,79,.1);border:1.5px solid var(--gold);color:var(--gold)">6</div>
+      <div>
+        <div class="step-title">💭 분위기 선택</div>
+        <div class="step-desc">음악에서 느껴지는 감정을 골라보세요 (여러 개 가능)</div>
+      </div>
+    </div>
+    <div class="mood-grid" id="mood-grid"></div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(124,77,255,.2);border:1.5px solid var(--accent);color:var(--accent)">7</div>
+      <div>
+        <div class="step-title">✏️ 자유롭게 표현하기</div>
+        <div class="step-desc">음악을 듣고 떠오르는 장면을 한글로 적어보세요</div>
+      </div>
+    </div>
+    <textarea class="prompt-textarea" id="prompt-kr" placeholder="예: 가을 숲속에서 낙엽이 지고 있어. 혼자 걷는 느낌이야. 따뜻하면서도 조금 쓸쓸해..."></textarea>
+    <div class="translate-row">
+      <div class="translated-box" id="translated-box"></div>
+      <button class="btn btn-secondary" onclick="translatePrompt()" id="btn-translate">🌐 영어로 번역</button>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(76,175,130,.15);border:1.5px solid #4CAF82;color:#4CAF82">8</div>
+      <div>
+        <div class="step-title">🎬 장면 정보</div>
+        <div class="step-desc">간단한 정보만 적어주세요</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input class="music-url-input" id="scene-title" placeholder="장르명 (예: 재즈, 국악, K-pop)">
+      <input class="music-url-input" id="scene-characters" placeholder="참여 인원 (이름, 쉼표로 구분 — 선택)">
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(233,69,96,.15);border:1.5px solid #E94560;color:#E94560">9</div>
+      <div>
+        <div class="step-title">🎼 수노(Suno) 편곡 프롬프트</div>
+        <div class="step-desc">원곡은 유튜브로 감상하고, 영상용 음악은 이 프롬프트로 Suno에서 편곡해서 만들어요</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px">장르·번역코드표·설명을 참고해서 Suno에 붙여넣을 스타일 프롬프트를 만들어요. 장르명과 설명을 먼저 채워두면 더 정확해요.</div>
+    <button class="btn btn-secondary" onclick="generateSunoPrompt()" id="btn-gen-suno" style="margin-bottom:10px">✨ 편곡 프롬프트 생성</button>
+    <div class="desc-box">
+      <textarea class="desc-textarea" id="suno-prompt" style="min-height:70px" placeholder="생성된 프롬프트가 여기에 나와요. Suno의 'Style of Music' 칸에 붙여넣으면 돼요."></textarea>
+      <div class="desc-meta">
+        <span id="suno-count">0자</span>
+        <button class="btn btn-secondary" onclick="copySunoPrompt()">📋 복사하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(255,213,79,.15);border:1.5px solid var(--gold);color:var(--gold)">10</div>
+      <div>
+        <div class="step-title">✍️ 캐릭터·장면 스케치</div>
+        <div class="step-desc">활동지의 "캐릭터·장면 스케치" 칸을 여기서 직접 그려도 돼요 (선택)</div>
+      </div>
+    </div>
+    <div class="sketch-toolbar">
+      <div class="sketch-color active" style="background:#1a1a2e" onclick="selectSketchColor('#1a1a2e',this)"></div>
+      <div class="sketch-color" style="background:#e94560" onclick="selectSketchColor('#e94560',this)"></div>
+      <div class="sketch-color" style="background:#4CAF82" onclick="selectSketchColor('#4CAF82',this)"></div>
+      <div class="sketch-color" style="background:#5DADE2" onclick="selectSketchColor('#5DADE2',this)"></div>
+      <div class="sketch-color" style="background:#ffd54f" onclick="selectSketchColor('#ffd54f',this)"></div>
+      <div class="sketch-color" style="background:#C778DD" onclick="selectSketchColor('#C778DD',this)"></div>
+      <input type="range" class="sketch-size" id="sketch-size" min="1" max="18" value="4">
+      <button class="btn btn-secondary" onclick="setSketchEraser()">🧹 지우개</button>
+      <button class="btn btn-secondary" onclick="clearSketch()">🗑 전체 지우기</button>
+    </div>
+    <canvas id="sketch-canvas" width="960" height="540"></canvas>
+    <div class="sketch-choice-row">
+      <div class="sketch-choice selected" id="choice-ai" onclick="chooseSceneVisual('ai')">🎨 AI 생성 이미지 사용</div>
+      <div class="sketch-choice" id="choice-sketch" onclick="chooseSceneVisual('sketch')">✍️ 내 손그림 사용</div>
+    </div>
+  </div>
+
+  <div class="generate-section">
+    <button class="btn-generate" onclick="generateImage()" id="btn-generate">
+      <span class="shine"></span>
+      ✨ 이미지 생성하기
+    </button>
+  </div>
+
+    <div id="result-section">
+    <div class="result-card">
+      <img class="result-img" id="result-img" alt="생성된 이미지" style="display:none">
+      <div class="result-img-placeholder" id="result-placeholder" style="display:none">🎨</div>
+      <div class="result-body">
+        <div class="result-prompt-label">사용된 프롬프트</div>
+        <div class="result-prompt-text" id="result-prompt-text"></div>
+        <div class="result-actions">
+          <button class="btn btn-primary" onclick="downloadImage()">⬇ 이미지 다운로드</button>
+          <button class="btn btn-secondary" onclick="copyImageToClipboard()">📋 이미지 복사</button>
+          <button class="btn btn-secondary" onclick="generateImage()">🔄 다시 생성</button>
+          <button class="btn btn-primary" onclick="addSceneToShow()" style="background:#4CAF82;border-color:#4CAF82">➕ 이 장면 모으기</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="capcut-guide">
+      <div class="capcut-title">🎬 CapCut으로 영상 만들기</div>
+      <div class="guide-steps">
+        <div class="guide-step"><div class="guide-step-num">1</div>위 버튼으로 이미지를 다운로드하세요</div>
+        <div class="guide-step"><div class="guide-step-num">2</div>음악 파일도 저장해두세요</div>
+        <div class="guide-step"><div class="guide-step-num">3</div>CapCut 새 프로젝트 → 이미지 + 음악 불러오기</div>
+        <div class="guide-step"><div class="guide-step-num">4</div>효과음, 전환효과, 텍스트를 추가하세요</div>
+        <div class="guide-step"><div class="guide-step-num">5</div>완성! 🎉</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" id="scene-list-card">
+    <div class="step-header">
+      <div class="step-num" style="background:rgba(76,175,130,.15);border:1.5px solid #4CAF82;color:#4CAF82">🎬</div>
+      <div>
+        <div class="step-title">모아진 장면 (<span id="scene-count">0</span>개)</div>
+        <div class="step-desc" id="scene-list-desc">아직 모은 장면이 없어요 — 위에서 "➕ 이 장면 모으기"를 누르면 여기 쌓여요</div>
+      </div>
+    </div>
+    <div id="scene-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btn-go-slideshow" onclick="goToSlideshow()" style="background:linear-gradient(135deg,#4CAF82,#2E7D5A)" disabled>🎬 슬라이드쇼로 이동</button>
+      <button class="btn btn-primary" id="btn-open-newspaper" onclick="openNewspaper()" style="background:#C9A84C;color:#1a1a1a" disabled>📰 음악 신문 만들기</button>
+      <button class="btn btn-primary" id="btn-open-letter" onclick="openLetter()" style="background:#E94560" disabled>💌 음악 편지 쓰기</button>
+      <button class="btn btn-primary" id="btn-open-interview" onclick="openInterview()" style="background:#7C4DFF" disabled>🎤 음악 인터뷰</button>
+      <button class="btn btn-secondary" onclick="clearScenes()">🗑 전체 초기화</button>
+    </div>
+  </div>
+
+</div>
+</div><!-- /mainAppPage -->
+
+<div id="newspaper-modal">
+  <div class="np-toolbar">
+    <button class="np-close-btn" onclick="closeModal('newspaper-modal')">✕ 닫기</button>
+    <span style="flex:1;font-size:14px;font-weight:bold" id="np-toolbar-title">📰 음악 감상 신문 편집</span>
+    <select id="np-layout" onchange="updateNpLayout()" style="padding:6px;border-radius:6px;border:none;font-family:inherit;font-size:12px">
+      <option value="col1">1단 레이아웃</option>
+      <option value="col2" selected>2단 레이아웃</option>
+      <option value="col3">3단 레이아웃</option>
+    </select>
+    <button class="np-print-btn" onclick="finalizeNewspaper()">🖨️ 인쇄 / PDF 저장</button>
+  </div>
+  <div class="np-paper" id="np-paper">
+    <div class="np-masthead">
+      <input class="np-input np-name" id="np-title" value="음악 감상 신문" style="font-size:36px;font-weight:900;letter-spacing:2px;text-align:center;width:100%">
+      <div class="np-meta">
+        <input class="np-input" id="np-school" placeholder="학교명" style="width:30%;font-size:11px">
+        <input class="np-input" id="np-date" style="width:30%;font-size:11px;text-align:center">
+        <input class="np-input" id="np-grade" placeholder="학년 반 이름" style="width:30%;font-size:11px;text-align:right">
+      </div>
+    </div>
+    <input class="np-input np-headline" id="np-headline" placeholder="신문 헤드라인을 입력하세요" style="font-size:22px;font-weight:900;text-align:center;width:100%;margin:12px 0 8px">
+    <div class="np-grid col2" id="np-grid"></div>
+  </div>
+</div>
+
+<div id="letter-modal">
+  <div class="letter-toolbar">
+    <button onclick="closeModal('letter-modal')" style="background:rgba(255,255,255,.2);color:#fff">✕ 닫기</button>
+    <span style="flex:1;font-size:14px;font-weight:bold">💌 음악 편지</span>
+    <select class="letter-scene-select" id="letter-scene-select" onchange="onLetterSceneChange()"></select>
+    <button onclick="finalizeLetter()" style="background:#C9A84C;color:#1a1a1a">🖨️ 인쇄 / PDF 저장</button>
+  </div>
+  <div class="letter-paper" id="letter-paper">
+    <div class="letter-date">
+      <input class="letter-input" id="letter-date" style="width:200px;text-align:right;font-size:13px;color:#8B4513">
+    </div>
+    <div class="letter-to">
+      <input class="letter-input" id="letter-to" placeholder="받는 사람 (예: 사랑하는 친구에게)" style="font-size:15px;font-weight:bold">
+    </div>
+    <div class="letter-music-box">
+      <img id="letter-img" class="letter-music-img" src="" alt="감상 이미지">
+      <div>
+        <div style="font-size:12px;color:#888;margin-bottom:4px">🎵 이 음악을 들으며...</div>
+        <input class="letter-input" id="letter-song" placeholder="음악 제목 / 아티스트" style="font-size:13px;font-weight:bold;color:#8B4513">
+      </div>
+    </div>
+    <div class="field-hint" id="letter-hint"></div>
+    <div class="letter-body">
+      <textarea class="letter-textarea" id="letter-body" style="min-height:320px" placeholder="음악을 듣고 느낀 감정을 편지로 써보세요...&#10;&#10;이 음악을 들었을 때 나는...&#10;&#10;이 음악에서 떠오른 장면이나 색깔은...&#10;&#10;네가 이 음악을 듣는다면...&#10;&#10;음악이 나에게 전해주는 메시지는..."></textarea>
+    </div>
+    <div class="letter-from">
+      <div style="font-size:12px;color:#888;margin-bottom:4px">보내는 사람</div>
+      <input class="letter-input" id="letter-from" placeholder="이름을 적어요" style="text-align:right;font-size:14px;font-weight:bold;width:200px">
+    </div>
+  </div>
+</div>
+
+<div id="interview-modal">
+  <div class="interview-toolbar">
+    <button onclick="closeModal('interview-modal')" style="background:rgba(255,255,255,.1);color:#fff">✕ 닫기</button>
+    <span style="flex:1;font-size:14px;font-weight:bold;color:#fff">🎤 음악 인터뷰</span>
+    <select class="letter-scene-select" id="interview-scene-select" onchange="onInterviewSceneChange()"></select>
+    <button onclick="generateInterviewQ()" style="background:#7C4DFF;color:#fff">✨ AI 질문 생성</button>
+    <button onclick="finalizeInterview()" style="background:#C9A84C;color:#1a1a1a">🖨️ 인쇄 / PDF 저장</button>
+  </div>
+  <div class="interview-paper" id="interview-paper">
+    <div class="interview-header">
+      <div class="interview-title">🎤 MUSIC INTERVIEW</div>
+      <input style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;text-align:center;width:100%;outline:none;margin-top:6px;font-family:inherit" id="interview-subtitle" placeholder="음악 감상 인터뷰 — 학교명 / 학년 반 이름">
+      <div class="interview-music" id="interview-music-box">
+        <img id="interview-img" class="interview-music-img" src="" alt="">
+        <div style="text-align:left">
+          <div style="font-size:11px;opacity:.7;margin-bottom:4px">🎵 오늘의 음악</div>
+          <input style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.3);color:#fff;font-size:14px;font-weight:bold;outline:none;font-family:inherit;width:200px" id="interview-song" placeholder="음악 제목 / 아티스트">
+        </div>
+      </div>
+    </div>
+    <div class="qa-section" id="qa-section"></div>
+    <div class="interview-signature">
+      <span>EAIM 음악 감상 인터뷰</span>
+      <input style="border:none;border-bottom:1px dashed #ccc;background:transparent;font-family:inherit;font-size:12px;outline:none;color:#555;text-align:right;width:150px" id="interview-date" placeholder="날짜">
+    </div>
+  </div>
+</div>
+
+<div id="report-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,15,.92);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:16px;max-width:600px;width:100%;padding:24px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-weight:700;font-size:1rem;color:var(--accent)">📋 세특 문구 (<span id="report-student-label"></span>)</div>
+      <button class="dash-logout" onclick="closeReportModal()">✕ 닫기</button>
+    </div>
+    <textarea id="report-textarea" class="dash-input" style="min-height:180px;line-height:1.8;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="copyReportText()">📋 복사하기</button>
+      <button class="btn btn-secondary" onclick="regenerateReport()">🔄 다시 생성</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--text2);margin-top:10px;line-height:1.6">💡 이 학생이 남긴 장면·신문·편지·인터뷰 기록을 모두 모아 AI가 초안을 만들어요. 내용을 검토하고 필요한 부분은 직접 고쳐서 사용하세요.</div>
+  </div>
+</div>
+
+<div id="student-view-modal" style="display:none;position:fixed;inset:0;background:rgba(10,10,15,.92);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid rgba(255,255,255,.1);border-radius:16px;max-width:640px;width:100%;padding:24px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-weight:700;font-size:1rem;color:var(--accent)">👁 활동 보기 (<span id="sv-student-label"></span>)</div>
+      <button class="dash-logout" onclick="closeStudentView()">✕ 닫기</button>
+    </div>
+    <div id="sv-body"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const STYLES = [
+  {id:'webtoon', emoji:'📱', label:'웹툰', sub:'만화체', prompt:'webtoon style, Korean manhwa, clean line art, vibrant colors'},
+  {id:'ghibli', emoji:'🌸', label:'지브리', sub:'애니메이션', prompt:'Studio Ghibli style, soft watercolor animation, warm lighting'},
+  {id:'vangogh', emoji:'🎨', label:'인상주의', sub:'고흐풍', prompt:'Van Gogh style, post-impressionist, thick brushstrokes, swirling colors'},
+  {id:'watercolor', emoji:'💧', label:'수채화', sub:'따뜻한', prompt:'delicate watercolor painting, soft edges, transparent layers'},
+  {id:'anime', emoji:'⭐', label:'애니메이션', sub:'일본풍', prompt:'anime style, detailed illustration, dramatic lighting'},
+  {id:'realistic', emoji:'📸', label:'실사영화', sub:'시네마틱', prompt:'cinematic photography, dramatic lighting, photorealistic'},
+  {id:'fantasy', emoji:'🔮', label:'판타지', sub:'동화풍', prompt:'fantasy illustration, magical atmosphere, ethereal glow'},
+  {id:'pixel', emoji:'👾', label:'픽셀아트', sub:'레트로', prompt:'pixel art style, retro game aesthetic, 16-bit'},
+  {id:'ink', emoji:'🖋', label:'수묵화', sub:'동양화풍', prompt:'ink wash painting, East Asian brush art, minimalist'},
+];
+
+const COLORS = [
+  {color:'#FF6B6B', label:'빨강', prompt:'red tones, passionate'},
+  {color:'#FF9F43', label:'주황', prompt:'orange warmth, energetic'},
+  {color:'#FFD700', label:'노랑', prompt:'golden yellow, bright'},
+  {color:'#6BCB77', label:'초록', prompt:'green nature, fresh'},
+  {color:'#4D96FF', label:'파랑', prompt:'blue calm, serene'},
+  {color:'#9B59B6', label:'보라', prompt:'purple mystical, deep'},
+  {color:'#FF6B9D', label:'분홍', prompt:'pink soft, romantic'},
+  {color:'#00E5FF', label:'하늘', prompt:'sky blue, airy'},
+  {color:'#A0522D', label:'갈색', prompt:'warm brown, earthy'},
+  {color:'#708090', label:'회색', prompt:'gray melancholic, muted'},
+  {color:'#1a1a2e', label:'검정', prompt:'dark night, mysterious'},
+  {color:'#FFFACD', label:'흰색', prompt:'white pure, minimal'},
+];
+
+const MOODS = [
+  {id:'happy', label:'🌟 신나는', prompt:'joyful, energetic, bright', emotionLabel:'설렘'},
+  {id:'sad', label:'🌧 슬픈', prompt:'melancholic, sorrowful, lonely', emotionLabel:'슬픔'},
+  {id:'calm', label:'🌊 평온한', prompt:'peaceful, tranquil, serene', emotionLabel:'고요함'},
+  {id:'exciting', label:'⚡ 웅장한', prompt:'epic, grand, powerful', emotionLabel:'성취'},
+  {id:'romantic', label:'💕 설레는', prompt:'romantic, dreamy, tender', emotionLabel:'설렘'},
+  {id:'dark', label:'🌑 어두운', prompt:'dark, mysterious, ominous', emotionLabel:'긴장'},
+  {id:'nostalgic', label:'🍂 그리운', prompt:'nostalgic, bittersweet, reminiscent', emotionLabel:'감동'},
+  {id:'hopeful', label:'🌅 희망찬', prompt:'hopeful, inspiring, uplifting', emotionLabel:'희망'},
+  {id:'lonely', label:'🌙 외로운', prompt:'lonely, isolated, contemplative', emotionLabel:'슬픔'},
+  {id:'tense', label:'🔥 긴장된', prompt:'tense, dramatic, intense', emotionLabel:'긴장'},
+];
+
+let selectedStyle = null;
+let selectedColors = [];
+let selectedMoods = [];
+let generatedImageUrl = null;
+let collectedScenes = [];
+let sketchDataUrl = null;
+let sceneVisualChoice = 'ai';
+let selectedSegments = null;
+let sourceMusicTitle = '';
+
+// ══════════════════════════
+// 🔥 Firebase — teachers/{uid}/... 구조로 교사별 데이터 완전 분리
+// ══════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
+  authDomain: "eaim-classroom.firebaseapp.com",
+  projectId: "eaim-classroom",
+  storageBucket: "eaim-classroom.firebasestorage.app",
+  messagingSenderId: "294479576192",
+  appId: "1:294479576192:web:c60e994e319dbd2f11ba65"
+};
+let db = null, auth = null, firebaseReady = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  auth = firebase.auth();
+  firebaseReady = true;
+} catch(e) { console.error('Firebase 초기화 실패', e); firebaseReady = false; }
+
+const teacherDocRef  = (uid) => db.collection('teachers').doc(uid);
+const settingsDocRef = (uid) => teacherDocRef(uid).collection('meta').doc('settings');
+const roomsColRef    = (uid) => teacherDocRef(uid).collection('rooms');
+const roomDocRef     = (uid, rId) => roomsColRef(uid).doc(rId);
+const scenesColRef   = (uid, rId) => roomDocRef(uid, rId).collection('scenes');
+const studentsColRef = (uid, rId) => roomDocRef(uid, rId).collection('students');
+const sharedRoomDocRef = (uid, rId, key) => roomDocRef(uid, rId).collection('shared').doc(key);
+const sharedGroupDocRef = (uid, rId, groupNum, key) => roomDocRef(uid, rId).collection('sharedGroups').doc('g' + groupNum + '_' + key);
+
+let authLoaded=false, currentUser=null, teacherUid=null, isStudentMode=false;
+let roomId=null, currentRoom={ name:'', classOn:false };
+let dashTab='settings';
+let settings = { apiKey:'', sheetUrl:'' };
+let dashRooms=[], dashStudents=[], expandedRoomId=null;
+let unsubSettings=null, unsubScenes=null, unsubStudents=null, unsubRooms=null, unsubRoom=null, unsubNewspaper=null, unsubLetter=null, unsubInterview=null;
+
+// GEMINI_KEY / SHEET_URL는 settings와 동기화되는 미러 변수 (기존 함수들이 그대로 참조)
+let GEMINI_KEY = '';
+let SHEET_URL = '';
+
+let STUDENT_NUMBER = '';
+let STUDENT_GROUP = '';
+let studentAutosaveEnabled = false;
+let studentDraftTimer = null;
+
+function studentDocRef(){
+  return studentsColRef(teacherUid, roomId).doc(STUDENT_NUMBER);
+}
+
+// ══════════════════════════
+// 화면 전환
+// ══════════════════════════
+function hideAllOverlays(){
+  ['loadingOverlay','noTeacherOverlay','teacherGoogleOverlay','studentLoginOverlay'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  document.getElementById('teacherDashboardPage').style.display='none';
+  document.getElementById('mainAppPage').style.display='none';
+}
+function renderNoTeacherLink(){ hideAllOverlays(); document.getElementById('noTeacherOverlay').style.display='flex'; }
+function renderTeacherGoogleGate(err){
+  hideAllOverlays();
+  document.getElementById('teacherGoogleOverlay').style.display='flex';
+  document.getElementById('googleLoginErr').textContent = err||'';
+}
+function renderStudentLoginGate(){
+  hideAllOverlays();
+  document.getElementById('studentLoginOverlay').style.display='flex';
+  document.getElementById('lockedNotice').style.display = currentRoom.classOn? 'none':'block';
+  document.getElementById('studentLoginBtn').disabled = !currentRoom.classOn;
+  const roomNameEl = document.getElementById('studentRoomName');
+  if(roomNameEl) roomNameEl.textContent = currentRoom.name ? ('🏫 '+currentRoom.name) : '';
+  const groupWrap = document.getElementById('studentGroupWrap');
+  if(groupWrap) groupWrap.style.display = currentRoom.shareScope === 'group' ? 'block' : 'none';
+}
+function enterMainApp(){
+  hideAllOverlays();
+  document.getElementById('mainAppPage').style.display='block';
+}
+function enterTeacherDashboard(){
+  hideAllOverlays();
+  document.getElementById('teacherDashboardPage').style.display='block';
+  subscribeRooms(teacherUid);
+  renderDashContent();
+}
+
+// ══════════════════════════
+// ✏️ 학생 안내 문구 (선생님이 설정 탭에서 바꿀 수 있음 — 비워두면 기본 문구)
+// ══════════════════════════
+const DEFAULT_HINTS = {
+  npHint: '💡 이렇게 써보세요: 이 장면에서 어떤 음악 요소(리듬·선율·음색 등)가 들렸는지, 왜 이 그림을 골랐는지, 이 장면이 나타내는 감정은 무엇인지',
+  npHeadline: '신문 헤드라인을 입력하세요',
+  npCaptionPlaceholder: '음악을 들으며 느낀 점을 자세히 적어보세요...',
+  letterHint: '💡 이렇게 써보세요: 이 음악을 처음 들었을 때 느낌 → 어떤 장면·색깔·감정이 떠올랐는지 → 이 음악을 받는 사람과 나누고 싶은 이유, 순서로 써보면 편해요',
+  interviewHint: '💡 구체적으로 써보세요: 어떤 부분(리듬·선율·가사·음색 등)이 그렇게 느껴졌는지, 예시를 들어서 답하면 더 좋아요',
+};
+function hintText(key){
+  const custom = (settings && settings.hints && settings.hints[key]);
+  // 선생님이 "-"만 적으면 아예 안 보이게(빈 문구)
+  if (custom === '-') return '';
+  return (custom && custom.trim()) ? custom : DEFAULT_HINTS[key];
+}
+function escHtml(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let hintSaveTimer=null;
+function saveHintDash(key, v){
+  clearTimeout(hintSaveTimer);
+  hintSaveTimer = setTimeout(()=>{
+    const hints = {...(settings.hints||{}), [key]: v};
+    setSettings(teacherUid, {hints});
+  }, 600);
+}
+// 긴 글도 인쇄/PDF에서 잘리지 않도록 textarea 높이를 내용에 맞게 자동 확장
+function autoGrowTextarea(ta){
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = (ta.scrollHeight + 4) + 'px';
+}
+function autoGrowAll(containerId){
+  const box = document.getElementById(containerId); if (!box) return;
+  box.querySelectorAll('textarea').forEach(autoGrowTextarea);
+}
+document.addEventListener('input', e => {
+  if (e.target && e.target.tagName === 'TEXTAREA' && e.target.closest('#np-paper,#letter-paper,#interview-paper')) autoGrowTextarea(e.target);
+});
+
+// ══════════════════════════
+// 설정 (apiKey / classOn / sheetUrl) — 교사 uid 스코프
+// ══════════════════════════
+function subscribeSettings(uid, cb){
+  if(unsubSettings) unsubSettings();
+  unsubSettings = settingsDocRef(uid).onSnapshot(snap=>{
+    settings = snap.exists ? snap.data() : {apiKey:'', sheetUrl:''};
+    GEMINI_KEY = settings.apiKey || '';
+    SHEET_URL = settings.sheetUrl || '';
+    cb && cb();
+  }, err=>{ console.warn('설정 동기화 오류', err); cb && cb(); });
+}
+function setSettings(uid, fields){
+  settings = {...settings, ...fields};
+  GEMINI_KEY = settings.apiKey || '';
+  SHEET_URL = settings.sheetUrl || '';
+  settingsDocRef(uid).set(fields,{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+
+// ══════════════════════════
+// 🏫 반(room) 관리
+// ══════════════════════════
+function subscribeRooms(uid){
+  if(unsubRooms) unsubRooms();
+  unsubRooms = roomsColRef(uid).orderBy('createdAt','asc').onSnapshot(snap=>{
+    dashRooms = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(dashTab==='rooms') renderDashContent();
+  }, err=>console.warn('반 목록 동기화 오류', err));
+}
+function subscribeRoom(uid, rId, cb){
+  if(unsubRoom) unsubRoom();
+  unsubRoom = roomDocRef(uid, rId).onSnapshot(snap=>{
+    currentRoom = snap.exists ? snap.data() : { name:'', classOn:false };
+    cb && cb();
+  }, err=>{ console.warn('반 정보 동기화 오류', err); cb && cb(); });
+}
+async function addRoomUI(){
+  const input = document.getElementById('newRoomName');
+  const name = input.value.trim();
+  if(!name){ alert('반 이름을 입력하세요!'); return; }
+  const groupCountInput = document.getElementById('newRoomGroupCount');
+  let groupCount = parseInt(groupCountInput?.value, 10);
+  if(!groupCount || groupCount < 1) groupCount = 1;
+  if(groupCount > 30) groupCount = 30;
+  try{
+    if(groupCount === 1){
+      await roomsColRef(teacherUid).add({ name, classOn:false, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    } else {
+      for(let i=1;i<=groupCount;i++){
+        await roomsColRef(teacherUid).add({
+          name: `${name} ${i}모둠`,
+          classOn:false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    }
+    input.value='';
+    if(groupCountInput) groupCountInput.value='1';
+    showToast(groupCount>1 ? `✅ ${groupCount}개 모둠 반이 만들어졌어요!` : '✅ 반이 만들어졌어요!');
+  }catch(e){ showToast('❌ 저장 실패: '+e.message); }
+}
+async function deleteRoomUI(rId){
+  if(!confirm('이 반을 삭제할까요? 이 반에 모인 장면과 학생 기록도 함께 삭제돼요.')) return;
+  try{
+    const scenesSnap = await scenesColRef(teacherUid, rId).get();
+    const studentsSnap = await studentsColRef(teacherUid, rId).get();
+    const batch = db.batch();
+    scenesSnap.docs.forEach(d=>batch.delete(d.ref));
+    studentsSnap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(roomDocRef(teacherUid, rId));
+    await batch.commit();
+    if(expandedRoomId===rId) expandedRoomId=null;
+  }catch(e){ showToast('❌ 삭제 실패: '+e.message); }
+}
+// 🗑️ 잘못 들어온 학생 기록 하나만 삭제 (그 학생이 만든 장면도 함께)
+async function deleteStudentUI(rId, encodedId){
+  const studentId = decodeURIComponent(encodedId);
+  try{
+    const scenesSnap = await scenesColRef(teacherUid, rId).where('studentNumber','==',studentId).get();
+    const n = scenesSnap.size;
+    const msg = `「${studentId}번」 기록을 삭제할까요?\n\n` +
+      (n ? `이 학생이 만든 장면 ${n}개도 함께 삭제돼요.\n` : '') +
+      `삭제하면 되돌릴 수 없어요.`;
+    if(!confirm(msg)) return;
+    const batch = db.batch();
+    scenesSnap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(studentsColRef(teacherUid, rId).doc(studentId));
+    await batch.commit();
+    showToast(`🗑️ ${studentId}번 기록을 삭제했어요`);
+  }catch(e){ showToast('❌ 삭제 실패: '+e.message); }
+}
+function toggleRoomClass(rId, current){
+  roomDocRef(teacherUid, rId).set({classOn: !current},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+function setRoomShareScope(rId, scope){
+  roomDocRef(teacherUid, rId).set({shareScope: scope},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+function setShareLetterInterview(rId, checked){
+  roomDocRef(teacherUid, rId).set({shareLetterInterview: checked},{merge:true}).catch(e=>showToast('❌ 저장 실패: '+e.message));
+}
+function toggleRoomExpand(rId){
+  expandedRoomId = expandedRoomId===rId ? null : rId;
+  if(expandedRoomId){ subscribeStudentsForRoom(teacherUid, expandedRoomId); }
+  else if(unsubStudents){ unsubStudents(); unsubStudents=null; }
+  renderDashContent();
+}
+function subscribeStudentsForRoom(uid, rId){
+  if(unsubStudents) unsubStudents();
+  unsubStudents = studentsColRef(uid, rId).onSnapshot(snap=>{
+    dashStudents = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(dashTab==='rooms' && expandedRoomId===rId) renderDashContent();
+  }, err=>console.warn('학생현황 동기화 오류', err));
+}
+function copyRoomInvite(rId){
+  const url = `${location.origin}${location.pathname}?role=student&teacher=${teacherUid}&room=${rId}`;
+  navigator.clipboard.writeText(url).then(()=>showToast('✅ 초대 링크 복사됨!'));
+}
+function generateRoomQR(rId){
+  const url = `${location.origin}${location.pathname}?role=student&teacher=${teacherUid}&room=${rId}`;
+  const el=document.getElementById('roomQr-'+rId); if(!el) return;
+  el.innerHTML='';
+  if(typeof QRCode==='undefined'){ el.textContent='QR 로딩 실패'; return; }
+  new QRCode(el, { text:url, width:120, height:120, colorDark:'#0a0a0f', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+}
+
+// ══════════════════════════
+// 구글 로그인 (교사)
+// ══════════════════════════
+function googleLogin(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e=>{
+    document.getElementById('googleLoginErr').textContent = '로그인 실패: '+e.message;
+  });
+}
+function teacherLogout(){
+  if(unsubSettings){unsubSettings();unsubSettings=null;}
+  if(unsubRooms){unsubRooms();unsubRooms=null;}
+  auth.signOut();
+  teacherUid=null;
+  renderTeacherGoogleGate();
+}
+function studentLogout(){
+  if(unsubRoom){unsubRoom();unsubRoom=null;}
+  if(unsubScenes){unsubScenes();unsubScenes=null;}
+  STUDENT_NUMBER=''; studentAutosaveEnabled=false;
+  renderStudentLoginGate();
+}
+
+// ══════════════════════════
+// 학생 로그인 (번호만 입력)
+// ══════════════════════════
+async function doStudentLogin(){
+  const num = document.getElementById('studentNumberInput').value.trim();
+  if(!currentRoom.classOn){ showToast('⚠️ 선생님이 아직 수업을 열지 않았어요'); return; }
+  if(!num){ showToast('⚠️ 번호를 입력해주세요'); return; }
+  if(currentRoom.shareScope === 'group'){
+    const g = document.getElementById('studentGroupInput')?.value.trim();
+    if(!g){ showToast('⚠️ 모둠 번호를 입력해주세요'); return; }
+    STUDENT_GROUP = g;
+  } else {
+    STUDENT_GROUP = '';
+  }
+  STUDENT_NUMBER = num;
+  enterMainApp();
+
+  try {
+    const doc = await studentDocRef().get();
+    if (doc.exists) {
+      const data = doc.data();
+      applyDraftData(data.draft);
+      pendingNewspaperData = data.newspaper || null;
+      pendingLetterData = data.letter || null;
+      pendingInterviewData = data.interview || null;
+      showToast(`✅ ${num}번의 이전 작업을 불러왔어요!`);
+    } else {
+      showToast(`📝 ${num}번으로 새로 시작해요. 자동저장됩니다`);
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('⚠️ 이전 작업을 불러오지 못했어요, 새로 시작할게요');
+  }
+  studentAutosaveEnabled = true;
+  if (firebaseReady && teacherUid && roomId) {
+    studentDocRef().set({ groupNumber: STUDENT_GROUP || null, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true}).catch(()=>{});
+  }
+  subscribeScenes();
+}
+
+// ══════════════════════════
+// 교사 대시보드
+// ══════════════════════════
+function setDashTab(tab){ dashTab=tab;
+  document.getElementById('dashTabSettings').classList.toggle('on', tab==='settings');
+  document.getElementById('dashTabRooms').classList.toggle('on', tab==='rooms');
+  renderDashContent();
+}
+function renderDashContent(){
+  const el=document.getElementById('dashContent'); if(!el) return;
+  const badge = document.getElementById('roomCountBadge');
+  if(badge){ badge.style.display = dashRooms.length? 'inline-block':'none'; badge.textContent = dashRooms.length; }
+
+  if(dashTab==='settings'){
+    el.innerHTML = `
+    <div class="teacher-chip">
+      <img class="teacher-avatar" src="${currentUser?.photoURL||''}" onerror="this.style.display='none'">
+      <div style="font-size:.8rem;color:var(--text)">${currentUser?.displayName||''} · ${currentUser?.email||''}</div>
+    </div>
+    <div class="dash-card"><div class="dash-card-title">🔑 Gemini API 키</div>
+      <input class="dash-input" type="password" id="apiKeyInput" value="${settings.apiKey||''}" placeholder="AIzaSy... (학생에게 노출되지 않아요)" oninput="saveApiKeyDash(this.value)">
+      ${settings.apiKey?`<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:#4CAF82;margin-top:6px"><span class="api-dot dot-on"></span>API 키 저장됨</div>`:''}
+      <div style="font-size:.7rem;color:var(--text2);margin-top:8px">모든 반이 이 키를 함께 써요 (반마다 따로 입력할 필요 없어요)</div>
+    </div>
+    <div class="dash-card"><div class="dash-card-title">📊 구글시트 연동 (선택)</div>
+      <input class="dash-input" type="text" id="sheetUrlInput" value="${settings.sheetUrl||''}" placeholder="https://script.google.com/macros/s/.../exec" oninput="saveSheetUrlDash(this.value)">
+    </div>
+    <div class="dash-card"><div class="dash-card-title">✏️ 학생 안내 문구 바꾸기 (선택)</div>
+      <div style="font-size:.7rem;color:var(--text2);margin-bottom:10px;line-height:1.6">학생 화면의 노란 도움말 상자와 안내 문구를 선생님 수업에 맞게 바꿀 수 있어요. 비워두면 기본 문구가 나오고, <b>-</b> 하나만 적으면 아예 숨겨져요. 선생님 계정의 모든 반에 함께 적용돼요.</div>
+      ${[
+        ['npHint','📰 음악신문 · 기사 도움말(노란 박스)'],
+        ['npHeadline','📰 음악신문 · 헤드라인 칸 안내'],
+        ['npCaptionPlaceholder','📰 음악신문 · 기사 입력칸 안내'],
+        ['letterHint','💌 음악편지 · 도움말(노란 박스)'],
+        ['interviewHint','🎤 음악인터뷰 · 답변 도움말(노란 박스)'],
+      ].map(([k,label])=>`
+      <div style="font-size:.72rem;color:var(--text);margin:8px 0 4px">${label}</div>
+      <textarea class="dash-input" style="min-height:52px;line-height:1.6;resize:vertical" placeholder="${escHtml(DEFAULT_HINTS[k])}" oninput="saveHintDash('${k}', this.value)">${escHtml(settings.hints?.[k]||'')}</textarea>`).join('')}
+    </div>
+    <div style="background:rgba(124,77,255,.08);border:1px solid rgba(124,77,255,.2);border-radius:16px;padding:16px;font-size:.78rem;color:var(--text2);line-height:1.9">
+      💡 <strong style="color:var(--text)">사용 순서</strong><br>1. API 키 입력 → 2. "🏫 반 관리" 탭에서 반 만들기 → 3. 반마다 수업 ON + 초대 링크 공유</div>`;
+  } else {
+    const newRoomForm = `
+    <div class="dash-card">
+      <div class="dash-card-title">➕ 새 반 만들기</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input class="dash-input" id="newRoomName" placeholder="예: 1반, 3학년 2반, 체육고 3학년" style="flex:1">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="dash-input" id="newRoomGroupCount" type="number" min="1" max="30" value="1" placeholder="모둠 수" style="width:90px;flex-shrink:0">
+        <span style="font-size:.72rem;color:var(--text2);flex:1;min-width:160px">모둠 수를 2 이상 입력하면 "이름 1모둠, 2모둠..."으로 여러 반이 한 번에 만들어져요</span>
+        <button class="btn btn-primary" onclick="addRoomUI()" style="flex-shrink:0">추가</button>
+      </div>
+    </div>`;
+
+    if(dashRooms.length===0){
+      el.innerHTML = newRoomForm + '<div class="dash-card" style="text-align:center;padding:40px 20px;color:var(--text2)">아직 만든 반이 없어요 🏫</div>';
+      return;
+    }
+
+    const roomCards = dashRooms.map(r=>{
+      const inviteUrl = `${location.origin}${location.pathname}?role=student&teacher=${teacherUid}&room=${r.id}`;
+      const isOpen = expandedRoomId === r.id;
+      return `
+      <div class="dash-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div style="font-weight:700;font-size:1rem">🏫 ${r.name}</div>
+          <div class="toggle-track ${r.classOn?'on':''}" onclick="toggleRoomClass('${r.id}', ${!!r.classOn})"><div class="toggle-thumb"></div></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:4px">${r.classOn?'수업 진행 중 · 학생 접속 가능':'수업 종료 · 학생 접속 차단'}</div>
+        <div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)">
+          <button class="btn btn-secondary" style="flex:1;padding:8px 4px;font-size:.7rem;${(!r.shareScope||r.shareScope==='room')?'border-color:var(--accent);color:var(--accent)':''}" onclick="setRoomShareScope('${r.id}','room')">👥 반 전체</button>
+          <button class="btn btn-secondary" style="flex:1;padding:8px 4px;font-size:.7rem;${r.shareScope==='group'?'border-color:var(--accent);color:var(--accent)':''}" onclick="setRoomShareScope('${r.id}','group')">👪 모둠별</button>
+          <button class="btn btn-secondary" style="flex:1;padding:8px 4px;font-size:.7rem;${r.shareScope==='individual'?'border-color:var(--accent);color:var(--accent)':''}" onclick="setRoomShareScope('${r.id}','individual')">👤 개인별</button>
+        </div>
+        <div style="font-size:.68rem;color:var(--text2);margin-top:6px;line-height:1.5">${
+          r.shareScope==='group' ? '접속할 때 모둠 번호를 입력해요. 같은 모둠끼리만 서로 보여요.' :
+          r.shareScope==='individual' ? '서로 안 보이고 각자 자기 것만 보여요.' :
+          '반 전체가 서로 다 보여요.'
+        }</div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:.7rem;color:var(--text2);cursor:pointer">
+          <input type="checkbox" ${r.shareLetterInterview?'checked':''} onchange="setShareLetterInterview('${r.id}', this.checked)">
+          💌🎤 음악편지·음악인터뷰도 위 설정과 함께 공유 (기본: 항상 개인별 — 평가에 안전)
+        </label>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-secondary" style="flex:1;min-width:120px" onclick="toggleRoomExpand('${r.id}')">${isOpen?'▲ 접기':'👥 학생현황 · 초대 QR'}</button>
+          <button class="btn btn-secondary" style="background:rgba(255,107,157,.12);color:var(--accent2)" onclick="deleteRoomUI('${r.id}')">🗑️ 삭제</button>
+        </div>
+        ${isOpen ? `
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)">
+          <div style="font-size:.7rem;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">초대 링크</div>
+          <div class="invite-box">${inviteUrl}</div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-secondary" onclick="copyRoomInvite('${r.id}')">🔗 링크 복사</button>
+            <div><div class="invite-qr-box" id="roomQr-${r.id}"></div></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin:16px 0 6px">참여 학생 (${dashStudents.length}명)</div>
+          ${dashStudents.length===0 ? '<div style="font-size:.8rem;color:var(--text2)">아직 참여한 학생이 없어요</div>' :
+            dashStudents.slice().sort((a,b)=>(b.updatedAt?.seconds||0)-(a.updatedAt?.seconds||0)).map(s=>`
+              <div class="student-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                <div style="min-width:0">
+                  <strong>${s.id}번</strong>
+                  <span class="s-meta">${s.draft?.sceneTitle? '장르: '+s.draft.sceneTitle : '작업 중'} · ${s.updatedAt? new Date(s.updatedAt.seconds*1000).toLocaleString('ko-KR') : ''}</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0">
+                  <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="openStudentView('${r.id}','${s.id}')">👁 보기</button>
+                  <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="openStudentReport('${r.id}','${s.id}')">📋 세특</button>
+                  <button class="btn btn-secondary" title="잘못 들어온 기록 삭제" style="padding:5px 10px;font-size:11px;background:rgba(255,107,157,.12);color:var(--accent2)" onclick="deleteStudentUI('${r.id}','${encodeURIComponent(s.id).replace(/'/g,'%27')}')">🗑️</button>
+                </div>
+              </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+
+    el.innerHTML = newRoomForm + roomCards;
+    dashRooms.forEach(r=>{ if(expandedRoomId===r.id) generateRoomQR(r.id); });
+  }
+}
+function saveApiKeyDash(v){ setSettings(teacherUid, {apiKey: v}); }
+function saveSheetUrlDash(v){ setSettings(teacherUid, {sheetUrl: v}); }
+
+// ══════════════════════════
+// 📋 학생별 종합 세특 문구 생성 (교사 대시보드)
+// ══════════════════════════
+let reportContext = { studentId:null, roomId:null };
+
+function closeReportModal(){ document.getElementById('report-modal').style.display='none'; }
+
+async function copyReportText(){
+  const text = document.getElementById('report-textarea').value.trim();
+  if(!text){ showToast('⚠️ 먼저 생성해주세요'); return; }
+  navigator.clipboard.writeText(text)
+    .then(()=>showToast('📋 복사했어요!'))
+    .catch(()=>showToast('⚠️ 자동 복사 실패 — 직접 선택해서 복사해주세요'));
+}
+
+// ══════════════════════════
+// 👁 학생 활동 보기 (장면·신문·편지·인터뷰 + 원격 슬라이드쇼 링크)
+// ══════════════════════════
+async function fetchSharedContent(kind, rId, room, studentData){
+  const scope = kind === 'newspaper'
+    ? (room.shareScope || 'room')
+    : (room.shareLetterInterview ? (room.shareScope || 'room') : 'individual');
+  if (scope === 'individual') return studentData?.[kind] || null;
+  try {
+    if (scope === 'group') {
+      const g = studentData?.groupNumber;
+      if (!g) return null;
+      const snap = await sharedGroupDocRef(teacherUid, rId, g, kind).get();
+      return snap.exists ? snap.data() : null;
+    }
+    const snap = await sharedRoomDocRef(teacherUid, rId, kind).get();
+    return snap.exists ? snap.data() : null;
+  } catch(e) { console.warn('공유 콘텐츠 조회 실패', kind, e); return null; }
+}
+
+async function openStudentView(rId, studentId){
+  document.getElementById('sv-student-label').textContent = studentId+'번';
+  document.getElementById('sv-body').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text2)">불러오는 중...</div>';
+  document.getElementById('student-view-modal').style.display='flex';
+  try {
+    const room = dashRooms.find(r=>r.id===rId) || {};
+    const studentSnap = await studentsColRef(teacherUid, rId).doc(studentId).get();
+    const studentData = studentSnap.exists ? studentSnap.data() : {};
+    const scenesSnap = await scenesColRef(teacherUid, rId).get();
+    const allScenes = scenesSnap.docs.map(d=>({ id:d.id, ...d.data() }));
+    const scenes = allScenes
+      .filter(sc=>sc.studentNumber===studentId)
+      .sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+    // 신문 기사 i번 ↔ 장면 i번이 짝이므로, 학생 화면(subscribeScenes)과 똑같은 공유 범위·정렬로 장면을 모음
+    const npScope = room.shareScope || 'room';
+    let npScenes = allScenes;
+    if (npScope === 'individual') npScenes = allScenes.filter(sc=>sc.studentNumber===studentId);
+    else if (npScope === 'group') npScenes = allScenes.filter(sc=>sc.groupNumber===studentData.groupNumber);
+    npScenes = npScenes.slice().sort((a,b)=>{
+      const oa=a.order, ob=b.order;
+      if (oa!=null && ob!=null) return oa-ob;
+      if (oa!=null) return -1;
+      if (ob!=null) return 1;
+      return (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0);
+    });
+    const [newspaper, letter, interview] = await Promise.all([
+      fetchSharedContent('newspaper', rId, room, studentData),
+      fetchSharedContent('letter', rId, room, studentData),
+      fetchSharedContent('interview', rId, room, studentData),
+    ]);
+    dashNpPreview = { scenes: npScenes, newspaper, label: (room.name||'') + ' ' + studentId + '번' };
+    renderStudentView({ scenes, npScenes, newspaper, letter, interview, room, studentData, rId, studentId });
+  } catch(e) {
+    console.error(e);
+    document.getElementById('sv-body').innerHTML = '<div style="padding:30px;text-align:center;color:var(--accent2)">불러오기 실패 — 다시 시도해주세요</div>';
+  }
+}
+function closeStudentView(){ document.getElementById('student-view-modal').style.display='none'; }
+
+function renderStudentView({ scenes, npScenes = [], newspaper, letter, interview, room, studentData, rId, studentId }){
+  const scope = room.shareScope || 'room';
+  let slideshowUrl = `slideshow.html?mode=teacher&teacher=${teacherUid}&room=${rId}&v=${Date.now()}`;
+  let scopeNote = '';
+  if (scope === 'individual') { slideshowUrl += `&student=${studentId}`; }
+  else if (scope === 'group') {
+    const g = studentData.groupNumber;
+    if (g) { slideshowUrl += `&group=${g}`; scopeNote = `💡 이 학생은 ${g}모둠 — 모둠 전체가 공유하는 내용이에요.`; }
+    else { scopeNote = '⚠️ 이 학생의 모둠 번호를 아직 확인할 수 없어요 (접속 기록 없음)'; }
+  } else {
+    scopeNote = '💡 반 전체가 공유하는 내용이에요.';
+  }
+
+  const sceneThumbs = scenes.length ? scenes.map(s=>`
+    <div style="display:flex;gap:10px;align-items:center;background:var(--surface2);border-radius:10px;padding:8px 12px;margin-bottom:6px">
+      <img src="${s.imageUrl||''}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#000">
+      <div style="font-size:.8rem;min-width:0">
+        <b>${s.title||''}</b>
+        <div style="color:var(--text2);font-size:.72rem">${[s.emotion, s.musicMood].filter(Boolean).join(' · ')}</div>
+      </div>
+    </div>`).join('') : '<div style="color:var(--text2);font-size:.8rem">아직 모은 장면이 없어요</div>';
+
+  const npArticles = (newspaper?.articles||[]).map((a,i)=>`
+    <div style="display:flex;gap:10px;margin-bottom:10px;font-size:.82rem">
+      ${npScenes[i]?.imageUrl ? `<img src="${npScenes[i].imageUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;background:#000">` : ''}
+      <div style="min-width:0;flex:1"><b>${a.title||''}</b><div style="color:var(--text2);white-space:pre-wrap;margin-top:2px">${a.caption||''}</div></div>
+    </div>
+  `).join('');
+  const npBlock = newspaper ? `
+    <div class="dash-card-title" style="margin-top:18px">📰 음악신문</div>
+    <div style="font-weight:700;margin-bottom:8px">${newspaper.headline||newspaper.title||''}</div>
+    ${npArticles || '<div style="color:var(--text2);font-size:.8rem">작성된 기사가 없어요</div>'}
+    <button class="btn btn-primary" style="margin-top:6px;background:#C9A84C;color:#1a1a1a" onclick="openNewspaperPreview()">📰 신문 완성본으로 보기 · 인쇄</button>
+  ` : `<div class="dash-card-title" style="margin-top:18px">📰 음악신문</div><div style="color:var(--text2);font-size:.8rem">아직 작성된 내용이 없어요</div>`;
+
+  const letterBlock = (letter && letter.body) ? `
+    <div class="dash-card-title" style="margin-top:18px">💌 음악편지</div>
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">${letter.to?('To. '+letter.to):''}</div>
+    <div style="font-size:.85rem;white-space:pre-wrap;line-height:1.7">${letter.body}</div>
+    <div style="text-align:right;font-size:.76rem;color:var(--text2);margin-top:6px">${letter.from||''}</div>
+  ` : `<div class="dash-card-title" style="margin-top:18px">💌 음악편지</div><div style="color:var(--text2);font-size:.8rem">아직 작성된 내용이 없어요</div>`;
+
+  const qaHtml = (interview?.questions||[]).map((q,i)=>`
+    <div style="margin-bottom:10px;font-size:.82rem"><b>Q${i+1}. ${q}</b><div style="color:var(--text2);margin-top:2px;white-space:pre-wrap">${interview.answers?.[i] || '(응답 없음)'}</div></div>
+  `).join('');
+  const interviewBlock = (interview && interview.questions?.length) ? `
+    <div class="dash-card-title" style="margin-top:18px">🎤 음악인터뷰</div>
+    ${qaHtml}
+  ` : `<div class="dash-card-title" style="margin-top:18px">🎤 음악인터뷰</div><div style="color:var(--text2);font-size:.8rem">아직 작성된 내용이 없어요</div>`;
+
+  document.getElementById('sv-body').innerHTML = `
+    ${scopeNote ? `<div style="font-size:.72rem;color:var(--text2);margin-bottom:10px">${scopeNote}</div>` : ''}
+    <div class="dash-card-title">🎬 모아진 장면 (${scenes.length}개)</div>
+    ${sceneThumbs}
+    <a href="${slideshowUrl}" target="_blank" class="btn btn-primary" style="display:inline-block;margin-top:10px;text-decoration:none;background:linear-gradient(135deg,#4CAF82,#2E7D5A)">🎬 슬라이드쇼로 열기 (새 탭)</a>
+    ${npBlock}
+    ${letterBlock}
+    ${interviewBlock}
+  `;
+}
+
+async function openStudentReport(rId, studentId){
+  if(!GEMINI_KEY){ showToast('⚠️ 먼저 설정 탭에서 API 키를 입력해주세요'); return; }
+  reportContext = { studentId, roomId: rId };
+  document.getElementById('report-student-label').textContent = studentId+'번';
+  document.getElementById('report-textarea').value = '생성 중...';
+  document.getElementById('report-modal').style.display='flex';
+  await regenerateReport();
+}
+
+async function regenerateReport(){
+  const { studentId, roomId } = reportContext;
+  if(!studentId || !roomId) return;
+  const ta = document.getElementById('report-textarea');
+  ta.value = '생성 중...';
+  try{
+    const [studentDoc, scenesSnap] = await Promise.all([
+      studentsColRef(teacherUid, roomId).doc(studentId).get(),
+      scenesColRef(teacherUid, roomId).get()
+    ]);
+    const studentData = studentDoc.exists ? studentDoc.data() : {};
+    const scenes = scenesSnap.docs.map(d=>d.data()).filter(sc=>sc.studentNumber===studentId);
+
+    const sceneLines = scenes.map((sc,i)=>
+      [`장면${i+1} - 제목:${sc.title||''}`, sc.description&&`설명:${sc.description}`, sc.analysis&&`분석:${sc.analysis}`, sc.emotion&&`감정:${sc.emotion}`, sc.musicMood&&`분위기:${sc.musicMood}`].filter(Boolean).join(', ')
+    ).join('\n');
+
+    const letterBody = studentData.letter?.body || '';
+    const interviewQA = (studentData.interview?.questions||[])
+      .map((q,i)=>`${q} → ${studentData.interview.answers?.[i]||''}`)
+      .filter(line=>!line.endsWith('→ ')).join('\n');
+    const newspaperCaptions = (studentData.newspaper?.articles||[]).map(a=>a.caption).filter(Boolean).join(' / ');
+
+    const fullContext = [
+      sceneLines && `[음악 감상·창작 장면]\n${sceneLines}`,
+      newspaperCaptions && `[음악 신문 작성 내용]\n${newspaperCaptions}`,
+      letterBody && `[음악 편지 내용]\n${letterBody}`,
+      interviewQA && `[음악 인터뷰 응답]\n${interviewQA}`,
+    ].filter(Boolean).join('\n\n');
+
+    if(!fullContext){ ta.value = '아직 이 학생의 활동 기록이 없어요.'; return; }
+
+    const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{ parts:[{ text:
+          `다음은 한 중학생이 음악 감상·창작 수업(뮤직미디어레터)에서 수행한 활동 기록입니다. 이를 바탕으로 학교생활기록부 교과세부능력특기사항(세특)에 바로 쓸 수 있는 문단을 작성해주세요.\n` +
+          `- 250~350자 내외, 3~5문장으로 작성하세요.\n` +
+          `- "~함", "~하였음", "~을 보임" 등 세특 특유의 명사형·종결형 문체를 사용하세요.\n` +
+          `- 학생이 실제로 수행한 활동(감상, 분석, 창작, 표현)과 그 안에서 드러난 음악적 이해·감수성·태도를 구체적으로 서술하세요.\n` +
+          `- 과장된 수식어는 피하고, 기록된 내용에 근거해서만 작성하세요.\n` +
+          `- 문단만 출력하고 다른 설명은 붙이지 마세요.\n\n${fullContext}`
+        }] }],
+        generationConfig:{ temperature:0.5 }
+      })
+    });
+    const data = await res.json();
+    const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+    ta.value = text || '생성 실패 — 다시 시도해주세요.';
+  }catch(e){
+    console.error(e);
+    ta.value = '생성 실패 — 다시 시도해주세요.';
+  }
+}
+
+// ══════════════════════════
+// 👤 학생 진행상황 자동저장/이어하기
+// ══════════════════════════
+function collectDraftData(){
+  return {
+    musicDesc: document.getElementById('music-desc')?.value || '',
+    selectedSegments,
+    obs: {
+      dynamics: document.getElementById('obs-dynamics')?.value || '',
+      melody: document.getElementById('obs-melody')?.value || '',
+      form: document.getElementById('obs-form')?.value || '',
+      rhythm: document.getElementById('obs-rhythm')?.value || '',
+      timbre: document.getElementById('obs-timbre')?.value || '',
+    },
+    selectedStyle,
+    selectedColors,
+    selectedMoods,
+    promptKr: document.getElementById('prompt-kr')?.value || '',
+    translated: document.getElementById('translated-box')?.textContent || '',
+    sceneTitle: document.getElementById('scene-title')?.value || '',
+    sceneCharacters: document.getElementById('scene-characters')?.value || '',
+    sunoPrompt: document.getElementById('suno-prompt')?.value || '',
+    sketchDataUrl: sketchDataUrl || null,
+    sceneVisualChoice,
+  };
+}
+
+function applyDraftData(d){
+  if (!d) return;
+  if (d.musicDesc !== undefined) { document.getElementById('music-desc').value = d.musicDesc; updateDescCount(); }
+  if (d.selectedSegments) selectSegments(d.selectedSegments);
+  if (d.obs) {
+    Object.keys(d.obs).forEach(k => { const el = document.getElementById('obs-'+k); if (el) el.value = d.obs[k]; });
+  }
+  if (d.selectedStyle) selectStyle(d.selectedStyle);
+  if (Array.isArray(d.selectedColors)) {
+    selectedColors = [];
+    document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
+    d.selectedColors.forEach(i => toggleColor(i));
+  }
+  if (Array.isArray(d.selectedMoods)) {
+    selectedMoods = [];
+    document.querySelectorAll('.mood-tag').forEach(c => c.classList.remove('selected'));
+    d.selectedMoods.forEach(id => toggleMood(id));
+  }
+  if (d.promptKr !== undefined) document.getElementById('prompt-kr').value = d.promptKr;
+  if (d.translated) {
+    const box = document.getElementById('translated-box');
+    box.textContent = d.translated; box.style.display = 'block';
+  }
+  if (d.sceneTitle !== undefined) document.getElementById('scene-title').value = d.sceneTitle;
+  if (d.sceneCharacters !== undefined) document.getElementById('scene-characters').value = d.sceneCharacters;
+  if (d.sunoPrompt !== undefined) { document.getElementById('suno-prompt').value = d.sunoPrompt; updateSunoCount(); }
+  if (d.sceneVisualChoice) chooseSceneVisual(d.sceneVisualChoice);
+  if (d.sketchDataUrl) {
+    sketchDataUrl = d.sketchDataUrl;
+    const img = new Image();
+    img.onload = () => { sketchCtx.clearRect(0,0,960,540); sketchCtx.drawImage(img,0,0,960,540); };
+    img.src = d.sketchDataUrl;
+  }
+}
+
+function setStudentSaveStatus(msg){ /* 상태 표시 UI는 대시보드로 이전됨 — 콘솔에만 남김 */ console.log('[autosave]', msg); }
+
+function scheduleDraftSave(){
+  if (!studentAutosaveEnabled || !firebaseReady || !teacherUid || !roomId || !STUDENT_NUMBER) return;
+  clearTimeout(studentDraftTimer);
+  studentDraftTimer = setTimeout(async () => {
+    try {
+      await studentDocRef().set({ draft: collectDraftData(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+    } catch(e) { console.error(e); }
+  }, 1200);
+}
+
+async function saveModalData(key, data){
+  if (!studentAutosaveEnabled || !firebaseReady || !teacherUid || !roomId || !STUDENT_NUMBER) return;
+  try {
+    await studentDocRef().set({ [key]: data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+  } catch(e) { console.warn('모달 저장 실패', e); }
+}
+
+let pendingNewspaperData = null, pendingLetterData = null, pendingInterviewData = null;
+
+// ══════════════════════════
+// 📊 구글시트 연동
+// ══════════════════════════
+function logToSheet(activity, title, detail, note){
+  const url = SHEET_URL || '';
+  if(!url) return;
+  try{
+    fetch(url, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        name: document.getElementById('scene-characters')?.value.trim() || (STUDENT_NUMBER? STUDENT_NUMBER+'번' : ''),
+        group: currentRoom?.name || '', app: '뮤직미디어레터', activity, title: title || '', detail: detail || '', note: note || ''
+      })
+    });
+  }catch(e){ console.warn('시트 기록 실패', e); }
+}
+
+// ══════════════════════════
+// 📋 AI 세특(교과세부능력특기사항) 문구 생성
+// ══════════════════════════
+async function generateActivityNoteAI(context){
+  if(!GEMINI_KEY || !context) return '';
+  try{
+    const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text:
+        `다음은 중학생의 음악 감상·창작 활동 기록입니다. 이 내용을 바탕으로 학교생활기록부 교과세부능력특기사항(세특)에 쓸 수 있는 관찰 기반 문장을 정확히 1문장, 70자 이내로 작성해주세요.\n` +
+        `- 객관적 관찰 사실 위주로 서술하고, "~함", "~을 보임" 같은 세특 특유의 명사형·종결형 문체를 사용하세요.\n` +
+        `- 과장하거나 평가적 수식어(매우, 훌륭히 등)는 최소화하세요.\n` +
+        `- 문장만 출력하고 따옴표나 설명은 붙이지 마세요.\n\n${context}`
+      }] }] })
+    });
+    const data = await res.json();
+    let text = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^"|"$/g,'');
+    if(text.length > 90) text = text.slice(0,89)+'…';
+    return text;
+  }catch(e){ console.warn('세특 문장 생성 실패', e); return ''; }
+}
+
+function subscribeScenes() {
+  if (!firebaseReady || !teacherUid || !roomId) return;
+  if (unsubScenes) unsubScenes();
+  const scope = currentRoom.shareScope || 'room';
+  // ✅ 서버 where() 필터 대신 전체를 받아 클라이언트에서 걸러냄
+  //    (교사용 "보기" 화면과 동일한 방식 — 더 안정적으로 동작)
+  unsubScenes = scenesColRef(teacherUid, roomId).onSnapshot(snap => {
+    let all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (scope === 'individual') {
+      all = all.filter(sc => sc.studentNumber === STUDENT_NUMBER);
+    } else if (scope === 'group') {
+      all = all.filter(sc => sc.groupNumber === STUDENT_GROUP);
+    }
+    all.sort((a,b) => {
+      const oa = a.order, ob = b.order;
+      if (oa != null && ob != null) return oa - ob;
+      if (oa != null) return -1;
+      if (ob != null) return 1;
+      return (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0);
+    });
+    collectedScenes = all;
+    renderSceneList();
+    syncToLocalStorageForSlideshow();
+  }, err => {
+    console.error(err);
+    showToast('⚠️ Firebase 연결 오류 — 설정을 확인해주세요');
+  });
+}
+
+let sketchCtx = null, sketching = false, sketchColor = '#1a1a2e', sketchErasing = false;
+function initSketch() {
+  const canvas = document.getElementById('sketch-canvas');
+  sketchCtx = canvas.getContext('2d');
+  sketchCtx.fillStyle = '#fff';
+  sketchCtx.fillRect(0, 0, canvas.width, canvas.height);
+  sketchCtx.lineCap = 'round'; sketchCtx.lineJoin = 'round';
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return { x: cx * (canvas.width / r.width), y: cy * (canvas.height / r.height) };
+  }
+  function start(e) { sketching = true; draw(e); }
+  function draw(e) {
+    if (!sketching) return;
+    e.preventDefault();
+    const p = pos(e);
+    sketchCtx.lineWidth = document.getElementById('sketch-size').value;
+    sketchCtx.strokeStyle = sketchErasing ? '#fff' : sketchColor;
+    sketchCtx.lineTo(p.x, p.y);
+    sketchCtx.stroke();
+    sketchCtx.beginPath();
+    sketchCtx.moveTo(p.x, p.y);
+  }
+  function end() { sketching = false; sketchCtx.beginPath(); sketchDataUrl = canvas.toDataURL('image/png'); scheduleDraftSave(); }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', draw);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', end);
+}
+function selectSketchColor(color, el) {
+  sketchColor = color; sketchErasing = false;
+  document.querySelectorAll('.sketch-color').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+function setSketchEraser() { sketchErasing = true; showToast('🧹 지우개 모드'); }
+function clearSketch() {
+  const canvas = document.getElementById('sketch-canvas');
+  sketchCtx.fillStyle = '#fff';
+  sketchCtx.fillRect(0, 0, canvas.width, canvas.height);
+  sketchDataUrl = canvas.toDataURL('image/png');
+  scheduleDraftSave();
+}
+function chooseSceneVisual(choice) {
+  sceneVisualChoice = choice;
+  document.getElementById('choice-ai').classList.toggle('selected', choice === 'ai');
+  document.getElementById('choice-sketch').classList.toggle('selected', choice === 'sketch');
+  scheduleDraftSave();
+}
+
+function attachDraftAutosaveListeners(){
+  ['music-desc','obs-dynamics','obs-melody','obs-form','obs-rhythm','obs-timbre','prompt-kr','scene-title','scene-characters','suno-prompt']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', scheduleDraftSave); });
+}
+
+function buildStyleGrid() {
+  const grid = document.getElementById('style-grid');
+  grid.innerHTML = STYLES.map(s => `
+    <div class="style-chip" id="style-${s.id}" onclick="selectStyle('${s.id}')">
+      <span class="emoji">${s.emoji}</span>
+      <div class="label">${s.label}</div>
+      <div class="sub">${s.sub}</div>
+    </div>
+  `).join('');
+}
+
+function buildColorGrid() {
+  const grid = document.getElementById('color-grid');
+  grid.innerHTML = COLORS.map((c,i) => `
+    <div class="color-chip" id="color-${i}" style="background:${c.color}" onclick="toggleColor(${i})" title="${c.label}">
+      <span class="check">✓</span>
+    </div>
+  `).join('');
+}
+
+function buildMoodGrid() {
+  const grid = document.getElementById('mood-grid');
+  grid.innerHTML = MOODS.map(m => `
+    <div class="mood-tag" id="mood-${m.id}" onclick="toggleMood('${m.id}')">${m.label}</div>
+  `).join('');
+}
+
+function buildSegmentRow() {
+  const row = document.getElementById('segment-row');
+  row.innerHTML = [2,3,4,5,6].map(n => `
+    <div class="segment-chip" id="seg-${n}" onclick="selectSegments(${n})">${n}등분</div>
+  `).join('');
+}
+function selectSegments(n) {
+  selectedSegments = n;
+  document.querySelectorAll('.segment-chip').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`seg-${n}`).classList.add('selected');
+  scheduleDraftSave();
+}
+
+const DESC_LIMIT = 100;
+
+function updateDescCount() {
+  const el = document.getElementById('music-desc');
+  const countEl = document.getElementById('desc-count');
+  const len = el.value.length;
+  countEl.textContent = `${len}/${DESC_LIMIT}자`;
+  countEl.classList.toggle('over', len >= DESC_LIMIT);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('music-desc');
+  if (el) el.addEventListener('input', updateDescCount);
+  const sunoEl = document.getElementById('suno-prompt');
+  if (sunoEl) sunoEl.addEventListener('input', updateSunoCount);
+});
+
+function updateSunoCount() {
+  const el = document.getElementById('suno-prompt');
+  document.getElementById('suno-count').textContent = `${el.value.length}자`;
+}
+
+// ══════════════════════════
+// 일시적 실패(과부하·요청 한도 초과 등) 시 자동으로 한 번 더 시도
+// ══════════════════════════
+async function fetchGeminiWithRetry(url, options, maxRetries = 2) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      // 429(요청 한도 초과), 500/503(일시적 서버 오류)은 재시도할 가치가 있음
+      if ([429, 500, 502, 503].includes(res.status) && attempt < maxRetries) {
+        const waitMs = 800 * (attempt + 1);
+        await new Promise(r => setTimeout(r, waitMs));
+        continue;
+      }
+      return res; // 재시도 안 할 에러(404 등)는 그대로 반환
+    } catch (e) {
+      lastErr = e;
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (lastErr) throw lastErr;
+}
+
+async function generateSunoPrompt() {
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+
+  const btn = document.getElementById('btn-gen-suno');
+  btn.disabled = true; btn.textContent = '생성 중...';
+
+  const genre = document.getElementById('scene-title')?.value.trim() || '';
+  const description = document.getElementById('music-desc')?.value.trim() || '';
+  const analysis = ['dynamics','melody','form','rhythm','timbre']
+    .map(k => document.getElementById('obs-' + k)?.value.trim())
+    .filter(Boolean).join(', ');
+  const moodTags = selectedMoods.map(id => {
+    const m = MOODS.find(m => m.id === id);
+    return m ? m.prompt : '';
+  }).filter(Boolean).join(', ');
+
+  const context = [
+    genre && `장르: ${genre}`,
+    description && `곡 설명: ${description}`,
+    analysis && `음악적 특징: ${analysis}`,
+    moodTags && `분위기: ${moodTags}`,
+  ].filter(Boolean).join('\n');
+
+  if (!context) {
+    showToast('⚠️ 장르나 설명을 먼저 하나라도 입력해주세요');
+    btn.disabled = false; btn.textContent = '✨ 편곡 프롬프트 생성';
+    return;
+  }
+
+  try {
+    const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{ parts:[{ text:
+          `아래 원곡 정보를 참고해서, Suno AI 음악 생성에 쓸 "Style of Music" 프롬프트를 만들어줘.\n` +
+          `가장 중요한 규칙: 원곡의 장르를 절대로 바꾸지 마. K-pop이면 K-pop 그대로, 국악이면 국악 그대로, 재즈면 재즈 그대로 유지해야 해.\n` +
+          `"어쿠스틱 버전", "로파이 버전", "오케스트라 버전"처럼 다른 장르/스타일로 재해석하는 것도 금지야 — 그것도 장르를 바꾸는 거야.\n` +
+          `저작권 걱정 없이 쓸 수 있는 편곡이라는 목적은, 같은 장르 안에서 구체적인 악기 구성·프로덕션 디테일·다이내믹 흐름을 원곡과 다르게 짜는 것으로 달성해줘. 장르 자체는 그대로.\n` +
+          `아래 항목을 최대한 다 채워서, 영어 키워드·짧은 구문을 쉼표로 구분해 250자 내외로 출력해줘. 문장이나 설명 없이 키워드/구문만.\n` +
+          `- 그 장르에 맞는 구체적인 악기 편성 (예: K-pop이면 "punchy synth bass", "layered vocal chops" 처럼 장르 전형적인 악기에 수식어를 붙여서)\n` +
+          `- 템포/리듬감 (BPM 느낌 또는 "mid-tempo, driving rhythm" 등, 원곡 장르에 맞게)\n` +
+          `- 곡의 흐름/다이내믹 변화 (예: "soft intro building to full chorus")\n` +
+          `- 프로덕션 질감 (그 장르 안에서 자연스러운 것만, 예: K-pop이면 "polished modern production", 국악이면 "전통 국악기 음색")\n` +
+          `- 보컬 스타일이 어울리면 포함 — 안 어울리면 생략\n\n${context}`
+        }] }]
+      })
+    });
+    const data = await res.json();
+    let text = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim().replace(/^"|"$/g, '');
+    if (text.length > 300) text = text.slice(0, 299) + '…';
+
+    if (text) {
+      document.getElementById('suno-prompt').value = text;
+      updateSunoCount();
+      scheduleDraftSave();
+      showToast('✅ 프롬프트 생성 완료! Suno에 붙여넣어보세요');
+    } else {
+      showToast('⚠️ 생성 실패, 직접 적어주세요');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 생성 실패 — 다시 시도해주세요');
+  }
+  btn.disabled = false; btn.textContent = '✨ 편곡 프롬프트 생성';
+}
+
+function copySunoPrompt() {
+  const el = document.getElementById('suno-prompt');
+  const text = el.value.trim();
+  if (!text) { showToast('⚠️ 먼저 프롬프트를 생성해주세요'); return; }
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('📋 복사했어요! Suno에 붙여넣으세요'))
+    .catch(() => { el.select(); showToast('⚠️ 자동 복사 실패 — 직접 선택해서 복사해주세요'); });
+}
+
+async function generateMusicDescription() {
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+
+  const btn = document.getElementById('btn-gen-desc');
+  btn.disabled = true; btn.textContent = '생성 중...';
+
+  try {
+    let text = '';
+    if (currentAudioBase64) {
+      const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{ parts:[
+            { inlineData: { mimeType: currentAudioMime, data: currentAudioBase64 } },
+            { text: `이 음악을 듣고, 중학생이 이해하기 쉬운 설명을 정확히 ${DESC_LIMIT}자 이내 한국어 한두 문장으로 써주세요. 장르·분위기·주요 악기 중심으로, 설명 없이 문장만 출력하세요.` }
+          ]}],
+          generationConfig:{ temperature:0.5 }
+        })
+      });
+      const data = await res.json();
+      text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } else {
+      const hint = document.getElementById('yt-search-query').value.trim()
+        || document.getElementById('music-url').value.trim()
+        || '지금 재생 중인 곡';
+      const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{ parts:[{ text: `다음 정보를 바탕으로 이 음악에 대한 중학생용 짧은 설명을 정확히 ${DESC_LIMIT}자 이내 한국어 한두 문장으로 써주세요. 실제로 듣지는 못했으니 장르 이름에서 유추할 수 있는 일반적인 특징 위주로, 단정적이지 않게 써주세요. 설명 없이 문장만 출력하세요.\n\n정보: ${hint}` }] }]
+        })
+      });
+      const data = await res.json();
+      text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+
+    text = text.trim().replace(/^"|"$/g, '');
+    if (text.length > DESC_LIMIT) text = text.slice(0, DESC_LIMIT - 1) + '…';
+
+    if (text) {
+      document.getElementById('music-desc').value = text;
+      updateDescCount();
+      scheduleDraftSave();
+      showToast('✅ 설명이 생성됐어요, 필요하면 직접 고쳐도 돼요');
+    } else {
+      showToast('⚠️ 설명 생성 실패, 직접 적어주세요');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 설명 생성 실패 — 다시 시도하거나 직접 적어주세요');
+  }
+  btn.disabled = false; btn.textContent = '✨ AI 설명 생성';
+}
+
+function selectStyle(id) {
+  selectedStyle = id;
+  document.querySelectorAll('.style-chip').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`style-${id}`).classList.add('selected');
+  scheduleDraftSave();
+}
+
+function toggleColor(idx) {
+  const el = document.getElementById(`color-${idx}`);
+  if (selectedColors.includes(idx)) {
+    selectedColors = selectedColors.filter(i => i !== idx);
+    el.classList.remove('selected');
+  } else {
+    selectedColors.push(idx);
+    el.classList.add('selected');
+  }
+  scheduleDraftSave();
+}
+
+function toggleMood(id) {
+  const el = document.getElementById(`mood-${id}`);
+  if (selectedMoods.includes(id)) {
+    selectedMoods = selectedMoods.filter(m => m !== id);
+    el.classList.remove('selected');
+  } else {
+    selectedMoods.push(id);
+    el.classList.add('selected');
+  }
+  scheduleDraftSave();
+}
+
+function switchTab(tab) {
+  document.getElementById('panel-youtube').style.display = tab === 'youtube' ? 'block' : 'none';
+  document.getElementById('panel-file').style.display = tab === 'file' ? 'block' : 'none';
+  document.getElementById('tab-youtube').className = tab === 'youtube' ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('tab-file').className = tab === 'file' ? 'btn btn-primary' : 'btn btn-secondary';
+  updateAnalyzeButtonVisibility(tab === 'file' && !!currentAudioBase64);
+}
+
+function searchYoutube() {
+  const q = document.getElementById('yt-search-query').value.trim();
+  if (!q) { showToast('⚠️ 검색어를 입력해주세요'); return; }
+  if (!sourceMusicTitle) sourceMusicTitle = q;
+  window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, '_blank');
+  showToast('🔍 새 탭에서 검색 결과를 확인해주세요');
+}
+
+function loadYoutube() {
+  const url = document.getElementById('music-url').value.trim();
+  if (!url) { showToast('⚠️ 유튜브 URL을 입력해주세요'); return; }
+  const videoId = extractYoutubeId(url);
+  if (!videoId) { showToast('⚠️ 유튜브 URL을 확인해주세요'); return; }
+  const iframe = document.getElementById('yt-iframe');
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  document.getElementById('youtube-player').style.display = 'block';
+  showToast('▶ 유튜브 재생 시작!');
+}
+
+function extractYoutubeId(url) {
+  const patterns = [
+    /youtu\.be\/([^?&]+)/,
+    /youtube\.com\/watch\?v=([^&]+)/,
+    /youtube\.com\/embed\/([^?&]+)/,
+    /youtube\.com\/shorts\/([^?&]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+let currentAudioBase64 = null, currentAudioMime = null;
+
+function loadMusicFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (!sourceMusicTitle) sourceMusicTitle = file.name.replace(/\.[^/.]+$/, '');
+  const url = URL.createObjectURL(file);
+  const audio = document.getElementById('audio-el');
+  audio.src = url;
+  document.getElementById('music-player').style.display = 'block';
+  document.getElementById('file-name').textContent = '🎵 ' + file.name;
+  audio.play();
+  showToast('🎵 ' + file.name + ' 재생 중!');
+
+  currentAudioMime = file.type || 'audio/mpeg';
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    currentAudioBase64 = dataUrl.split(',')[1];
+    updateAnalyzeButtonVisibility(true);
+  };
+  reader.onerror = () => { currentAudioBase64 = null; };
+  reader.readAsDataURL(file);
+}
+
+function updateAnalyzeButtonVisibility(show) {
+  const btn = document.getElementById('btn-analyze-song');
+  if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+async function analyzeSongForCodeTable() {
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+  if (!currentAudioBase64) { showToast('⚠️ 먼저 음악 파일을 업로드해주세요'); return; }
+
+  showLoading('🤖 음악을 듣고 분석하고 있어요...');
+  try {
+    const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [
+          { inlineData: { mimeType: currentAudioMime, data: currentAudioBase64 } },
+          { text: `이 음악을 실제로 듣고 아래 5가지 항목을 분석해서 JSON으로만 답해주세요. 각 항목은 이 곡에서 실제로 들리는 구체적인 특징을 한국어로 1문장씩, 중학생이 이해하기 쉽게 써주세요.
+{"dynamics":"셈여림 변화 설명","melody":"선율 윤곽(오르내림) 설명","form":"반복되거나 구조가 바뀌는 지점 설명","rhythm":"리듬/템포 변화 설명","timbre":"어떤 악기·음색이 쓰이는지 설명"}
+JSON 외의 다른 텍스트는 출력하지 마세요.` }
+        ]}],
+        generationConfig: { temperature: 0.4 }
+      })
+    });
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = text.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const obs = JSON.parse(clean);
+    ['dynamics','melody','form','rhythm','timbre'].forEach(k => {
+      const el = document.getElementById('obs-' + k);
+      if (el && obs[k]) el.value = obs[k];
+    });
+    scheduleDraftSave();
+    showToast('✅ 분석 완료! 내용은 직접 고쳐도 돼요');
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 분석 실패 — 다시 시도하거나 직접 적어주세요');
+  }
+  hideLoading();
+}
+
+async function translatePrompt() {
+  const kr = document.getElementById('prompt-kr').value.trim();
+  if (!kr) { showToast('⚠️ 먼저 한글로 내용을 적어주세요'); return; }
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+
+  const btn = document.getElementById('btn-translate');
+  btn.textContent = '번역 중...'; btn.disabled = true;
+
+  try {
+    const res = await fetchGeminiWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ contents:[{ parts:[{ text: `다음 한글 내용을 이미지 생성 AI용 영어 프롬프트로 변환해주세요. 짧고 명확하게, 쉼표로 구분된 키워드 형태로만 출력하세요. 설명 없이 프롬프트만 출력:\n\n${kr}` }] }] })
+    });
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (text) {
+      const box = document.getElementById('translated-box');
+      box.textContent = text.trim();
+      box.style.display = 'block';
+      scheduleDraftSave();
+      showToast('✅ 번역 완료!');
+    }
+  } catch(e) {
+    showToast('❌ 번역 실패. API 키를 확인해주세요');
+  }
+  btn.textContent = '🌐 영어로 번역'; btn.disabled = false;
+}
+
+function buildFinalPrompt() {
+  const parts = [];
+  if (selectedStyle) {
+    const s = STYLES.find(s => s.id === selectedStyle);
+    if (s) parts.push(s.prompt);
+  }
+  selectedColors.forEach(i => parts.push(COLORS[i].prompt));
+  selectedMoods.forEach(id => {
+    const m = MOODS.find(m => m.id === id);
+    if (m) parts.push(m.prompt);
+  });
+  const translated = document.getElementById('translated-box').textContent.trim();
+  if (translated) parts.push(translated);
+  else {
+    const kr = document.getElementById('prompt-kr').value.trim();
+    if (kr) parts.push(kr);
+  }
+  parts.push('no text, no words, no letters, no writing, no captions, no watermark, no signage with readable text');
+  parts.push('cinematic, high quality, 16:9');
+  return parts.join(', ');
+}
+
+async function generateImage() {
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+
+  const finalPrompt = buildFinalPrompt();
+  if (!finalPrompt.includes('cinematic')) { showToast('⚠️ 스타일이나 내용을 먼저 선택해주세요'); return; }
+
+  document.getElementById('result-prompt-text').textContent = finalPrompt;
+  showLoading('✨ AI가 이미지를 그리고 있어요...');
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{ parts:[{ text: finalPrompt }] }],
+        generationConfig:{ responseModalities:['TEXT','IMAGE'] }
+      })
+    });
+    const data = await res.json();
+    const imgPart = (data?.candidates?.[0]?.content?.parts||[]).find(p => p.inlineData);
+
+    if (imgPart) {
+      const dataUrl = `data:${imgPart.inlineData.mimeType};base64,${imgPart.inlineData.data}`;
+      generatedImageUrl = dataUrl;
+      const img = document.getElementById('result-img');
+      img.src = dataUrl;
+      img.style.display = 'block';
+      document.getElementById('result-placeholder').style.display = 'none';
+      document.getElementById('result-section').style.display = 'block';
+      document.getElementById('result-section').scrollIntoView({behavior:'smooth'});
+      showToast('🎨 이미지 완성!');
+    } else {
+      throw new Error('이미지 없음');
+    }
+  } catch(e) {
+    showToast('❌ 생성 실패. 다시 시도해보세요');
+    document.getElementById('result-placeholder').style.display = 'flex';
+    document.getElementById('result-section').style.display = 'block';
+  }
+  hideLoading();
+}
+
+function downloadImage() {
+  if (!generatedImageUrl) { showToast('⚠️ 먼저 이미지를 생성해주세요'); return; }
+  const a = document.createElement('a');
+  a.href = generatedImageUrl;
+  a.download = `미디어픽쳐_${Date.now()}.png`;
+  a.click();
+  showToast('⬇ 이미지 저장됐어요!');
+}
+
+async function copyImageToClipboard() {
+  if (!generatedImageUrl) { showToast('⚠️ 먼저 이미지를 생성해주세요'); return; }
+  try {
+    const res = await fetch(generatedImageUrl);
+    const blob = await res.blob();
+    await navigator.clipboard.write([ new ClipboardItem({ [blob.type]: blob }) ]);
+    showToast('📋 이미지가 복사됐어요! 원하는 곳에 Ctrl+V로 붙여넣으세요');
+  } catch(e) {
+    console.error(e);
+    showToast('⚠️ 이 브라우저에서는 이미지 복사가 안 될 수 있어요 — 다운로드를 이용해주세요');
+  }
+}  
+  
+const SLIDESHOW_STORAGE_KEY = 'eaim_musical_data';
+
+function currentEmotionLabel() {
+  if (selectedMoods.length === 0) return '';
+  const m = MOODS.find(m => m.id === selectedMoods[0]);
+  return m ? m.emotionLabel : '';
+}
+
+function currentMusicMoodLabel() {
+  const labels = selectedMoods.map(id => {
+    const m = MOODS.find(m => m.id === id);
+    return m ? m.label.replace(/^\S+\s/, '') : '';
+  }).filter(Boolean);
+  return labels.join(' · ');
+}
+
+function compressImageForCloud(dataUrl, maxDim = 800, quality = 0.65) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+      else if (height >= width && height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+async function addSceneToShow() {
+  const visual = sceneVisualChoice === 'sketch' ? sketchDataUrl : generatedImageUrl;
+  if (sceneVisualChoice === 'sketch') sketchDataUrl = document.getElementById('sketch-canvas').toDataURL('image/png');
+  const finalVisual = sceneVisualChoice === 'sketch' ? sketchDataUrl : generatedImageUrl;
+  if (!finalVisual) { showToast('⚠️ 이미지를 생성하거나 스케치를 그려주세요'); return; }
+
+  const title = document.getElementById('scene-title').value.trim() || `장면 ${collectedScenes.length + 1}`;
+  const characters = document.getElementById('scene-characters').value.trim();
+  const analysis = ['dynamics','melody','form','rhythm','timbre']
+    .map(k => document.getElementById('obs-' + k)?.value.trim())
+    .filter(Boolean).join(' / ');
+  const description = document.getElementById('music-desc')?.value.trim() || '';
+
+  const scene = {
+    title,
+    imageUrl: finalVisual,
+    visualType: sceneVisualChoice,
+    characters,
+    analysis,
+    description,
+    segments: selectedSegments,
+    emotion: currentEmotionLabel(),
+    musicMood: currentMusicMoodLabel(),
+    studentNumber: STUDENT_NUMBER || null,
+    groupNumber: STUDENT_GROUP || null,
+  };
+
+  // ✅ Firebase 결과를 기다리지 않고 화면에 먼저 즉시 반영 (낙관적 업데이트)
+  const localId = 'local_' + Date.now();
+  collectedScenes.push({ ...scene, id: localId });
+  renderSceneList();
+  saveScenesToStorage();
+
+  if (firebaseReady && teacherUid && roomId) {
+    try {
+      showToast('⏳ 학급 공유용으로 이미지 크기를 줄이는 중...');
+      const compactImage = await compressImageForCloud(finalVisual);
+      await scenesColRef(teacherUid, roomId)
+        .add({ ...scene, imageUrl: compactImage, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      showToast('✅ 우리 반에 장면이 공유됐어요!');
+      // 이후 onSnapshot이 정상 응답하면 정식 데이터로 자동 교체됩니다
+    } catch(e) {
+      console.error(e);
+      showToast('❌ 우리 반과는 공유되지 않았어요 (내 화면에는 남아있어요) — 인터넷 연결을 확인해주세요');
+    }
+  } else {
+    showToast('⚠️ 학급 연결이 안 된 상태예요 — 이 기기에서만 보여요 (초대 링크로 다시 접속해보세요)');
+  }
+  const noteContext = [
+    `장르/제목: ${title}`,
+    description && `설명: ${description}`,
+    analysis && `음악적 특징: ${analysis}`,
+    scene.emotion && `느낀 감정: ${scene.emotion}`,
+    scene.musicMood && `표현한 분위기: ${scene.musicMood}`,
+  ].filter(Boolean).join('\n');
+  const note = await generateActivityNoteAI(noteContext);
+  logToSheet('장면추가', title, [characters, scene.emotion, scene.musicMood].filter(Boolean).join(' · '), note);
+}
+
+function syncToLocalStorageForSlideshow() {
+  saveScenesToStorage();
+}
+
+function saveScenesToStorage() {
+  const genreTitle = document.getElementById('scene-title')?.value.trim() || '';
+  const title = sourceMusicTitle || genreTitle || '우리의 뮤직미디어레터';
+  const data = {
+    title,
+    school: '',
+    scenes: collectedScenes,
+  };
+  localStorage.setItem(SLIDESHOW_STORAGE_KEY, JSON.stringify(data));
+}
+
+function renderSceneList() {
+  const list = document.getElementById('scene-list');
+  const count = document.getElementById('scene-count');
+  count.textContent = collectedScenes.length;
+
+  const hasScenes = collectedScenes.length > 0;
+  document.getElementById('scene-list-desc').textContent = hasScenes
+    ? '슬라이드쇼·음악신문·음악편지·인터뷰 중 골라서 만들어보세요'
+    : '아직 모은 장면이 없어요 — 위에서 "➕ 이 장면 모으기"를 누르면 여기 쌓여요';
+  ['btn-go-slideshow','btn-open-newspaper','btn-open-letter','btn-open-interview'].forEach(id => {
+    const btn = document.getElementById(id); if (btn) btn.disabled = !hasScenes;
+  });
+
+  if (!hasScenes) { list.innerHTML = ''; return; }
+
+  list.innerHTML = collectedScenes.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:10px;padding:8px 12px">
+      <img src="${s.imageUrl}" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i+1}. ${s.title}${s.studentNumber?` <span style="color:var(--text2);font-weight:400">· ${s.studentNumber}번</span>`:''}</div>
+        <div style="font-size:11px;color:var(--text2)">${s.characters || '참여자 미입력'} ${s.emotion ? '· ' + s.emotion : ''} ${s.visualType==='sketch' ? '· ✍️ 손그림' : ''} ${s.isRepeat ? '· 🔁 반복 구간' : ''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button class="btn btn-secondary" style="padding:2px 8px;font-size:10px;line-height:1${i===0?';opacity:.3;cursor:default':''}" onclick="moveScene(${i},-1)" ${i===0?'disabled':''}>▲</button>
+        <button class="btn btn-secondary" style="padding:2px 8px;font-size:10px;line-height:1${i===collectedScenes.length-1?';opacity:.3;cursor:default':''}" onclick="moveScene(${i},1)" ${i===collectedScenes.length-1?'disabled':''}>▼</button>
+      </div>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="duplicateScene(${i})">📋 복제</button>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px" onclick="removeScene(${i})">✕</button>
+    </div>
+  `).join('');
+  populateLetterSceneSelect();
+  populateInterviewSceneSelect();
+}
+
+async function moveScene(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= collectedScenes.length) return;
+  [collectedScenes[idx], collectedScenes[target]] = [collectedScenes[target], collectedScenes[idx]];
+  renderSceneList();
+  saveScenesToStorage();
+
+  if (firebaseReady && teacherUid && roomId) {
+    try {
+      const batch = db.batch();
+      collectedScenes.forEach((sc, i) => {
+        if (sc.id && !String(sc.id).startsWith('local_')) {
+          batch.update(scenesColRef(teacherUid, roomId).doc(sc.id), { order: i });
+        }
+      });
+      await batch.commit();
+    } catch(e) {
+      console.error(e);
+      showToast('⚠️ 순서는 바뀌었지만 반 공유 저장에는 실패했어요');
+    }
+  }
+}
+
+async function duplicateScene(idx) {
+  const original = collectedScenes[idx];
+  if (!original) return;
+  const newTitle = prompt('복제된 장면의 제목을 정해주세요 (예: 재현부 — 주제 회귀)', original.title + ' (반복)');
+  if (newTitle === null) return; // 취소
+  const dup = { ...original, title: newTitle, isRepeat: true };
+  delete dup.id;
+
+  const localId = 'local_' + Date.now();
+  collectedScenes.push({ ...dup, id: localId });
+  renderSceneList();
+  saveScenesToStorage();
+
+  if (firebaseReady && teacherUid && roomId) {
+    try {
+      await scenesColRef(teacherUid, roomId).add({ ...dup, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      showToast('✅ 장면을 복제했어요 — 같은 이미지가 하나 더 추가됐어요');
+    } catch(e) {
+      console.error(e);
+      showToast('❌ 복제 공유 실패 (내 화면엔 추가됐어요)');
+    }
+  } else {
+    showToast('✅ 장면을 복제했어요 (이 기기에서만 보여요)');
+  }
+} 
+  
+async function removeScene(idx) {
+  const scene = collectedScenes[idx];
+  if (firebaseReady && teacherUid && roomId && scene && scene.id) {
+    try {
+      await scenesColRef(teacherUid, roomId).doc(scene.id).delete();
+    } catch(e) { showToast('❌ 삭제 실패'); return; }
+  }
+  showToast('🗑 장면을 삭제했어요');
+}
+
+async function clearScenes() {
+  if (!confirm('모아둔 장면을 모두 지울까요?')) return;
+  if (firebaseReady && teacherUid && roomId) {
+    try {
+      const snap = await scenesColRef(teacherUid, roomId).get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    } catch(e) { showToast('❌ 초기화 실패'); return; }
+  }
+  showToast('🗑 전체 초기화됐어요');
+}
+
+function goToSlideshow() {
+  if (collectedScenes.length === 0) { showToast('⚠️ 먼저 장면을 하나 이상 추가해주세요'); return; }
+  saveScenesToStorage();
+  // 학급 정보를 함께 넘겨야 슬라이드쇼에서 만든 말풍선·캐릭터가 선생님 화면에도 보입니다
+  const q = [];
+  if (teacherUid) q.push('teacher=' + encodeURIComponent(teacherUid));
+  if (roomId)     q.push('room='    + encodeURIComponent(roomId));
+  if (STUDENT_NUMBER) q.push('student=' + encodeURIComponent(STUDENT_NUMBER));
+  if (typeof STUDENT_GROUP !== 'undefined' && STUDENT_GROUP) q.push('group=' + encodeURIComponent(STUDENT_GROUP));
+  q.push('v=' + Date.now());   // 휴대폰 브라우저가 예전 슬라이드쇼를 붙잡고 있지 않도록 매번 새로 받기
+  location.href = 'slideshow.html?' + q.join('&');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'newspaper-modal' && unsubNewspaper) { unsubNewspaper(); unsubNewspaper = null; }
+  if (id === 'newspaper-modal') {
+    npScenesOverride = null; npReadOnly = false;
+    const m = document.getElementById('newspaper-modal');
+    m.classList.remove('np-preview'); m.style.zIndex = '';
+    document.getElementById('np-toolbar-title').textContent = '📰 음악 감상 신문 편집';
+  }
+  if (id === 'letter-modal' && unsubLetter) { unsubLetter(); unsubLetter = null; }
+  if (id === 'interview-modal' && unsubInterview) { unsubInterview(); unsubInterview = null; }
+}
+
+function sharedRefForScope(scope, key){
+  if (!firebaseReady || !teacherUid || !roomId) return null;
+  if (scope === 'group') return sharedGroupDocRef(teacherUid, roomId, STUDENT_GROUP || '0', key);
+  return sharedRoomDocRef(teacherUid, roomId, key); // scope==='room' 일 때
+}
+function currentSharedRef(key){
+  return sharedRefForScope(currentRoom.shareScope || 'room', key); // 장면·신문: 반 설정 그대로 사용
+}
+function letterInterviewScope(){
+  // 편지·인터뷰는 기본이 '개인별' — 선생님이 shareLetterInterview를 켰을 때만 반 설정을 따라감
+  return currentRoom.shareLetterInterview ? (currentRoom.shareScope || 'room') : 'individual';
+}
+function currentLetterInterviewRef(key){
+  const scope = letterInterviewScope();
+  if (scope === 'individual') return null;
+  return sharedRefForScope(scope, key);
+}
+async function openNewspaper() {
+  if (collectedScenes.length === 0) { showToast('⚠️ 먼저 장면을 하나 이상 추가해주세요'); return; }
+  const now = new Date();
+  if ((currentRoom.shareScope || 'room') !== 'individual') {
+    try {
+      const ref = currentSharedRef('newspaper');
+      if (ref) {
+        const snap = await ref.get();
+        pendingNewspaperData = snap.exists ? snap.data() : null;
+      }
+    } catch(e) { console.warn('신문 불러오기 실패', e); }
+  }
+  if (pendingNewspaperData) {
+    document.getElementById('np-title').value = pendingNewspaperData.title || '음악 감상 신문';
+    document.getElementById('np-school').value = pendingNewspaperData.school || '';
+    document.getElementById('np-date').value = pendingNewspaperData.date || (now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일');
+    document.getElementById('np-grade').value = pendingNewspaperData.grade || '';
+    document.getElementById('np-headline').value = pendingNewspaperData.headline || '';
+    document.getElementById('np-layout').value = pendingNewspaperData.layout || 'col2';
+  } else {
+    document.getElementById('np-date').value = now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
+  }
+  document.getElementById('np-headline').placeholder = hintText('npHeadline');
+  buildNpGrid();
+  updateNpLayout();
+  document.getElementById('newspaper-modal').classList.add('open');
+  attachNewspaperAutosave();
+  if ((currentRoom.shareScope || 'room') !== 'individual') subscribeNewspaperShared();
+  logToSheet('음악신문열기', document.getElementById('np-title')?.value||'음악 감상 신문', collectedScenes.length+'개 장면');
+}
+function subscribeNewspaperShared(){
+  const ref = currentSharedRef('newspaper');
+  if (!ref) return;
+  if (unsubNewspaper) unsubNewspaper();
+  unsubNewspaper = ref.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const data = snap.data();
+    if (data.updatedBy === STUDENT_NUMBER) return; // 방금 내가 저장한 변경은 다시 반영하지 않음
+    const paper = document.getElementById('np-paper');
+    if (paper && paper.contains(document.activeElement)) return; // 타이핑 중이면 잠시 대기
+    pendingNewspaperData = data;
+    document.getElementById('np-title').value = data.title || '음악 감상 신문';
+    document.getElementById('np-school').value = data.school || '';
+    document.getElementById('np-date').value = data.date || '';
+    document.getElementById('np-grade').value = data.grade || '';
+    document.getElementById('np-headline').value = data.headline || '';
+    document.getElementById('np-layout').value = data.layout || 'col2';
+    buildNpGrid();
+    updateNpLayout();
+  }, err => console.warn('신문 공유 동기화 오류', err));
+}
+let npScenesOverride = null;   // 교사 대시보드 "완성본 보기"용 (학생 화면에선 null)
+let npReadOnly = false;         // true면 Firestore에 저장하지 않음(교사 미리보기)
+function buildNpGrid() {
+  const grid = document.getElementById('np-grid');
+  const scenes = npScenesOverride || collectedScenes;
+  const savedArticles = (pendingNewspaperData && pendingNewspaperData.articles) || [];
+  const hint = hintText('npHint');
+  grid.innerHTML = scenes.map((s, i) => `
+    <div class="np-article">
+      <input class="np-input np-article-title" value="${escHtml(savedArticles[i]?.title ?? `장면 ${i+1} — ${s.title||''}`)}" style="font-size:14px;font-weight:900;margin-bottom:4px;width:100%">
+      <img src="${s.imageUrl||''}" alt="감상 이미지 ${i+1}">
+      <div class="field-hint">${escHtml(hint)}</div>
+      <div class="np-caption">
+        <textarea style="width:100%;border:none;background:transparent;font-family:inherit;font-size:12px;resize:vertical;outline:none;color:#333;line-height:1.8;min-height:120px" rows="7" placeholder="${escHtml(hintText('npCaptionPlaceholder'))}">${escHtml(savedArticles[i]?.caption ?? [s.description, s.analysis, s.emotion, s.musicMood].filter(Boolean).join(' / '))}</textarea>
+      </div>
+    </div>
+  `).join('');
+  requestAnimationFrame(()=>autoGrowAll('np-paper'));
+}
+// 교사 대시보드에서 학생 신문을 완성본 모양 그대로 보기 (저장 안 됨, 인쇄 가능)
+let dashNpPreview = null;
+function openNewspaperPreview(){
+  if (!dashNpPreview) return;
+  const { scenes, newspaper, label } = dashNpPreview;
+  if (!scenes || !scenes.length) { showToast('⚠️ 이 신문에 연결된 장면이 없어요'); return; }
+  npScenesOverride = scenes; npReadOnly = true;
+  pendingNewspaperData = newspaper || {};
+  const now = new Date();
+  document.getElementById('np-title').value = pendingNewspaperData.title || '음악 감상 신문';
+  document.getElementById('np-school').value = pendingNewspaperData.school || '';
+  document.getElementById('np-date').value = pendingNewspaperData.date || (now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일');
+  document.getElementById('np-grade').value = pendingNewspaperData.grade || '';
+  document.getElementById('np-headline').value = pendingNewspaperData.headline || '';
+  document.getElementById('np-headline').placeholder = '';
+  document.getElementById('np-layout').value = pendingNewspaperData.layout || 'col2';
+  const modal = document.getElementById('newspaper-modal');
+  modal.classList.add('np-preview'); modal.style.zIndex = '10001';
+  document.getElementById('np-toolbar-title').textContent = '📰 음악신문 완성본 보기' + (label ? ' — ' + label : '');
+  buildNpGrid(); updateNpLayout();
+  modal.classList.add('open');
+}
+function updateNpLayout() {
+  document.getElementById('np-grid').className = 'np-grid ' + document.getElementById('np-layout').value;
+  scheduleNewspaperSave();
+}
+let npSaveTimer = null;
+function collectNewspaperData(){
+  const articles = Array.from(document.querySelectorAll('#np-grid .np-article')).map(art => ({
+    title: art.querySelector('.np-article-title')?.value || '',
+    caption: art.querySelector('textarea')?.value || '',
+  }));
+  return {
+    title: document.getElementById('np-title')?.value || '',
+    school: document.getElementById('np-school')?.value || '',
+    date: document.getElementById('np-date')?.value || '',
+    grade: document.getElementById('np-grade')?.value || '',
+    headline: document.getElementById('np-headline')?.value || '',
+    layout: document.getElementById('np-layout')?.value || 'col2',
+    articles,
+  };
+}
+function scheduleNewspaperSave(){
+  if (npReadOnly) return; // 교사 미리보기 모드에선 저장 안 함
+  clearTimeout(npSaveTimer);
+  npSaveTimer = setTimeout(() => {
+    pendingNewspaperData = collectNewspaperData();
+    if (!firebaseReady || !teacherUid || !roomId) return;
+    if ((currentRoom.shareScope || 'room') === 'individual') {
+      saveModalData('newspaper', pendingNewspaperData); // 개인별: 내 문서에만 저장, 다른 학생과 공유 안 됨
+      return;
+    }
+    const ref = currentSharedRef('newspaper'); // scope에 따라 반 전체 문서 또는 모둠 문서
+    if (!ref) return;
+    ref.set({
+      ...pendingNewspaperData,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: STUDENT_NUMBER || ''
+    }, {merge:true}).catch(e => console.warn('신문 공유 저장 실패', e));
+  }, 1000);
+}
+function attachNewspaperAutosave(){
+  document.getElementById('np-paper').addEventListener('input', scheduleNewspaperSave);
+}
+async function finalizeNewspaper(){
+  if (npReadOnly) { autoGrowAll('np-paper'); setTimeout(()=>window.print(), 120); return; } // 교사 미리보기: 기록 없이 인쇄만
+  const data = collectNewspaperData();
+  const captionsText = data.articles.map(a=>a.caption).filter(Boolean).join(' / ');
+  const context = [`신문 헤드라인: ${data.headline||''}`, captionsText && `학생이 작성한 감상 내용: ${captionsText}`].filter(Boolean).join('\n');
+  const note = await generateActivityNoteAI(context);
+  logToSheet('음악신문완성', data.title||'음악 감상 신문', (npScenesOverride||collectedScenes).length+'개 장면', note);
+  autoGrowAll('np-paper');
+  setTimeout(()=>window.print(), 120);
+}
+
+function populateLetterSceneSelect() {
+  const sel = document.getElementById('letter-scene-select');
+  if (!sel) return;
+  sel.innerHTML = collectedScenes.map((s, i) => `<option value="${i}">${i+1}. ${s.title}</option>`).join('');
+}
+function onLetterSceneChange() {
+  const idx = Number(document.getElementById('letter-scene-select').value || 0);
+  fillLetterFromScene(idx);
+}
+function fillLetterFromScene(idx) {
+  const s = collectedScenes[idx]; if (!s) return;
+  document.getElementById('letter-img').src = s.imageUrl;
+  document.getElementById('letter-song').value = s.title || '';
+  if (!document.getElementById('letter-body').value) document.getElementById('letter-body').value = s.lyrics || '';
+}
+let letterSaveTimer = null;
+function collectLetterData(){
+  return {
+    date: document.getElementById('letter-date')?.value || '',
+    to: document.getElementById('letter-to')?.value || '',
+    song: document.getElementById('letter-song')?.value || '',
+    body: document.getElementById('letter-body')?.value || '',
+    from: document.getElementById('letter-from')?.value || '',
+    sceneIndex: Number(document.getElementById('letter-scene-select')?.value || 0),
+  };
+}
+function scheduleLetterSave(){
+  clearTimeout(letterSaveTimer);
+  letterSaveTimer = setTimeout(() => {
+    pendingLetterData = collectLetterData();
+    if (letterInterviewScope() === 'individual') {
+      saveModalData('letter', pendingLetterData);
+      return;
+    }
+    const ref = currentLetterInterviewRef('letter');
+    if (!ref) return;
+    ref.set({
+      ...pendingLetterData,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: STUDENT_NUMBER || ''
+    }, {merge:true}).catch(e => console.warn('편지 공유 저장 실패', e));
+  }, 1000);
+}
+function subscribeLetterShared(){
+  const ref = currentLetterInterviewRef('letter');
+  if (!ref) return;
+  if (unsubLetter) unsubLetter();
+  unsubLetter = ref.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const data = snap.data();
+    if (data.updatedBy === STUDENT_NUMBER) return;
+    const paper = document.getElementById('letter-paper');
+    if (paper && paper.contains(document.activeElement)) return;
+    pendingLetterData = data;
+    document.getElementById('letter-date').value = data.date || '';
+    document.getElementById('letter-to').value = data.to || '';
+    document.getElementById('letter-song').value = data.song || '';
+    document.getElementById('letter-body').value = data.body || '';
+    document.getElementById('letter-from').value = data.from || '';
+    if (data.sceneIndex !== undefined) {
+      document.getElementById('letter-scene-select').value = data.sceneIndex;
+      const s = collectedScenes[data.sceneIndex];
+      if (s) document.getElementById('letter-img').src = s.imageUrl;
+    }
+  }, err => console.warn('편지 공유 동기화 오류', err));
+}
+async function finalizeLetter(){
+  const data = collectLetterData();
+  const context = [`음악: ${data.song||''}`, data.body && `편지 내용: ${data.body}`].filter(Boolean).join('\n');
+  const note = await generateActivityNoteAI(context);
+  logToSheet('음악편지완성', data.song||'', '', note);
+  autoGrowAll('letter-paper');
+  setTimeout(()=>window.print(), 120);
+}
+async function openLetter() {
+  if (collectedScenes.length === 0) { showToast('⚠️ 먼저 장면을 하나 이상 추가해주세요'); return; }
+  const now = new Date();
+  populateLetterSceneSelect();
+  if (letterInterviewScope() !== 'individual') {
+    try {
+      const ref = currentLetterInterviewRef('letter');
+      if (ref) { const snap = await ref.get(); pendingLetterData = snap.exists ? snap.data() : null; }
+    } catch(e) { console.warn('편지 불러오기 실패', e); }
+  }
+  if (pendingLetterData) {
+    document.getElementById('letter-date').value = pendingLetterData.date || '';
+    document.getElementById('letter-to').value = pendingLetterData.to || '';
+    document.getElementById('letter-song').value = pendingLetterData.song || '';
+    document.getElementById('letter-body').value = pendingLetterData.body || '';
+    document.getElementById('letter-from').value = pendingLetterData.from || '';
+    if (pendingLetterData.sceneIndex !== undefined) {
+      document.getElementById('letter-scene-select').value = pendingLetterData.sceneIndex;
+      const s = collectedScenes[pendingLetterData.sceneIndex];
+      if (s) document.getElementById('letter-img').src = s.imageUrl;
+    }
+  } else {
+    document.getElementById('letter-date').value = now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
+    fillLetterFromScene(collectedScenes.length - 1);
+  }
+  document.getElementById('letter-hint').textContent = hintText('letterHint');
+  document.getElementById('letter-modal').classList.add('open');
+  requestAnimationFrame(()=>autoGrowAll('letter-paper'));
+  document.getElementById('letter-paper').addEventListener('input', scheduleLetterSave);
+  if (letterInterviewScope() !== 'individual') subscribeLetterShared();
+  logToSheet('음악편지열기', collectedScenes[collectedScenes.length-1]?.title||'', '');
+}
+
+function populateInterviewSceneSelect() {
+  const sel = document.getElementById('interview-scene-select');
+  if (!sel) return;
+  sel.innerHTML = collectedScenes.map((s, i) =>
+    `<option value="${i}">${i+1}. ${s.title}${s.visualType==='sketch' ? ' ✍️' : ''}</option>`).join('');
+}
+function onInterviewSceneChange() {
+  const idx = Number(document.getElementById('interview-scene-select').value || 0);
+  fillInterviewFromScene(idx);
+}
+function fillInterviewFromScene(idx) {
+  const s = collectedScenes[idx]; if (!s) return;
+  document.getElementById('interview-img').src = s.imageUrl;
+  document.getElementById('interview-song').value = s.title || '';
+  scheduleInterviewSave();
+}
+
+const defaultQuestions = [
+  '이 음악을 처음 들었을 때 어떤 느낌이었나요?',
+  '이 음악을 듣고 떠오른 장면이나 색깔이 있다면?',
+  '이 음악에서 가장 인상 깊었던 부분은 어디인가요? (리듬, 선율, 가사 등)',
+  '이 음악이 어떤 감정을 표현하고 있다고 생각하나요?',
+  '이 음악을 누구에게, 어떤 상황에서 들려주고 싶나요?',
+  '이 음악을 통해 새롭게 알게 된 것이 있다면 무엇인가요?',
+];
+let interviewSaveTimer = null;
+function collectInterviewData(){
+  const questions = Array.from(document.querySelectorAll('#qa-section .qa-q')).map(el => el.textContent.replace(/^Q\d+\.\s*/,''));
+  const answers = Array.from(document.querySelectorAll('#qa-section .qa-textarea')).map(el => el.value);
+  return {
+    subtitle: document.getElementById('interview-subtitle')?.value || '',
+    song: document.getElementById('interview-song')?.value || '',
+    date: document.getElementById('interview-date')?.value || '',
+    questions, answers,
+    sceneIndex: Number(document.getElementById('interview-scene-select')?.value || 0),
+  };
+}
+function scheduleInterviewSave(){
+  clearTimeout(interviewSaveTimer);
+  interviewSaveTimer = setTimeout(() => {
+    pendingInterviewData = collectInterviewData();
+    if (letterInterviewScope() === 'individual') {
+      saveModalData('interview', pendingInterviewData);
+      return;
+    }
+    const ref = currentLetterInterviewRef('interview');
+    if (!ref) return;
+    ref.set({
+      ...pendingInterviewData,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: STUDENT_NUMBER || ''
+    }, {merge:true}).catch(e => console.warn('인터뷰 공유 저장 실패', e));
+  }, 1000);
+}
+function subscribeInterviewShared(){
+  const ref = currentLetterInterviewRef('interview');
+  if (!ref) return;
+  if (unsubInterview) unsubInterview();
+  unsubInterview = ref.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const data = snap.data();
+    if (data.updatedBy === STUDENT_NUMBER) return;
+    const paper = document.getElementById('interview-paper');
+    if (paper && paper.contains(document.activeElement)) return;
+    pendingInterviewData = data;
+    document.getElementById('interview-subtitle').value = data.subtitle || '';
+    document.getElementById('interview-song').value = data.song || '';
+    document.getElementById('interview-date').value = data.date || '';
+    if (data.sceneIndex !== undefined && collectedScenes[data.sceneIndex]) {
+      document.getElementById('interview-scene-select').value = data.sceneIndex;
+      document.getElementById('interview-img').src = collectedScenes[data.sceneIndex].imageUrl;
+    }
+    const qs = (data.questions && data.questions.length) ? data.questions : defaultQuestions;
+    buildQASection(qs);
+    (data.answers || []).forEach((a, i) => {
+      const els = document.querySelectorAll('#qa-section .qa-textarea');
+      if (els[i]) els[i].value = a;
+    });
+  }, err => console.warn('인터뷰 공유 동기화 오류', err));
+}
+async function finalizeInterview(){
+  const data = collectInterviewData();
+  const qa = data.questions.map((q,i)=>`${q} → ${data.answers[i]||''}`).filter(line=>!line.endsWith('→ ')).join('\n');
+  const context = [`음악: ${data.song||''}`, qa && `인터뷰 응답: ${qa}`].filter(Boolean).join('\n');
+  const note = await generateActivityNoteAI(context);
+  logToSheet('음악인터뷰완성', data.song||'', '', note);
+  autoGrowAll('interview-paper');
+  setTimeout(()=>window.print(), 120);
+}
+async function openInterview() {
+  if (collectedScenes.length === 0) { showToast('⚠️ 먼저 장면을 하나 이상 추가해주세요'); return; }
+  populateInterviewSceneSelect();
+  const now = new Date();
+  if (letterInterviewScope() !== 'individual') {
+    try {
+      const ref = currentLetterInterviewRef('interview');
+      if (ref) { const snap = await ref.get(); pendingInterviewData = snap.exists ? snap.data() : null; }
+    } catch(e) { console.warn('인터뷰 불러오기 실패', e); }
+  }
+  let idx = collectedScenes.length - 1;
+  if (pendingInterviewData && pendingInterviewData.sceneIndex !== undefined && collectedScenes[pendingInterviewData.sceneIndex]) {
+    idx = pendingInterviewData.sceneIndex;
+  }
+  document.getElementById('interview-scene-select').value = idx;
+  const s = collectedScenes[idx];
+  document.getElementById('interview-img').src = s.imageUrl;
+  if (pendingInterviewData) {
+    document.getElementById('interview-subtitle').value = pendingInterviewData.subtitle || '';
+    document.getElementById('interview-song').value = pendingInterviewData.song || s.title || '';
+    document.getElementById('interview-date').value = pendingInterviewData.date || (now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일');
+    const qs = (pendingInterviewData.questions && pendingInterviewData.questions.length) ? pendingInterviewData.questions : defaultQuestions;
+    buildQASection(qs);
+    (pendingInterviewData.answers || []).forEach((a, i) => {
+      const els = document.querySelectorAll('#qa-section .qa-textarea');
+      if (els[i]) els[i].value = a;
+    });
+  } else {
+    document.getElementById('interview-song').value = s.title || '';
+    document.getElementById('interview-date').value = now.getFullYear()+'년 '+(now.getMonth()+1)+'월 '+now.getDate()+'일';
+    buildQASection(defaultQuestions);
+  }
+  document.getElementById('interview-modal').classList.add('open');
+  requestAnimationFrame(()=>autoGrowAll('interview-paper'));
+  document.getElementById('interview-paper').addEventListener('input', scheduleInterviewSave);
+  if (letterInterviewScope() !== 'individual') subscribeInterviewShared();
+  logToSheet('음악인터뷰열기', s.title||'', '');
+}
+function buildQASection(questions) {
+  const section = document.getElementById('qa-section');
+  section.innerHTML = questions.map((q, i) => `
+    <div class="qa-item">
+      <div class="qa-q">Q${i+1}. ${q}</div>
+      <div class="field-hint">${escHtml(hintText('interviewHint'))}</div>
+      <textarea class="qa-textarea" style="min-height:140px" placeholder="답변을 자세히 적어보세요..." rows="6"></textarea>
+    </div>
+  `).join('');
+}
+async function generateInterviewQ() {
+  const s = collectedScenes[collectedScenes.length - 1] || {};
+  if (!GEMINI_KEY) { showToast('⚠️ 선생님이 아직 API 키를 설정하지 않았어요'); return; }
+  showToast('✨ AI가 질문을 생성하고 있어요...');
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{parts:[{text:
+        `음악 감상 수업에서 중학생이 다음 장르의 음악을 감상했습니다.\n장르: ${s.title||'(장르 미입력)'}\n감정/분위기: ${[s.emotion, s.musicMood].filter(Boolean).join(', ')||'(미입력)'}\n\n이 학생에게 맞는 음악 감상 인터뷰 질문 6개를 만들어주세요.\n- 음악 요소(리듬, 선율, 화성, 음색)와 연결된 질문 포함\n- 학생의 감정과 경험을 끌어내는 질문\n- 서논술형 평가로 활용 가능한 깊이있는 질문\n- 번호 없이 질문만, 한 줄씩, 총 6개만 출력하세요`
+      }]}]})
+    });
+    const data = await resp.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const questions = text.split('\n').map(q=>q.trim()).filter(q=>q.length>5).slice(0,6);
+    if (questions.length > 0) { buildQASection(questions); scheduleInterviewSave(); showToast('✅ AI 질문 생성 완료!'); }
+    else { showToast('⚠️ 질문 생성 실패, 기본 질문으로 표시해요'); buildQASection(defaultQuestions); }
+  } catch(e) {
+    showToast('⚠️ AI 연결 실패, 기본 질문으로 표시해요');
+    buildQASection(defaultQuestions);
+  }
+}
+
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text || '생성 중...';
+  document.getElementById('loading').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════
+// 진입점: URL 파라미터로 교사/학생 모드 분기
+// ══════════════════════════
+(function(){
+  buildStyleGrid();
+  buildColorGrid();
+  buildMoodGrid();
+  buildSegmentRow();
+  initSketch();
+  attachDraftAutosaveListeners();
+  renderSceneList();
+
+  const params = new URLSearchParams(window.location.search);
+  const role = params.get('role');
+  const teacherParam = params.get('teacher');
+  const roomParam = params.get('room');
+
+  if(!firebaseReady){
+    document.getElementById('loadingOverlay').textContent = '⚠️ Firebase 설정이 필요해요';
+    return;
+  }
+
+  if(role === 'student'){
+    isStudentMode = true;
+    if(!teacherParam || !roomParam){ renderNoTeacherLink(); return; }
+    teacherUid = teacherParam;
+    roomId = roomParam;
+    subscribeSettings(teacherUid, ()=>{});
+    subscribeRoom(teacherUid, roomId, ()=>{ renderStudentLoginGate(); });
+    return;
+  }
+
+  auth.onAuthStateChanged(user=>{
+    currentUser = user;
+    if(user){
+      teacherUid = user.uid;
+      subscribeSettings(teacherUid, ()=>{});
+      enterTeacherDashboard();
+    } else {
+      renderTeacherGoogleGate();
+    }
+  });
+})();
+</script>
+</body>
+</html>
