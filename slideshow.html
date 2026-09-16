@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EAIM 슬라이드쇼</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <style>
@@ -15,7 +17,7 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .slide.visible{opacity:1}
 .parallax-container{position:absolute;inset:0;overflow:hidden}
 .bg-layer{position:absolute;inset:-4%;width:108%;height:108%;object-fit:cover;transition:opacity 1.4s ease, transform .1s ease-out;will-change:transform}
-.char-wrap{position:absolute;bottom:0;left:55%;height:85%;max-width:38%;z-index:5;cursor:move}
+.char-wrap{position:absolute;bottom:0;left:55%;height:85%;max-width:38%;z-index:5;cursor:move;touch-action:none}
 .char-wrap.selected{outline:3px dashed #5DADE2;outline-offset:8px;border-radius:8px}
 .char-layer{height:100%;width:auto;max-width:100%;object-fit:contain;transition:opacity 1s ease, transform .08s ease-out;will-change:transform;filter:drop-shadow(0 8px 32px rgba(0,0,0,.7));display:block;pointer-events:none}
 .char-del-btn{position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:#ff5252;color:#fff;font-size:12px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;line-height:1;pointer-events:auto}
@@ -49,6 +51,7 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 #controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.65);backdrop-filter:blur(14px);border-radius:40px;padding:7px 16px;border:1px solid rgba(255,255,255,.12);z-index:100}
 .ctrl-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.8);font-size:17px;padding:4px 8px;line-height:1}
 .ctrl-btn:disabled{opacity:.25;cursor:default}
+.ctrl-btn.active{color:#5DADE2}
 .dot-nav{display:flex;gap:5px;align-items:center;padding:0 4px}
 .dot{width:7px;height:7px;border-radius:4px;cursor:pointer;background:rgba(255,255,255,.28);transition:all .25s}
 .dot.active{width:20px}
@@ -82,6 +85,18 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .credits-footer{text-align:center;margin-top:56px;padding-bottom:40px}
 #back-btn{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:200;padding:10px 28px;border-radius:8px;background:rgba(93,173,226,.15);border:1px solid rgba(93,173,226,.5);color:#5DADE2;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px);display:none}
 #api-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
+#rec-checklist-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
+#rec-checklist-modal.hidden{display:none}
+.rec-checklist{display:flex;flex-direction:column;gap:10px;text-align:left;margin-bottom:16px}
+.rec-check-item{display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:12.5px;line-height:1.6;color:rgba(255,255,255,.85)}
+.rec-check-item:has(input:checked){border-color:rgba(255,82,82,.5);background:rgba(255,82,82,.08)}
+.rec-check-item input{margin-top:2px;accent-color:#ff5252;flex-shrink:0}
+.rec-check-item em{color:rgba(255,255,255,.45);font-style:normal}
+#rec-confirm-btn:disabled{opacity:.35;cursor:not-allowed;background:rgba(255,255,255,.1)!important}
+#btn-rec{background:rgba(255,82,82,.16);border:1.5px solid rgba(255,82,82,.55);border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;color:#ff5252!important;animation:recIdlePulse 2.4s ease-in-out infinite}
+#btn-rec.is-recording{animation:recActivePulse 1s ease-in-out infinite;background:rgba(255,82,82,.35);border-color:#ff5252}
+@keyframes recIdlePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,82,82,.35)}50%{box-shadow:0 0 0 6px rgba(255,82,82,0)}}
+@keyframes recActivePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,82,82,.55)}50%{box-shadow:0 0 0 9px rgba(255,82,82,0)}}
 #api-modal.hidden{display:none}
 .api-box{background:linear-gradient(135deg,#13131a,#1a0a2e);border:1px solid rgba(93,173,226,.3);border-radius:16px;padding:32px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .api-title{font-size:18px;font-weight:800;margin-bottom:6px}
@@ -97,6 +112,28 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .api-status.gemini{border-color:rgba(93,173,226,.4);color:#5DADE2}
 .api-status.pollinations{border-color:rgba(105,240,174,.3);color:#69f0ae}
 #blackout{position:fixed;inset:0;z-index:500;background:#000;opacity:0;pointer-events:none;transition:opacity .5s ease}
+#hover-tooltip{
+  position:fixed;z-index:9998;pointer-events:none;
+  background:rgba(255,255,255,.96);color:#1a1a1a;
+  border-radius:14px;padding:8px 14px;
+  font-size:12.5px;font-weight:600;line-height:1.5;max-width:280px;
+  box-shadow:0 6px 24px rgba(0,0,0,.45);
+  opacity:0;transform:translateY(4px) scale(.97);transition:opacity .15s ease,transform .15s ease;
+  word-break:keep-all;
+}
+#hover-tooltip::after{
+  content:'';position:absolute;bottom:-9px;left:var(--tip-arrow,20px);margin-left:-6px;
+  border:6px solid transparent;border-top-color:rgba(255,255,255,.96);border-bottom:none;
+}
+#hover-tooltip.below::after{
+  bottom:auto;top:-9px;
+  border-top-color:transparent;border-bottom:6px solid rgba(255,255,255,.96);
+}
+#hover-tooltip.show{opacity:1;transform:translateY(0) scale(1)}
+#ppt-progress{position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#ppt-progress.show{display:flex}
+.ppt-spinner{width:48px;height:48px;border:4px solid rgba(93,173,226,.25);border-top:4px solid #5DADE2;border-radius:50%;animation:spin 1s linear infinite}
+#ppt-progress-text{font-size:14px;color:#fff;letter-spacing:1px}
 #blackout.fade-in{opacity:1;pointer-events:auto}
 #blackout.fade-out{opacity:0;pointer-events:none}
 #blackout-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,.15);font-size:clamp(12px,2vw,18px);letter-spacing:6px;text-transform:uppercase}
@@ -106,7 +143,7 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .number-lyrics-line .current-line{color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,.4),0 2px 8px rgba(0,0,0,.8)}
 .number-lyrics-line .next-line{font-size:.75em;color:rgba(255,255,255,.45);margin-top:4px}
 .lyrics-toggle-btn{position:absolute;bottom:52px;right:16px;z-index:26;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit}
-.speech-bubble{position:absolute;background:rgba(255,255,255,.95);color:#1a1a1a;border-radius:18px;padding:10px 16px;font-size:clamp(12px,1.8vw,16px);font-weight:600;line-height:1.5;max-width:220px;word-break:keep-all;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:30;cursor:move;user-select:none;animation:bubblePop .3s ease;border:2px solid rgba(0,0,0,.06)}
+.speech-bubble{position:absolute;background:rgba(255,255,255,.95);color:#1a1a1a;border-radius:18px;padding:10px 16px;font-size:clamp(12px,1.8vw,16px);font-weight:600;line-height:1.5;max-width:220px;word-break:keep-all;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:30;cursor:move;user-select:none;touch-action:none;animation:bubblePop .3s ease;border:2px solid rgba(0,0,0,.06)}
 .speech-bubble::after{content:'';position:absolute;bottom:-12px;left:24px;border:7px solid transparent;border-top-color:rgba(255,255,255,.95);border-bottom:none}
 .speech-bubble.tail-right::after{left:auto;right:24px}
 .speech-bubble.tail-top::after{bottom:auto;top:-12px;border-top:none;border-bottom:7px solid rgba(255,255,255,.95)}
@@ -153,6 +190,12 @@ select.bubble-ctrl-btn{padding:5px 8px}
 @keyframes charJump{0%,100%{transform:translateY(0)}40%{transform:translateY(-22px)}70%{transform:translateY(-8px)}}
 @keyframes charExitRight{from{transform:translateX(0);opacity:1}to{transform:translateX(120%);opacity:0}}
 @keyframes charFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes charSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes charPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes charNod{0%,100%{transform:rotate(0deg)}15%{transform:rotate(-8deg)}30%{transform:rotate(8deg)}45%{transform:rotate(-8deg)}60%{transform:rotate(8deg)}75%{transform:rotate(-4deg)}90%{transform:rotate(4deg)}}
+@keyframes charSparkle{0%,100%{filter:drop-shadow(0 8px 32px rgba(0,0,0,.7)) brightness(1)}50%{filter:drop-shadow(0 8px 32px rgba(0,0,0,.7)) drop-shadow(0 0 20px rgba(255,255,200,.9)) brightness(1.15)}}
+@keyframes charBounceLoop{0%,100%{transform:translateY(0) scale(1,1)}30%{transform:translateY(-18px) scale(1.05,.95)}50%{transform:translateY(0) scale(.95,1.05)}70%{transform:translateY(-6px) scale(1.02,.98)}}
+@keyframes heartFloat{0%{transform:translateY(0) scale(.5);opacity:0}20%{opacity:1;transform:translateY(-10px) scale(1.2)}100%{transform:translateY(-60px) scale(1);opacity:0}}
 
 .char-anim-slide-left{animation:charSlideLeft .6s cubic-bezier(.22,1,.36,1) forwards}
 .char-anim-slide-right{animation:charSlideRight .6s cubic-bezier(.22,1,.36,1) forwards}
@@ -165,6 +208,12 @@ select.bubble-ctrl-btn{padding:5px 8px}
 .char-anim-jump{animation:charJump .5s ease}
 .char-anim-exit-right{animation:charExitRight .5s ease forwards}
 .char-anim-fade-out{animation:charFadeOut .5s ease forwards}
+.char-anim-spin{animation:charSpin .7s ease forwards}
+.char-anim-pop{animation:charPop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+.char-anim-nod{animation:charNod 1.2s ease-in-out infinite}
+.char-anim-sparkle{animation:charSparkle 1.8s ease-in-out infinite}
+.char-anim-bounce{animation:charBounceLoop .9s ease-in-out infinite}
+.char-heart{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:28px;pointer-events:none;animation:heartFloat 1.4s ease-out forwards;z-index:7}
 
 #rec-indicator{position:fixed;top:16px;left:16px;z-index:600;display:none;align-items:center;gap:8px;background:rgba(0,0,0,.8);padding:6px 14px;border-radius:20px;border:1px solid rgba(255,82,82,.5);color:#ff5252;font-size:11px;letter-spacing:1px}
 #rec-indicator.show{display:flex}
@@ -200,41 +249,15 @@ select.bubble-ctrl-btn{padding:5px 8px}
 @keyframes starTwinkle{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
 .star-particle{position:absolute;color:#fff;animation:starTwinkle ease-in-out infinite}
 
-/* ══════════════════════════
-   🗨 커서 호버 말풍선 툴팁
-   ══════════════════════════ */
-#hover-tooltip{
-  position:fixed;z-index:9998;pointer-events:none;
-  background:rgba(255,255,255,.96);color:#1a1a1a;
-  border-radius:14px;padding:8px 14px;
-  font-size:12px;font-weight:600;line-height:1.4;
-  max-width:200px;word-break:keep-all;
-  box-shadow:0 4px 16px rgba(0,0,0,.35);
-  border:2px solid rgba(0,0,0,.06);
-  opacity:0;transform:translateY(6px) scale(.92);
-  transition:opacity .18s ease,transform .18s ease;
-  font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;
-}
-#hover-tooltip::after{
-  content:'';position:absolute;bottom:-9px;left:var(--tip-arrow,20px);margin-left:-6px;
-  border:6px solid transparent;border-top-color:rgba(255,255,255,.96);border-bottom:none;
-}
-#hover-tooltip.below::after{
-  bottom:auto;top:-9px;
-  border-top-color:transparent;border-bottom:6px solid rgba(255,255,255,.96);
-}
-#hover-tooltip.show{opacity:1;transform:translateY(0) scale(1)}
-#ppt-progress{position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
-#ppt-progress.show{display:flex}
-.ppt-spinner{width:48px;height:48px;border:4px solid rgba(93,173,226,.25);border-top:4px solid #5DADE2;border-radius:50%;animation:spin 1s linear infinite}
-#ppt-progress-text{font-size:14px;color:#fff;letter-spacing:1px}
-#dialogue-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);display:none;align-items:center;gap:10px;background:rgba(0,0,0,.7);backdrop-filter:blur(12px);border-radius:30px;padding:8px 10px 8px 16px;border:1px solid rgba(255,255,255,.12);z-index:150}
-#dialogue-bar.show{display:flex}
-#dialogue-progress{font-size:11px;color:rgba(255,255,255,.55);letter-spacing:1px;min-width:52px;text-align:center}
-.dlg-btn{background:rgba(93,173,226,.18);border:1px solid rgba(93,173,226,.4);color:#5DADE2;border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
-.dlg-btn:disabled{opacity:.3;cursor:default}
-.dlg-btn.reset{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:6px 10px}
-.auto-dialogue-bubble{transition:opacity .25s ease}
+/* ── 영상용 음악 업로드 (신규) ── */
+#music-upload-bar{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:600;display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);border:1px solid rgba(76,175,130,.4);border-radius:24px;padding:8px 16px;font-size:12px}
+#music-upload-bar label{color:rgba(255,255,255,.6);white-space:nowrap}
+#music-upload-bar input[type=file]{font-size:11px;color:rgba(255,255,255,.6);max-width:170px}
+.music-dot{width:7px;height:7px;border-radius:50%;background:#666;flex-shrink:0}
+.music-dot.active{background:#4CAF82;box-shadow:0 0 8px #4CAF82}
+#music-upload-bar .mu-hide-btn{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);border-radius:14px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:inherit}
+#music-play-btn{background:rgba(76,175,130,.25);border:1px solid rgba(76,175,130,.5);color:#4CAF82;border-radius:14px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:inherit}
+#music-volume{width:60px;accent-color:#4CAF82}
 </style>
 </head>
 <body>
@@ -257,27 +280,53 @@ select.bubble-ctrl-btn{padding:5px 8px}
   </div>
 </div>
 
+<div id="rec-checklist-modal" class="hidden">
+  <div class="api-box" style="max-width:420px">
+    <div style="font-size:32px;margin-bottom:12px">🎬</div>
+    <div class="api-title">녹화 시작 전 확인!</div>
+    <div class="api-sub">아래를 확인하고 준비되면 시작해주세요.</div>
+    <div class="rec-checklist">
+      <label class="rec-check-item"><input type="checkbox" id="chk-music"><span>🎵 편곡 음악을 업로드했나요? <em>(안 하면 영상에 소리가 없어요)</em></span></label>
+      <label class="rec-check-item"><input type="checkbox" id="chk-order"><span>▶ 슬라이드 순서·내용을 확인했나요?</span></label>
+      <label class="rec-check-item"><input type="checkbox" id="chk-window"><span>🖥 다른 창·알림을 다 닫고 이 화면만 보이게 했나요?</span></label>
+      <label class="rec-check-item"><input type="checkbox" id="chk-share"><span>🪟 잠시 후 "화면 공유" 창이 뜨면, 반드시 <b>이 탭(창)</b>을 선택해야 해요</span></label>
+    </div>
+    <div class="api-row">
+      <button class="api-btn-ok" id="rec-confirm-btn" onclick="confirmStartRecording()" disabled style="background:linear-gradient(135deg,#ff5252,#b71c1c)">🔴 녹화 시작</button>
+      <button class="api-btn-skip" onclick="closeRecChecklist()">취소</button>
+    </div>
+  </div>
+</div>
+
 <div class="api-status" id="api-status" onclick="resetApiKey()"></div>
 <div id="signal-indicator">🚦 <span id="signal-text">음향 신호 발신 중</span></div>
 <div id="rec-indicator"><div class="rec-dot"></div><span id="rec-text">녹화 중... 0:00</span></div>
 <div id="blackout"><div id="blackout-text"></div></div>
+<div id="hover-tooltip"></div>
 <div id="ppt-progress"><div class="ppt-spinner"></div><div id="ppt-progress-text">PPT 생성 준비 중...</div></div>
 
-<div id="hover-tooltip"></div>
+<div id="music-upload-bar">
+  <div class="music-dot" id="music-upload-dot"></div>
+  <label>🎵 배경 음악 (편곡본)</label>
+  <input type="file" id="arrangement-file" accept="audio/*" onchange="loadArrangementFile(event)">
+  <button id="music-play-btn" onclick="toggleArrangementPlay()" style="display:none">⏸</button>
+  <input type="range" id="music-volume" min="0" max="1" step="0.05" value="0.6" oninput="setMusicVolume(this.value)" style="display:none" data-tip="음악 소리 크기를 조절해요">
+  <button class="mu-hide-btn" onclick="toggleMusicBar()">숨기기</button>
+</div>
 
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
   <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px">추가된 캐릭터: <span id="char-count">0</span>/3</div>
-  <input id="char-url-input" data-tip="캐릭터로 쓸 이미지의 URL을 붙여넣어요" placeholder="캐릭터 이미지 URL (인터넷 주소가 있을 때)">
-  <button class="char-panel-btn" data-tip="입력한 URL을 무대 위 캐릭터로 올려요" onclick="applyCharLayer()">✓ URL로 추가</button>
+  <input id="char-url-input" placeholder="캐릭터 이미지 URL (인터넷 주소가 있을 때)">
+  <button class="char-panel-btn" onclick="applyCharLayer()">✓ URL로 추가</button>
   <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);margin:6px 0">— 또는 —</div>
   <input type="file" id="char-file-input" accept="image/*" style="display:none" onchange="applyCharLayerFromFile(this)">
-  <button class="char-panel-btn" data-tip="내 기기에 있는 이미지 파일을 캐릭터로 올려요" style="background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.35);color:#ffd54f" onclick="document.getElementById('char-file-input').click()">📁 내 기기에서 이미지 파일 올리기</button>
-  <button class="char-panel-btn remove" data-tip="선택된(또는 가장 최근) 캐릭터를 무대에서 지워요" onclick="removeCharLayer()">✕ 선택된 캐릭터 제거</button>
-  <button class="char-panel-btn remove" data-tip="모든 캐릭터를 무대에서 지워요" onclick="clearAllChars()" style="opacity:.85">🗑 전체 제거</button>
-  <button class="char-panel-btn anim" data-tip="캐릭터에게 움직임을 넣는 메뉴를 열어요" onclick="toggleAnimPanel()">🎬 애니메이션 (선택된 캐릭터)</button>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin:6px 0;line-height:1.6">💡 한 장면에 최대 3명까지 추가할 수 있어요. 캐릭터를 클릭하면 선택되고, 드래그하면 자유롭게 위치를 옮길 수 있어요</div>
-  <button class="char-panel-btn" data-tip="캐릭터 패널을 닫아요" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
+  <button class="char-panel-btn" style="background:rgba(255,213,79,.12);border-color:rgba(255,213,79,.35);color:#ffd54f" onclick="document.getElementById('char-file-input').click()">📁 내 기기에서 이미지 파일 올리기</button>
+  <button class="char-panel-btn remove" onclick="removeCharLayer()">✕ 선택된 캐릭터 제거</button>
+  <button class="char-panel-btn remove" onclick="clearAllChars()" style="opacity:.85">🗑 전체 제거</button>
+  <button class="char-panel-btn anim" onclick="toggleAnimPanel()">🎬 애니메이션 (선택된 캐릭터)</button>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin:6px 0;line-height:1.6">💡 캐릭터를 클릭하면 선택되고, 드래그하면 자유롭게 위치를 옮길 수 있어요</div>
+  <button class="char-panel-btn" onclick="toggleCharPanel()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:rgba(255,255,255,.3)">닫기</button>
 </div>
 
 <div id="char-anim-panel">
@@ -285,108 +334,93 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <div class="anim-section">
     <div class="anim-section-title">✨ 등장</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" data-tip="왼쪽에서 미끄러지듯 등장해요" onclick="playCharAnim('slide-left')">← 왼쪽</button>
-      <button class="anim-btn" data-tip="오른쪽에서 미끄러지듯 등장해요" onclick="playCharAnim('slide-right')">→ 오른쪽</button>
-      <button class="anim-btn" data-tip="아래에서 위로 올라오며 등장해요" onclick="playCharAnim('slide-up')">↑ 아래서</button>
-      <button class="anim-btn" data-tip="서서히 나타나며 등장해요" onclick="playCharAnim('fade-in')">✦ 페이드인</button>
+      <button class="anim-btn" onclick="playCharAnim('slide-left')">← 왼쪽</button>
+      <button class="anim-btn" onclick="playCharAnim('slide-right')">→ 오른쪽</button>
+      <button class="anim-btn" onclick="playCharAnim('slide-up')">↑ 아래서</button>
+      <button class="anim-btn" onclick="playCharAnim('fade-in')">✦ 페이드인</button>
+      <button class="anim-btn" onclick="playCharAnim('spin')">🌀 빙글 회전</button>
+      <button class="anim-btn" onclick="playCharAnim('pop')">🎈 뿅 팝업</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">🔄 상시효과</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" id="anim-float" data-tip="위아래로 둥둥 떠 있는 느낌을 줘요" onclick="toggleLoopAnim('float')">🌊 둥둥</button>
-      <button class="anim-btn" id="anim-breathe" data-tip="숨쉬듯 살짝 커졌다 작아졌다 해요" onclick="toggleLoopAnim('breathe')">💨 숨쉬기</button>
-      <button class="anim-btn" id="anim-sway" data-tip="좌우로 살랑살랑 흔들려요" onclick="toggleLoopAnim('sway')">🍃 흔들림</button>
-      <button class="anim-btn" data-tip="지금 켜진 상시 효과를 꺼요" onclick="stopLoopAnim()">⏹ 중지</button>
+      <button class="anim-btn" id="anim-float" onclick="toggleLoopAnim('float')">🌊 둥둥</button>
+      <button class="anim-btn" id="anim-breathe" onclick="toggleLoopAnim('breathe')">💨 숨쉬기</button>
+      <button class="anim-btn" id="anim-sway" onclick="toggleLoopAnim('sway')">🍃 흔들림</button>
+      <button class="anim-btn" id="anim-nod" onclick="toggleLoopAnim('nod')">🙅 도리도리</button>
+      <button class="anim-btn" id="anim-sparkle" onclick="toggleLoopAnim('sparkle')">✨ 반짝반짝</button>
+      <button class="anim-btn" id="anim-bounce" onclick="toggleLoopAnim('bounce')">⚽ 통통 튀기</button>
+      <button class="anim-btn" onclick="stopLoopAnim()">⏹ 중지</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">💬 말할 때</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" data-tip="한 번 통통 튀는 동작이에요" onclick="playCharAnim('jump')">⬆ 점프</button>
-      <button class="anim-btn" data-tip="놀란 듯 짧게 흔들리는 동작이에요" onclick="playCharAnim('shake')">〰 흔들림</button>
+      <button class="anim-btn" onclick="playCharAnim('jump')">⬆ 점프</button>
+      <button class="anim-btn" onclick="playCharAnim('shake')">〰 흔들림</button>
+      <button class="anim-btn" onclick="spawnCharHeart()">💖 하트 뿅뿅</button>
     </div>
   </div>
   <div class="anim-section">
     <div class="anim-section-title">🚪 퇴장</div>
     <div class="anim-btn-grid">
-      <button class="anim-btn" data-tip="오른쪽으로 미끄러지며 퇴장해요" onclick="playCharAnim('exit-right')">→ 퇴장</button>
-      <button class="anim-btn" data-tip="서서히 사라지며 퇴장해요" onclick="playCharAnim('fade-out')">✦ 페이드아웃</button>
+      <button class="anim-btn" onclick="playCharAnim('exit-right')">→ 퇴장</button>
+      <button class="anim-btn" onclick="playCharAnim('fade-out')">✦ 페이드아웃</button>
     </div>
   </div>
-  <button class="anim-btn" data-tip="애니메이션 패널을 닫아요" onclick="toggleAnimPanel()" style="width:100%;margin-top:4px;color:rgba(255,255,255,.3)">닫기</button>
+  <button class="anim-btn" onclick="toggleAnimPanel()" style="width:100%;margin-top:4px;color:rgba(255,255,255,.3)">닫기</button>
 </div>
 
 <div id="bubble-panel">
-  <input id="bubble-name-input" data-tip="말풍선 위에 표시할 이름이에요 (선택)" placeholder="이름" maxlength="10">
-  <input id="bubble-text-input" data-tip="말풍선에 들어갈 대사를 입력해요" placeholder="대사 입력..." maxlength="40">
-  <select class="bubble-ctrl-btn" id="bubble-tail" data-tip="말풍선 꼬리 방향을 골라요">
+  <input id="bubble-name-input" data-tip="말풍선 위에 붙일 이름이에요 (안 써도 돼요)" placeholder="이름" maxlength="10">
+  <input id="bubble-text-input" data-tip="말풍선에 들어갈 대사를 써요" placeholder="대사 입력..." maxlength="40">
+  <select class="bubble-ctrl-btn" id="bubble-tail" data-tip="말풍선 꼬리가 향할 방향이에요">
     <option value="tail-left">꼬리 ↙</option>
     <option value="tail-right">꼬리 ↘</option>
     <option value="tail-top">꼬리 ↑</option>
   </select>
-  <button class="bubble-ctrl-btn" data-tip="입력한 대사로 말풍선을 무대에 추가해요" onclick="addBubble()">💬 추가</button>
-  <button class="bubble-ctrl-btn" data-tip="이 장면의 말풍선을 모두 지워요" onclick="clearBubbles()">🗑 전체삭제</button>
-  <button class="bubble-ctrl-btn" id="subtitle-toggle" data-tip="화면 하단 자막을 켜고 편집해요" onclick="toggleSubtitleEdit()">📝 자막</button>
-  <button class="bubble-ctrl-btn" data-tip="말풍선 패널을 닫아요" onclick="toggleBubblePanel()" style="color:rgba(255,255,255,.4)">✕</button>
+  <button class="bubble-ctrl-btn" onclick="addBubble()" data-tip="입력한 대사로 말풍선을 만들어요">💬 추가</button>
+  <button class="bubble-ctrl-btn" onclick="clearBubbles()" data-tip="이 장면의 말풍선을 모두 지워요">🗑 전체삭제</button>
+  <button class="bubble-ctrl-btn" id="subtitle-toggle" onclick="toggleSubtitleEdit()" data-tip="화면 아래 자막을 켜고 고쳐요">📝 자막</button>
+  <button class="bubble-ctrl-btn" onclick="toggleBubblePanel()" style="color:rgba(255,255,255,.4)">✕</button>
 </div>
 
-<div id="subtitle-bar" data-tip="클릭하면 자막 내용을 수정할 수 있어요" onclick="editSubtitle()">자막을 클릭하여 편집</div>
+<div id="subtitle-bar" onclick="editSubtitle()">자막을 클릭하여 편집</div>
 
 <div id="stage"></div>
 
 <div id="fx-overlay"></div>
 <div id="fx-panel">
-  <button class="fx-effect-btn" data-tip="화면에 안개가 은은하게 깔려요" onclick="toggleEffect('fog')">🌫️ 안개</button>
-  <button class="fx-effect-btn" data-tip="비가 내리는 연출이에요" onclick="toggleEffect('rain')">🌧️ 비</button>
-  <button class="fx-effect-btn" data-tip="번쩍이는 번개 효과예요" onclick="toggleEffect('lightning')">⚡ 번개</button>
-  <button class="fx-effect-btn" data-tip="반짝이는 빛 입자가 떠올라요" onclick="toggleEffect('light')">✨ 빛</button>
-  <button class="fx-effect-btn" data-tip="눈이 내리는 연출이에요" onclick="toggleEffect('snow')">❄️ 눈</button>
-  <button class="fx-effect-btn" data-tip="별이 반짝이는 연출이에요" onclick="toggleEffect('star')">🌟 별</button>
-  <button class="fx-effect-btn" data-tip="켜져 있는 효과를 모두 꺼요" onclick="clearEffects()" style="border-color:#f44336;color:#f44336">✕ 끄기</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('fog')">🌫️ 안개</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('rain')">🌧️ 비</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('lightning')">⚡ 번개</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('light')">✨ 빛</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('snow')">❄️ 눈</button>
+  <button class="fx-effect-btn" onclick="toggleEffect('star')">🌟 별</button>
+  <button class="fx-effect-btn" onclick="clearEffects()" data-tip="켜둔 배경 효과를 모두 꺼요" style="border-color:#f44336;color:#f44336">🗑 효과 전체 끄기</button>
+  <button class="fx-effect-btn" onclick="toggleFxPanel()" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.6)">✕ 패널 닫기 (효과 유지)</button>
 </div>
 <div id="controls" style="display:none">
-  <button class="ctrl-btn" id="btn-exit" data-tip="메이커 화면으로 돌아가요">✕</button>
-  <button class="ctrl-btn" id="btn-prev" data-tip="이전 장면으로 이동해요">◀</button>
+  <button class="ctrl-btn" id="btn-exit" data-tip="만들던 화면으로 돌아가요">✕</button>
+  <button class="ctrl-btn" id="btn-prev" data-tip="이전 장면으로 넘어가요">◀</button>
   <div class="dot-nav" id="dot-nav"></div>
-  <button class="ctrl-btn" id="btn-next" data-tip="다음 장면으로 이동해요">▶</button>
-  <button class="ctrl-btn" id="btn-auto" data-tip="⏱ 설정대로 자동 진행해요 (노래 길이에 맞춰 넘어갑니다 — 공연 중엔 ▶ 로 직접 넘겨도 돼요)">🔁</button>
-  <button class="ctrl-btn" id="btn-bubble" data-tip="말풍선 대사를 추가해요" onclick="toggleBubblePanel()">💬</button>
-  <button class="ctrl-btn" id="btn-char" data-tip="캐릭터 이미지를 무대에 올려요" onclick="toggleCharPanel()">🎭</button>
-  <button class="ctrl-btn" id="btn-rec" data-tip="화면을 녹화해요" onclick="toggleRecording()">⏺</button>
-  <button class="ctrl-btn" data-tip="안개·비·번개 등 배경 효과를 켜요" onclick="toggleFxPanel()">🎆</button>
-  <button class="ctrl-btn" id="btn-ppt" data-tip="지금 무대(효과·캐릭터·말풍선 포함)를 PPT 파일로 저장해요" onclick="downloadPPTX()">📊</button>
-  <button class="ctrl-btn" id="btn-save-deco" data-tip="지금 배치한 캐릭터·말풍선·효과를 저장해요 (새로고침해도 유지)" onclick="saveDecorations(true)" style="color:#69f0ae">✅</button>
-  <button class="ctrl-btn" id="btn-dlg-toggle" data-tip="이 장면의 대사를 한 줄씩 순서대로 말풍선으로 보여줘요" onclick="toggleDialogueBar()">🗨</button>
+  <button class="ctrl-btn" id="btn-next" data-tip="다음 장면으로 넘어가요">▶</button>
+  <button class="ctrl-btn" id="btn-auto" data-tip="⏱ 설정대로 자동 진행해요 (음악에 맞춰 넘어갑니다)">⏵</button>
+  <button class="ctrl-btn" id="btn-bubble" onclick="toggleBubblePanel()" data-tip="그림 위에 대사 말풍선을 올려요">💬</button>
+  <button class="ctrl-btn" id="btn-char" onclick="toggleCharPanel()" data-tip="캐릭터 그림을 무대에 올려요">🎭</button>
+  <button class="ctrl-btn" id="btn-rec" onclick="toggleRecording()" data-tip="버튼 없이 깨끗한 영상으로 녹화해요">⏺</button>
+  <button class="ctrl-btn" onclick="toggleFxPanel()" data-tip="안개·비·눈 같은 배경 효과를 켜요">🎆</button>
+  <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullscreen()" data-tip="전체화면으로 크게 봐요">⛶</button>
+  <button class="ctrl-btn" id="btn-save-deco" onclick="saveDecorations(true)" data-tip="지금 배치를 저장해요 (자동 저장도 되고 있어요)" style="color:#69f0ae">✅</button>
+  <button class="ctrl-btn" id="btn-ppt" onclick="downloadPPTX()" data-tip="지금 화면을 PPT 파일로 저장해요">📊</button>
 </div>
-<div id="dialogue-bar">
-  <button class="dlg-btn reset" data-tip="이 장면의 대사를 처음부터 다시 시작해요" onclick="resetDialogue()">⟲</button>
-  <button class="dlg-btn" id="dlg-prev" data-tip="이전 대사로 돌아가요" onclick="prevDialogueLine()">◀ 이전 대사</button>
-  <span id="dialogue-progress">0 / 0</span>
-  <button class="dlg-btn" id="dlg-next" data-tip="다음 대사를 말풍선으로 보여줘요" onclick="nextDialogueLine()">다음 대사 ▶</button>
-</div>
-<div id="key-hint">← → 키보드 | ESC 종료</div>
+<div id="key-hint">← → 키보드 | F 전체화면 | ESC 종료</div>
 <button id="back-btn" onclick="goBack()">↩ 처음으로</button>
 
 <script>
 'use strict';
-const raw = localStorage.getItem('eaim_musical_data');
 let DATA = null;
-if (raw) { try { DATA = JSON.parse(raw); } catch(e) {} }
-if (!DATA) {
-  DATA = {
-    title:'봄날의 이야기 (데모)',school:'',curtainSongTitle:'우리가 써온 이야기 (Reprise)',
-    curtainLyrics:'끝나지 않는 이야기가 있어\n우리가 함께 써 내려간 그 페이지\n웃고 울며 걸어온 이 길 위에서\n우린 서로에게 빛이 되었어',
-    credits:[{role:'감독',name:'박성애'},{role:'출연',name:'전체 학생'}],
-    scenes:[
-      {title:'봄날의 학교 교정',imagePrompt:'A bright spring schoolyard with cherry blossoms, watercolor style',characters:'민준, 서아',songTitle:'오늘이 시작이야',lyrics:'바람이 불어오는 이 교정 위에\n우리의 꿈이 피어나고 있어',emotion:'설렘',musicMood:'밝고 경쾌한'},
-      {title:'방과 후 도서관',imagePrompt:'A cozy library with warm lamplight, Studio Ghibli style',characters:'민준',songTitle:'혼자만의 시간',lyrics:'아무도 없는 이 공간에서\n나는 나를 찾아가고 있어',emotion:'고요함',musicMood:'잔잔한 현악'},
-      {title:'졸업식 운동장',imagePrompt:'An outdoor graduation ceremony, students tossing caps, confetti',characters:'전교생',songTitle:'우리가 써온 이야기',lyrics:'이제 우리 날아오를 시간\n함께 써온 이야기 끝나지 않아',emotion:'성취',musicMood:'장엄한 피날레'},
-    ]
-  };
-}
-// 뮤지컬메이커에서 넘어온 제목을 최우선으로 사용 (빈 문자열/공백만 있는 경우 대비)
-const SHOW_TITLE = (DATA.title && DATA.title.trim()) ? DATA.title.trim() : '뮤지컬 스토리보드';
 
 const EMOTION_COLORS = {
   default:{from:'#0D1B2A',to:'#16213e',accent:'#5DADE2',lyric:'#AED6F1'},
@@ -409,9 +443,90 @@ function getColor(emotion) {
 }
 
 const stage = document.getElementById('stage');
-const SCENES = DATA.scenes || [];
-const TOTAL = SCENES.length;
+let SCENES = [];
+let TOTAL = 0;
 let current = 0, autoPlay = false, autoTimer = null;
+
+// ══════════════════════════
+// 🔥 선생님용 원격 조회 — ?mode=teacher&teacher=UID&room=ROOMID(&student=번호 | &group=모둠번호)
+// ══════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",
+  authDomain: "eaim-classroom.firebaseapp.com",
+  projectId: "eaim-classroom",
+  storageBucket: "eaim-classroom.firebasestorage.app",
+  messagingSenderId: "294479576192",
+  appId: "1:294479576192:web:c60e994e319dbd2f11ba65"
+};
+let remoteDb = null, remoteReady = false;
+/* 학급 정보 — 학생 화면이든 선생님 화면이든 여기 담아두고 말풍선 동기화에 씁니다 */
+const _P = new URLSearchParams(location.search);
+const ROOM_CTX = {
+  mode:    _P.get('mode') || '',
+  teacher: _P.get('teacher') || '',
+  room:    _P.get('room') || '',
+  student: _P.get('student') || '',
+  group:   _P.get('group') || '',
+};
+const isTeacherView = () => ROOM_CTX.mode === 'teacher';
+const roomLinked = () => !!(remoteReady && ROOM_CTX.teacher && ROOM_CTX.room);
+const decoCol = () => remoteDb.collection('teachers').doc(ROOM_CTX.teacher)
+                    .collection('rooms').doc(ROOM_CTX.room).collection('slideDeco');
+try { firebase.initializeApp(firebaseConfig); remoteDb = firebase.firestore(); remoteReady = true; } catch(e) { remoteReady = false; }
+
+async function fetchRemoteData(teacherUid, roomId, studentNum, groupNum) {
+  const col = remoteDb.collection('teachers').doc(teacherUid).collection('rooms').doc(roomId).collection('scenes');
+  let query = col;
+  if (studentNum) query = col.where('studentNumber', '==', studentNum);
+  else if (groupNum) query = col.where('groupNumber', '==', groupNum);
+  const snap = await query.get();
+  const scenes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  scenes.sort((a,b) => (a.createdAt?.seconds||0) - (b.createdAt?.seconds||0));
+  let roomName = '';
+  try {
+    const roomSnap = await remoteDb.collection('teachers').doc(teacherUid).collection('rooms').doc(roomId).get();
+    roomName = roomSnap.exists ? (roomSnap.data().name || '') : '';
+  } catch(e) { /* 방 이름은 없어도 무방 */ }
+  return { title: roomName || '슬라이드쇼', school:'', scenes };
+}
+
+function defaultDemoData() {
+  return {
+    title:'슬라이드쇼',school:'',curtainSongTitle:'우리가 써온 이야기 (Reprise)',
+    curtainLyrics:'끝나지 않는 이야기가 있어\n우리가 함께 써 내려간 그 페이지\n웃고 울며 걸어온 이 길 위에서\n우린 서로에게 빛이 되었어',
+    credits:[{role:'감독',name:'박성애'},{role:'출연',name:'전체 학생'}],
+    scenes:[
+      {title:'봄날의 학교 교정',imagePrompt:'A bright spring schoolyard with cherry blossoms, watercolor style',characters:'민준, 서아',songTitle:'오늘이 시작이야',lyrics:'바람이 불어오는 이 교정 위에\n우리의 꿈이 피어나고 있어',emotion:'설렘',musicMood:'밝고 경쾌한'},
+      {title:'방과 후 도서관',imagePrompt:'A cozy library with warm lamplight, Studio Ghibli style',characters:'민준',songTitle:'혼자만의 시간',lyrics:'아무도 없는 이 공간에서\n나는 나를 찾아가고 있어',emotion:'고요함',musicMood:'잔잔한 현악'},
+      {title:'졸업식 운동장',imagePrompt:'An outdoor graduation ceremony, students tossing caps, confetti',characters:'전교생',songTitle:'우리가 써온 이야기',lyrics:'이제 우리 날아오를 시간\n함께 써온 이야기 끝나지 않아',emotion:'성취',musicMood:'장엄한 피날레'},
+    ]
+  };
+}
+
+async function resolveData() {
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode');
+  const teacherUid = params.get('teacher');
+  const roomId = params.get('room');
+  const studentNum = params.get('student');
+  const groupNum = params.get('group');
+
+  if (mode === 'teacher' && remoteReady && teacherUid && roomId) {
+    try {
+      DATA = await fetchRemoteData(teacherUid, roomId, studentNum, groupNum);
+    } catch(e) {
+      console.error('원격 불러오기 실패', e);
+      showToast('⚠️ 원격 데이터를 불러오지 못해 저장된 내용으로 표시해요');
+    }
+  }
+  if (!DATA) {
+    const raw = localStorage.getItem('eaim_musical_data');
+    if (raw) { try { DATA = JSON.parse(raw); } catch(e) {} }
+  }
+  if (!DATA) DATA = defaultDemoData();
+  SCENES = DATA.scenes || [];
+  TOTAL = SCENES.length;
+}
 
 let mouseX = 0, mouseY = 0, rafId = null;
 document.addEventListener('mousemove', e => {
@@ -478,12 +593,13 @@ function getPollinationsUrl(prompt, seed) {
 }
 async function loadBgImage(scene, idx) {
   const el = document.getElementById(`scene-slide-${idx}`); if (!el) return;
-  // 미디어픽쳐에서 넘어온 이미지는 http(s) URL 또는 data: URL(AI 생성/손그림 스케치) 둘 다일 수 있어요
+
   if (scene.imageUrl && (scene.imageUrl.startsWith('http') || scene.imageUrl.startsWith('data:'))) {
-    const isData = scene.imageUrl.startsWith('data:');
-    // 이미 만들어 둔 그림이므로 "생성 중"이 아니라 "불러오는 중" — data: 는 즉시 뜨니 스피너를 띄우지 않음
-    if (!isData) bgSpinner(idx, true, '배경 불러오는 중...');
-    setImgSrc(idx, scene.imageUrl, isData ? '🎨 이미지' : '📌 URL'); return;
+    const label = scene.imageUrl.startsWith('data:') ? '🎨 미디어픽쳐' : '📌 URL';
+    // 미디어픽쳐 그림(data:)은 이미 완성된 그림이라 스피너를 바로 끄고, 외부 URL만 '불러오는 중' 표시
+    if (scene.imageUrl.startsWith('data:')) bgSpinner(idx, false);
+    else bgSpinner(idx, true, '배경 불러오는 중...');
+    setImgSrc(idx, scene.imageUrl, label); return;
   }
   if (!scene.imagePrompt) { bgSpinner(idx, false); return; }
   if (GEMINI_KEY) {
@@ -492,14 +608,13 @@ async function loadBgImage(scene, idx) {
     catch(e) { setImgSrcWithFallback(idx, scene.imagePrompt); }
   } else { setImgSrcWithFallback(idx, scene.imagePrompt); }
 }
-/* 배경 스피너는 "그림이 실제로 뜨는 순간" 끈다.
-   loadBgImage 의 분기마다 끄게 하면 한 군데만 빠뜨려도 영원히 돌아간다. */
+/* 배경 스피너는 "그림이 실제로 뜨는 순간" 끈다 */
 function bgSpinner(idx, on, text) {
   const sp = document.getElementById(`bg-spinner-${idx}`); if(!sp) return;
   sp.style.display = on ? 'flex' : 'none';
   if (on && text) { const t = sp.lastElementChild; if (t) t.textContent = text; }
   clearTimeout(sp._t);
-  if (on) sp._t = setTimeout(()=>{ sp.style.display='none'; }, 20000);  // 안전망: 20초면 무조건 끔
+  if (on) sp._t = setTimeout(()=>{ sp.style.display='none'; }, 20000);
 }
 function setImgSrcWithFallback(idx, prompt) {
   const img=document.getElementById(`bgimg-${idx}`); if(!img) return;
@@ -525,6 +640,9 @@ function toggleCharPanel() {
   panel.classList.toggle('show');
   document.getElementById('btn-char').style.color = panel.classList.contains('show') ? '#FFD700' : 'rgba(255,255,255,.8)';
   updateCharCount();
+  if (panel.classList.contains('show') && (current === 0 || current === TOTAL + 1)) {
+    showToast('💡 캐릭터는 표지가 아니라 실제 장면(Scene)에서 추가해야 잘 보여요. ▶ 버튼으로 장면으로 이동해보세요');
+  }
 }
 let charIdCounter = 0;
 let selectedCharId = null;
@@ -550,26 +668,31 @@ document.getElementById('stage').addEventListener('click', (e) => {
 });
 function makeCharDraggable(el) {
   let sx, sy, sl, st, moved;
-  el.addEventListener('mousedown', e => {
+  el.addEventListener('pointerdown', e => {
     if (e.target.classList.contains('char-del-btn')) return;
     e.preventDefault();
     moved = false;
     const r = el.getBoundingClientRect(), pr = el.parentElement.getBoundingClientRect();
     sx = e.clientX; sy = e.clientY; sl = r.left - pr.left; st = r.top - pr.top;
-    const pw = pr.width || 1, ph = pr.height || 1;
     const mv = mv => {
       if (Math.abs(mv.clientX - sx) > 4 || Math.abs(mv.clientY - sy) > 4) moved = true;
-      el.style.left = ((sl + mv.clientX - sx) / pw * 100).toFixed(2) + '%';
-      el.style.top = ((st + mv.clientY - sy) / ph * 100).toFixed(2) + '%';
+      el.style.left = (sl + mv.clientX - sx) + 'px';
+      el.style.top = (st + mv.clientY - sy) + 'px';
       el.style.right = 'auto'; el.style.bottom = 'auto';
     };
     const up = () => {
-      document.removeEventListener('mousemove', mv);
-      document.removeEventListener('mouseup', up);
-      if (!moved) selectChar(el.dataset.charId); else autoSaveDeco();
+      document.removeEventListener('pointermove', mv);
+      document.removeEventListener('pointerup', up);
+      if (!moved) { selectChar(el.dataset.charId); return; }
+      const pr2 = el.parentElement.getBoundingClientRect();
+      if (pr2.width && pr2.height) {
+        el.style.left = (parseFloat(el.style.left) / pr2.width * 100).toFixed(2) + '%';
+        el.style.top  = (parseFloat(el.style.top)  / pr2.height * 100).toFixed(2) + '%';
+      }
+      autoSaveDeco();
     };
-    document.addEventListener('mousemove', mv);
-    document.addEventListener('mouseup', up);
+    document.addEventListener('pointermove', mv);
+    document.addEventListener('pointerup', up);
   });
 }
 function applyCharLayer() {
@@ -583,7 +706,11 @@ function applyCharLayerFromFile(input) {
   if (!file) return;
   if (!file.type.startsWith('image/')) { showToast('⚠️ 이미지 파일만 올릴 수 있어요'); input.value=''; return; }
   const reader = new FileReader();
-  reader.onload = () => { addCharacterImage(reader.result); input.value=''; };
+  reader.onload = async () => {
+    showToast('⏳ 캐릭터 그림 크기를 줄이는 중...');
+    const small = await shrinkForCloud(reader.result);
+    addCharacterImage(small); input.value='';
+  };
   reader.onerror = () => { showToast('⚠️ 파일을 읽지 못했어요'); input.value=''; };
   reader.readAsDataURL(file);
 }
@@ -601,7 +728,6 @@ function addCharacterImage(src) {
   const img = document.createElement('img');
   img.className = 'char-layer';
   img.src = src; img.alt = '캐릭터';
-  img.setAttribute('data-tip', '무대 위 캐릭터예요 · 클릭하면 선택, 드래그하면 이동해요');
   img.onerror = () => { showToast('⚠️ 이미지를 불러올 수 없어요'); wrap.remove(); updateCharCount(); };
   const delBtn = document.createElement('button');
   delBtn.className = 'char-del-btn';
@@ -612,6 +738,7 @@ function addCharacterImage(src) {
     if (selectedCharId === id) selectedCharId = null;
     updateCharCount();
     showToast('🗑 캐릭터 제거됨');
+    autoSaveDeco();
   };
   wrap.appendChild(img); wrap.appendChild(delBtn);
   makeCharDraggable(wrap);
@@ -619,13 +746,15 @@ function addCharacterImage(src) {
   selectChar(id);
   updateCharCount();
   showToast('✅ 캐릭터 추가됨! 드래그해서 위치를 옮길 수 있어요');
+  autoSaveDeco();
   return true;
 }
+
 function removeCharLayer() {
   const slide = getCurrentSlideEl(); if (!slide) return;
   let target = selectedCharId ? slide.querySelector(`.char-wrap[data-char-id="${selectedCharId}"]`) : null;
   if (!target) { const all = slide.querySelectorAll('.char-wrap'); target = all[all.length - 1]; }
-  if (target) { target.remove(); selectedCharId = null; showToast('🗑 캐릭터 제거됨'); }
+  if (target) { target.remove(); selectedCharId = null; showToast('🗑 캐릭터 제거됨'); autoSaveDeco(); }
   else showToast('⚠️ 제거할 캐릭터가 없어요');
   updateCharCount();
 }
@@ -652,11 +781,12 @@ function playCharAnim(type) {
   if (!ch) { showToast('⚠️ 먼저 캐릭터를 추가해주세요'); return; }
   const allAnims = ['char-anim-slide-left','char-anim-slide-right','char-anim-slide-up',
     'char-anim-fade-in','char-anim-shake','char-anim-jump','char-anim-exit-right','char-anim-fade-out',
-    'char-anim-float','char-anim-breathe','char-anim-sway'];
+    'char-anim-spin','char-anim-pop',
+    'char-anim-float','char-anim-breathe','char-anim-sway','char-anim-nod','char-anim-sparkle','char-anim-bounce'];
   allAnims.forEach(c => ch.classList.remove(c));
   void ch.offsetWidth;
   ch.classList.add('char-anim-' + type);
-  const oneShot = ['shake','jump','exit-right','fade-out','slide-left','slide-right','slide-up','fade-in'];
+  const oneShot = ['shake','jump','exit-right','fade-out','slide-left','slide-right','slide-up','fade-in','spin','pop'];
   if (oneShot.some(o => type === o)) {
     ch.addEventListener('animationend', () => ch.classList.remove('char-anim-' + type), {once:true});
   }
@@ -666,8 +796,8 @@ let currentLoopAnim = null;
 function toggleLoopAnim(type) {
   const ch = getCharEl();
   if (!ch) { showToast('⚠️ 먼저 캐릭터를 추가해주세요'); return; }
-  const loopClasses = ['char-anim-float','char-anim-breathe','char-anim-sway'];
-  const btnIds = ['anim-float','anim-breathe','anim-sway'];
+  const loopClasses = ['char-anim-float','char-anim-breathe','char-anim-sway','char-anim-nod','char-anim-sparkle','char-anim-bounce'];
+  const btnIds = ['anim-float','anim-breathe','anim-sway','anim-nod','anim-sparkle','anim-bounce'];
   if (currentLoopAnim === type) {
     loopClasses.forEach(c => ch.classList.remove(c));
     btnIds.forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
@@ -681,34 +811,144 @@ function toggleLoopAnim(type) {
     const btn = document.getElementById('anim-' + type); if(btn) btn.classList.add('active');
     showToast('✨ ' + type + ' 효과 적용!');
   }
+  autoSaveDeco();
 }
 function stopLoopAnim() {
   const ch = getCharEl(); if (!ch) return;
-  ['char-anim-float','char-anim-breathe','char-anim-sway'].forEach(c => ch.classList.remove(c));
-  ['anim-float','anim-breathe','anim-sway'].forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
+  ['char-anim-float','char-anim-breathe','char-anim-sway','char-anim-nod','char-anim-sparkle','char-anim-bounce'].forEach(c => ch.classList.remove(c));
+  ['anim-float','anim-breathe','anim-sway','anim-nod','anim-sparkle','anim-bounce'].forEach(id => { const b=document.getElementById(id); if(b) b.classList.remove('active'); });
   currentLoopAnim = null; showToast('⏹ 상시 효과 중지');
+  autoSaveDeco();
+}
+function spawnCharHeart() {
+  const ch = getCharEl();
+  if (!ch) { showToast('⚠️ 먼저 캐릭터를 추가해주세요'); return; }
+  const wrap = ch.closest('.char-wrap'); if (!wrap) return;
+  const heart = document.createElement('div');
+  heart.className = 'char-heart';
+  heart.textContent = '💖';
+  wrap.appendChild(heart);
+  setTimeout(() => heart.remove(), 1500);
+  showToast('💖 하트 뿅뿅!');
+}
+
+/* ── 영상용 음악 업로드 & 믹싱 녹화 (신규) ── */
+let arrangementAudioEl = null;
+let arrangementFile = null;
+let audioCtx = null;
+let audioDestNode = null;
+
+function loadArrangementFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  arrangementFile = file;
+  if (arrangementAudioEl) { arrangementAudioEl.pause(); arrangementAudioEl.remove(); }
+  arrangementAudioEl = document.createElement('audio');
+  arrangementAudioEl.src = URL.createObjectURL(file);
+  arrangementAudioEl.loop = true; // 감상 중에는 계속 반복 재생
+  arrangementAudioEl.volume = parseFloat(document.getElementById('music-volume').value || 0.6);
+  document.body.appendChild(arrangementAudioEl);
+  document.getElementById('music-upload-dot').classList.add('active');
+  document.getElementById('music-play-btn').style.display = 'inline-block';
+  document.getElementById('music-volume').style.display = 'inline-block';
+  arrangementAudioEl.play().then(()=>{
+    updateMusicPlayBtn();
+    showToast('🎵 편곡본 재생 시작: ' + file.name);
+  }).catch(()=>{
+    updateMusicPlayBtn();
+    showToast('▶ 버튼을 눌러 음악을 시작해주세요 (자동재생 차단됨)');
+  });
+}
+function toggleArrangementPlay() {
+  if (!arrangementAudioEl) return;
+  if (arrangementAudioEl.paused) arrangementAudioEl.play(); else arrangementAudioEl.pause();
+  updateMusicPlayBtn();
+}
+function updateMusicPlayBtn() {
+  const btn = document.getElementById('music-play-btn'); if (!btn || !arrangementAudioEl) return;
+  btn.textContent = arrangementAudioEl.paused ? '▶' : '⏸';
+}
+function setMusicVolume(v) {
+  if (arrangementAudioEl) arrangementAudioEl.volume = parseFloat(v);
+}
+function toggleMusicBar() {
+  const bar = document.getElementById('music-upload-bar');
+  bar.style.display = bar.style.display === 'none' ? 'flex' : 'none';
 }
 
 let mediaRecorder = null, recChunks = [], recTimer = null, recSeconds = 0;
-async function toggleRecording() {
+function toggleRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    stopScreenRecording();
+  } else {
+    openRecChecklist();
+  }
+}
+function stopScreenRecording() {
   const btn = document.getElementById('btn-rec');
   const indicator = document.getElementById('rec-indicator');
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
-    mediaRecorder.stop();
-    clearInterval(recTimer);
-    btn.textContent = '⏺';
-    btn.style.color = 'rgba(255,255,255,.8)';
-    indicator.classList.remove('show');
-    showToast('⏹ 녹화 중지 — 저장 중...');
-  } else {
-    try {
-      deselectAllChars();
-      const stream = await navigator.mediaDevices.getDisplayMedia({
+  mediaRecorder.stop();
+  // 배경 음악은 녹화 종료 후에도 계속 재생됩니다 (감상용으로 끊기지 않게), 다시 반복재생으로 복귀
+  if (arrangementAudioEl) { arrangementAudioEl.loop = true; if (arrangementAudioEl.paused) arrangementAudioEl.play(); }
+  updateMusicPlayBtn();
+  clearInterval(recTimer);
+  btn.textContent = '⏺';
+  btn.classList.remove('is-recording');
+  indicator.classList.remove('show');
+  showToast('⏹ 녹화 중지 — 저장 중...');
+}
+function openRecChecklist() {
+  document.querySelectorAll('.rec-checklist input[type=checkbox]').forEach(c => c.checked = false);
+  document.getElementById('rec-confirm-btn').disabled = true;
+  document.getElementById('rec-checklist-modal').classList.remove('hidden');
+}
+function closeRecChecklist() {
+  document.getElementById('rec-checklist-modal').classList.add('hidden');
+}
+document.querySelectorAll('.rec-checklist input[type=checkbox]').forEach(c => {
+  c.addEventListener('change', () => {
+    const all = Array.from(document.querySelectorAll('.rec-checklist input[type=checkbox]'));
+    document.getElementById('rec-confirm-btn').disabled = !all.every(x => x.checked);
+  });
+});
+function confirmStartRecording() {
+  closeRecChecklist();
+  deselectAllChars();
+  beginScreenRecording();
+}
+async function beginScreenRecording() {
+  const btn = document.getElementById('btn-rec');
+  const indicator = document.getElementById('rec-indicator');
+  try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { mediaSource: 'screen', frameRate: 30 },
-        audio: true
+        audio: false
       });
+
+      let finalStream;
+      if (arrangementAudioEl) {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        audioDestNode = audioCtx.createMediaStreamDestination();
+        const source = audioCtx.createMediaElementSource(arrangementAudioEl);
+        source.connect(audioDestNode);
+        source.connect(audioCtx.destination);
+
+        finalStream = new MediaStream([
+          ...displayStream.getVideoTracks(),
+          ...audioDestNode.stream.getAudioTracks()
+        ]);
+        arrangementAudioEl.loop = false; // 녹화 중엔 한 번만 재생해서, 끝나면 자동으로 녹화가 멈추도록
+        arrangementAudioEl.currentTime = 0;
+        arrangementAudioEl.play();
+        updateMusicPlayBtn();
+        showToast('🎵 업로드한 편곡본으로 녹화를 시작해요');
+      } else {
+        finalStream = displayStream;
+        showToast('⚠️ 편곡본을 업로드하지 않아 영상에 음악이 안 들어갈 수 있어요');
+      }
+
       recChunks = []; recSeconds = 0;
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      mediaRecorder = new MediaRecorder(finalStream, { mimeType: 'video/webm;codecs=vp9,opus' });
       mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
       mediaRecorder.onstop = () => {
         const blob = new Blob(recChunks, { type: 'video/webm' });
@@ -717,12 +957,20 @@ async function toggleRecording() {
         a.href = url;
         a.download = `EAIM_슬라이드쇼_${Date.now()}.webm`;
         a.click();
-        stream.getTracks().forEach(t => t.stop());
-        showToast('🎬 영상 저장 완료!');
+        displayStream.getTracks().forEach(t => t.stop());
+        showToast('🎬 영상 저장 완료! (편곡본 음악 포함)');
       };
+      displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') stopScreenRecording();
+      });
+      if (arrangementAudioEl) {
+        arrangementAudioEl.addEventListener('ended', () => {
+          if (mediaRecorder && mediaRecorder.state === 'recording') stopScreenRecording();
+        }, { once: true });
+      }
       mediaRecorder.start(1000);
       btn.textContent = '⏹';
-      btn.style.color = '#ff5252';
+      btn.classList.add('is-recording');
       indicator.classList.add('show');
       recTimer = setInterval(() => {
         recSeconds++;
@@ -731,9 +979,9 @@ async function toggleRecording() {
       }, 1000);
       showToast('⏺ 녹화 시작!');
     } catch(e) {
+      console.error(e);
       showToast('⚠️ 화면 공유를 허용해주세요');
     }
-  }
 }
 
 function buildCover() {
@@ -744,7 +992,7 @@ function buildCover() {
     <div class="cover-inner">
       <div class="cover-emoji">🎭</div>
       <div class="cover-eyebrow">Musical Maker · EAIM</div>
-      <div class="cover-title">${SHOW_TITLE}</div>
+      <div class="cover-title">${DATA.title||'뮤지컬 스토리보드'}</div>
       <div class="cover-sub">${DATA.school||''}</div>
       <div class="cover-count">총 ${TOTAL}개 장면</div>
       <div class="cover-hint">▶ → 키보드로 시작</div>
@@ -755,8 +1003,7 @@ function buildCover() {
 function buildScene(scene, idx) {
   const C=getColor(scene.emotion);
   const lyricLines=(scene.lyrics||'').split('\n').filter(Boolean);
-  const charsRaw = Array.isArray(scene.characters) ? scene.characters.join(', ') : (scene.characters||'');
-  const chars=charsRaw.split(/[,，、]/).filter(Boolean);
+  const chars=(scene.characters||'').split(/[,，、]/).filter(Boolean);
   const div=document.createElement('div');
   div.id=`scene-slide-${idx}`; div.className='slide hidden';
   div.style.background=`linear-gradient(135deg,${C.from},${C.to})`;
@@ -872,10 +1119,6 @@ function doShowSlide(idx) {
       const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
       lines.forEach((_,i)=>{ const ll=document.getElementById(`ll-${si}-${i}`);if(ll)ll.style.opacity='1'; });
     },350);
-    initDialogueForScene(si);
-  } else {
-    dialogueLines=[]; dialogueIndex=-1;
-    document.getElementById('dialogue-bar').classList.remove('show');
   }
   if (idx===TOTAL+1) {
     document.getElementById('controls').style.display='none';
@@ -883,7 +1126,6 @@ function doShowSlide(idx) {
     document.getElementById('key-hint').style.display='none';
     startEnding();
   } else {
-    clearEndingTimers();
     document.getElementById('controls').style.display='flex';
     document.getElementById('back-btn').style.display='none';
     document.getElementById('key-hint').style.display='block';
@@ -904,51 +1146,20 @@ function showSignalIndicator(scene, idx) {
   el.style.display='flex'; clearTimeout(el._timer); el._timer=setTimeout(hideSignalIndicator,3000);
 }
 function hideSignalIndicator() { const el=document.getElementById('signal-indicator');if(el)el.style.display='none'; }
-/* ── 커튼콜 타이밍 ────────────────────────────────────────────
-   1단계: 커튼콜 가사가 한 줄씩 떠오름
-   2단계: 크레딧이 올라감
-   커튼콜 음악이 있으면 그 길이에 두 단계를 나눠 담고,
-   없으면 가사 줄 수로, 그것도 없으면 넉넉한 기본값으로. */
-let endingTimers = [];
-function clearEndingTimers() { endingTimers.forEach(clearTimeout); endingTimers = []; }
-function scheduleEnding(totalSec) {
-  clearEndingTimers();
-  const lyricLines = (DATA.curtainLyrics||'').split('\n').filter(Boolean);
-  endingTimers.push(setTimeout(()=>{
-    lyricLines.forEach((_,i)=>endingTimers.push(setTimeout(()=>{ const el=document.getElementById(`cl-${i}`); if(el) el.style.opacity='1'; }, i*600)));
-  },300));
-
-  const lyricNeed  = lyricLines.length ? lyricLines.length*0.7 + 1.8 : 0;
-  const creditsMin = Math.max(12,(DATA.credits||[]).length*2.2+10);
-  let phase1, creditsDur;
-  if (totalSec > 0) {                       // 커튼콜 음악 길이를 알 때
-    phase1     = Math.min(Math.max(lyricNeed, 6), Math.max(4, totalSec*0.45));
-    creditsDur = Math.max(creditsMin, totalSec - phase1 - 1);
-  } else {                                   // 모를 때 — 최소 3초가 아니라 8초
-    phase1     = Math.max(8, lyricNeed);
-    creditsDur = creditsMin;
-  }
-
-  endingTimers.push(setTimeout(()=>{
-    const cp=document.getElementById('curtain-phase'), cr=document.getElementById('credits-phase');
-    if(cp) cp.style.opacity='0';
-    endingTimers.push(setTimeout(()=>{
-      if(cp) cp.style.pointerEvents='none';
-      if(cr){ cr.style.opacity='1'; cr.style.pointerEvents='auto'; }
-      startCreditsScroll(creditsDur);
-    },1000));
-  }, phase1*1000));
+function startEnding() {
+  const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
+  setTimeout(()=>{ lyricLines.forEach((_,i)=>setTimeout(()=>{ const el=document.getElementById(`cl-${i}`);if(el)el.style.opacity='1'; },i*600)); },300);
+  const delay=Math.max(3000,lyricLines.length*700+1800);
+  setTimeout(()=>{
+    const cp=document.getElementById('curtain-phase'),cr=document.getElementById('credits-phase');
+    if(cp)cp.style.opacity='0';
+    setTimeout(()=>{ if(cp)cp.style.pointerEvents='none'; if(cr){cr.style.opacity='1';cr.style.pointerEvents='auto';} startCreditsScroll(); },1000);
+  },delay);
 }
-function startEnding() { scheduleEnding(0); }
-/* 커튼콜 음악 길이를 나중에 알게 되면(애드온이 곡을 불러온 뒤) 다시 계산 */
-window.pmRetimeEnding = function(sec) {
-  if (typeof current !== 'undefined' && current === TOTAL+1 && sec > 0) scheduleEnding(sec);
-};
-function startCreditsScroll(dur) {
-  const s=document.getElementById('credits-scroll'); if(!s) return;
-  const d = (typeof dur==='number' && dur>0) ? dur : Math.max(12,(DATA.credits||[]).length*2.2+10);
-  window._pmCreditsDur = d;
-  s.style.transition=`top ${d}s linear`; s.style.top='-220%';
+function startCreditsScroll() {
+  const s=document.getElementById('credits-scroll');if(!s)return;
+  const dur=Math.max(12,(DATA.credits||[]).length*2.2+10);
+  s.style.transition=`top ${dur}s linear`; s.style.top='-220%';
 }
 function updateControls() {
   const dotNav=document.getElementById('dot-nav'); dotNav.innerHTML='';
@@ -958,37 +1169,45 @@ function updateControls() {
     const C=i===0?{accent:'#5DADE2'}:getColor(SCENES[i-1]?.emotion||'');
     if(i===current)dot.style.background=C.accent;
     dot.title=i===0?'커버':(SCENES[i-1]?.title||'');
-    dot.onclick=()=>showSlide(i); dotNav.appendChild(dot);
+    dot.onclick=()=>{ stopAutoIfPlaying(); showSlide(i); }; dotNav.appendChild(dot);
   }
   document.getElementById('btn-prev').disabled=current===0;
   document.getElementById('btn-next').disabled=current===TOTAL+1;
 }
-function goBack() { window.location.href='index.html'; }
-/* 🔁 는 ⏱ 설정(장면별 노래 / 고정 시간)을 그대로 따른다.
-   예전에는 여기서 7초 고정으로 돌려 음악과 따로 놀았다. */
+function goBack() { window.close(); if(!window.closed) history.back(); }
+function updateAutoBtn() {
+  const btn = document.getElementById('btn-auto'); if (!btn) return;
+  btn.textContent = autoPlay ? '⏸' : '⏵';
+  btn.style.color = autoPlay ? '#5DADE2' : 'rgba(255,255,255,.8)';
+  btn.title = autoPlay ? '일시정지 (자동 진행 멈추기)' : '자동 진행 (⏱ 설정대로 — 음악에 맞춰 넘어가요)';
+}
+/* ⏵ 는 ⏱ 설정(음악 재생목록 / 고정 시간)을 그대로 따른다.
+   예전에는 여기서 7초 고정으로 돌려서 음악과 따로 놀았다. */
 function toggleAuto() {
   if (typeof window.pmToggleAutoRun === 'function') {
     autoPlay = window.pmToggleAutoRun();
-    document.getElementById('btn-auto').textContent=autoPlay?'⏸':'🔁';
-    document.getElementById('btn-auto').style.color=autoPlay?'#5DADE2':'rgba(255,255,255,.8)';
+    updateAutoBtn();
     return;
   }
-  autoPlay=!autoPlay;
-  document.getElementById('btn-auto').textContent=autoPlay?'⏸':'🔁';
-  document.getElementById('btn-auto').style.color=autoPlay?'#5DADE2':'rgba(255,255,255,.8)';
+  autoPlay=!autoPlay;                       // 애드온이 없을 때의 예비 동작
+  updateAutoBtn();
   clearInterval(autoTimer);
-  if(autoPlay){
-    showToast('🔁 자동재생 ON — 7초마다 넘어가요 (미리보기용, 실제 공연 중엔 ▶ 버튼을 직접 눌러 넘기는 걸 추천해요)');
-    autoTimer=setInterval(()=>{ if(current>=TOTAL){autoPlay=false;clearInterval(autoTimer);document.getElementById('btn-auto').textContent='🔁';document.getElementById('btn-auto').style.color='rgba(255,255,255,.8)';return;} showSlide(current+1); },7000);
-  }
+  if(autoPlay){ autoTimer=setInterval(()=>{ if(current>=TOTAL){autoPlay=false;clearInterval(autoTimer);updateAutoBtn();return;} showSlide(current+1); },7000); }
 }
 document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowRight'||e.key===' '){ if(current<TOTAL+1)showSlide(current+1); }
-  else if(e.key==='ArrowLeft'){ if(current>0)showSlide(current-1); }
+  if(e.key==='ArrowRight'||e.key===' '){ stopAutoIfPlaying(); if(current<TOTAL+1)showSlide(current+1); }
+  else if(e.key==='ArrowLeft'){ stopAutoIfPlaying(); if(current>0)showSlide(current-1); }
   else if(e.key==='Escape'){ goBack(); }
 });
-document.getElementById('btn-prev').onclick=()=>{ if(current>0)showSlide(current-1); };
-document.getElementById('btn-next').onclick=()=>{ if(current<TOTAL+1)showSlide(current+1); };
+function stopAutoIfPlaying() {
+  if (typeof window.pmStopAutoRun === 'function') window.pmStopAutoRun();
+  if (!autoPlay) return;
+  autoPlay = false;
+  clearInterval(autoTimer);
+  updateAutoBtn();
+}
+document.getElementById('btn-prev').onclick=()=>{ stopAutoIfPlaying(); if(current>0)showSlide(current-1); };
+document.getElementById('btn-next').onclick=()=>{ stopAutoIfPlaying(); if(current<TOTAL+1)showSlide(current+1); };
 document.getElementById('btn-auto').onclick=toggleAuto;
 document.getElementById('btn-exit').onclick=goBack;
 
@@ -1014,87 +1233,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();nextLyricLine(si);}
 });
 let bubblePanelOpen=false;
-// ══════════════════════════
-// 🗨 대사 진행 — 뮤지컬메이커가 생성한 대본(script)을 한 줄씩 순서대로 말풍선으로 표시
-// ══════════════════════════
-let dialogueLines=[], dialogueIndex=-1, dialogueSceneIdx=-1;
-const DIALOGUE_POSITIONS=[
-  {left:'8%', top:'64%', tail:'tail-left'},
-  {left:'30%',top:'40%', tail:'tail-left'},
-  {left:'54%',top:'40%', tail:'tail-right'},
-  {left:'74%',top:'64%', tail:'tail-right'},
-];
-function parseDialogue(scriptText){
-  if(!scriptText) return [];
-  const out=[];
-  const speakerPos={};
-  scriptText.split('\n').forEach(raw=>{
-    const line=raw.trim();
-    if(!line || line.startsWith('[') || line.startsWith('(')) return;
-    const m=line.match(/^([^:：]{1,14})[:：]\s*(.+)$/);
-    if(!m) return;
-    const speaker=m[1].trim(), text=m[2].trim();
-    if(!text) return;
-    if(!(speaker in speakerPos)) speakerPos[speaker]=Object.keys(speakerPos).length % DIALOGUE_POSITIONS.length;
-    out.push({speaker, text, posIdx:speakerPos[speaker]});
-  });
-  return out;
-}
-function initDialogueForScene(si){
-  dialogueSceneIdx=si;
-  dialogueLines=parseDialogue(SCENES[si]?.script||'');
-  dialogueIndex=-1;
-  clearAutoDialogueBubble();
-  const bar=document.getElementById('dialogue-bar');
-  const toggleBtn=document.getElementById('btn-dlg-toggle');
-  if(dialogueLines.length){
-    toggleBtn.style.opacity='1'; toggleBtn.disabled=false;
-  } else {
-    bar.classList.remove('show');
-    toggleBtn.style.opacity='.3';
-  }
-  updateDialogueProgress();
-}
-function toggleDialogueBar(){
-  if(!dialogueLines.length){ showToast('⚠️ 이 장면에는 대본 대사가 없어요'); return; }
-  const bar=document.getElementById('dialogue-bar');
-  bar.classList.toggle('show');
-  document.getElementById('btn-dlg-toggle').style.color=bar.classList.contains('show')?'#5DADE2':'rgba(255,255,255,.8)';
-}
-function clearAutoDialogueBubble(){
-  const slide=getCurrentSlideEl();
-  if(slide) slide.querySelectorAll('.auto-dialogue-bubble').forEach(b=>b.remove());
-}
-function renderDialogueLine(){
-  clearAutoDialogueBubble();
-  updateDialogueProgress();
-  if(dialogueIndex<0 || dialogueIndex>=dialogueLines.length) return;
-  const line=dialogueLines[dialogueIndex];
-  const pos=DIALOGUE_POSITIONS[line.posIdx];
-  const slide=getCurrentSlideEl(); if(!slide) return;
-  const bubble=document.createElement('div');
-  bubble.className=`speech-bubble ${pos.tail} auto-dialogue-bubble`;
-  bubble.style.left=pos.left; bubble.style.top=pos.top;
-  bubble.innerHTML=`<div class="bubble-name">${line.speaker}</div><span>${line.text}</span>`;
-  slide.appendChild(bubble);
-}
-function nextDialogueLine(){
-  if(dialogueIndex>=dialogueLines.length-1){ showToast('마지막 대사예요'); return; }
-  dialogueIndex++; renderDialogueLine();
-}
-function prevDialogueLine(){
-  if(dialogueIndex<=0){ dialogueIndex=-1; clearAutoDialogueBubble(); updateDialogueProgress(); return; }
-  dialogueIndex--; renderDialogueLine();
-}
-function resetDialogue(){ dialogueIndex=-1; clearAutoDialogueBubble(); updateDialogueProgress(); }
-function updateDialogueProgress(){
-  const el=document.getElementById('dialogue-progress'); if(!el) return;
-  el.textContent=`${dialogueIndex+1} / ${dialogueLines.length}`;
-  const prevBtn=document.getElementById('dlg-prev'), nextBtn=document.getElementById('dlg-next');
-  if(prevBtn) prevBtn.disabled=dialogueIndex<0;
-  if(nextBtn) nextBtn.disabled=dialogueLines.length===0 || dialogueIndex>=dialogueLines.length-1;
-}
-
 function toggleBubblePanel(){
   bubblePanelOpen=!bubblePanelOpen;
   document.getElementById('bubble-panel').classList.toggle('show',bubblePanelOpen);
@@ -1106,9 +1244,10 @@ function getCurrentSlideEl(){
   return document.getElementById(`scene-slide-${current-1}`);
 }
 function escHtml(x){return String(x??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-/* ✅ 를 누르지 않아도 저장되도록 */
-let _autoSaveT=null;
-function autoSaveDeco(){ clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ try{ saveDecorations(false); }catch(e){} },600); }
+/* 말풍선 위치는 %로 — px로 두면 전체화면·녹화·다른 기기에서 자리가 틀어집니다 */
+function bubbleHTML(name,text){
+  return `${name?`<div class="bubble-name">${escHtml(name)}</div>`:''}<span>${escHtml(text)}</span><button class="bubble-del" onclick="this.parentElement.remove();autoSaveDeco();">✕</button>`;
+}
 function addBubble(){
   const text=document.getElementById('bubble-text-input').value.trim();
   if(!text){document.getElementById('bubble-text-input').focus();return;}
@@ -1118,30 +1257,32 @@ function addBubble(){
   const bubble=document.createElement('div');
   bubble.className=`speech-bubble ${tailType}`;
   bubble.style.left='30%';bubble.style.top='55%';
-  bubble.innerHTML=`${name?`<div class="bubble-name">${escHtml(name)}</div>`:''}<span>${escHtml(text)}</span><button class="bubble-del" onclick="this.parentElement.remove();autoSaveDeco();">✕</button>`;
+  bubble.innerHTML=bubbleHTML(name,text);
   makeDraggable(bubble);slide.appendChild(bubble);
   document.getElementById('bubble-text-input').value='';
   document.getElementById('bubble-text-input').focus();
   autoSaveDeco();
 }
+/* ✅ 를 누르지 않아도 저장되도록 — 학생이 잃어버리지 않게 */
+let _autoSaveT=null;
+function autoSaveDeco(){ clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ try{ saveDecorations(false); }catch(e){} },600); }
 function makeDraggable(el){
   let sx,sy,sl,st;
-  el.addEventListener('mousedown',e=>{
+  el.addEventListener('pointerdown',e=>{
     if(e.target.classList.contains('bubble-del'))return;
     e.preventDefault();
     const r=el.getBoundingClientRect(),pr=el.parentElement.getBoundingClientRect();
     sx=e.clientX;sy=e.clientY;sl=r.left-pr.left;st=r.top-pr.top;
     const pw=pr.width||1, ph=pr.height||1;
-    /* %로 저장 — px로 두면 전체화면·녹화·다른 기기에서 자리가 틀어집니다 */
     const mv=mv=>{
       el.style.left=((sl+mv.clientX-sx)/pw*100).toFixed(2)+'%';
       el.style.top =((st+mv.clientY-sy)/ph*100).toFixed(2)+'%';
     };
-    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);autoSaveDeco();};
-    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+    const up=()=>{document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);autoSaveDeco();};
+    document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
   });
 }
-function clearBubbles(){const s=getCurrentSlideEl();if(s)s.querySelectorAll('.speech-bubble').forEach(b=>b.remove());}
+function clearBubbles(){const s=getCurrentSlideEl();if(s)s.querySelectorAll('.speech-bubble').forEach(b=>b.remove());autoSaveDeco();}
 let subtitleVisible=false;
 function toggleSubtitleEdit(){
   const bar=document.getElementById('subtitle-bar');
@@ -1178,18 +1319,315 @@ function initSlideshow() {
   document.getElementById('controls').style.display='flex';
   restoreDecorations();
   showSlide(0);
-  (async()=>{ for(let i=0;i<SCENES.length;i++) await loadBgImage(SCENES[i],i).catch(()=>{}); })();
-  attachHoverTooltips();
+  (async()=>{ for(let i=0;i<SCENES.length;i++) await loadBgImage(SCENES[i],i).catch(e=>{ console.warn('배경 로딩 오류', i, e); bgSpinner(i,false); }); })();
 }
 
-window.addEventListener('load',()=>{
+// ══════════════════════════
+// ✅ 캐릭터·말풍선·효과 저장/복원 — 새로고침·재접속해도 배치가 유지되도록
+// ══════════════════════════
+const DECORATION_STORAGE_KEY = 'eaim_slideshow_decorations';
+function getSlideKeyEl(key){
+  if (key==='cover') return document.getElementById('cover-slide');
+  if (key==='end') return document.getElementById('end-slide');
+  return document.getElementById(`scene-slide-${key}`);
+}
+function collectSlideDecorations(container){
+  if(!container) return {chars:[],bubbles:[]};
+  const chars=[...container.querySelectorAll('.char-wrap')].map(wrap=>{
+    const img=wrap.querySelector('.char-layer');
+    const animClass=(img?.className.match(/char-anim-\S+/g)||[]).filter(c=>['char-anim-float','char-anim-breathe','char-anim-sway','char-anim-nod','char-anim-sparkle','char-anim-bounce'].includes(c));
+    return { src: img?.getAttribute('src')||'', left: wrap.style.left||'', top: wrap.style.top||'', loopAnim: animClass[0]||'' };
+  });
+  const bubbles=[...container.querySelectorAll('.speech-bubble')].map(b=>{
+    const tailClass=(b.className.match(/tail-\S+/)||[])[0]||'tail-left';
+    const nameEl=b.querySelector('.bubble-name');
+    const textEl=b.querySelector('span');
+    return { name: nameEl?nameEl.textContent:'', text: textEl?textEl.textContent:'', tail: tailClass, left: b.style.left||'', top: b.style.top||'' };
+  });
+  return { chars, bubbles };
+}
+/* 장면은 순서가 바뀔 수 있어서, 가능하면 장면 id로 짝지어 둡니다 */
+function decoKeyOf(i){ const sc = SCENES[i]; return (sc && sc.id) ? ('id:'+sc.id) : ('i:'+i); }
+function decoIndexOf(key){
+  if(key==='cover'||key==='end') return key;
+  if(String(key).startsWith('id:')){ const id=String(key).slice(3); const i=SCENES.findIndex(s=>s&&s.id===id); return i>=0?i:null; }
+  if(String(key).startsWith('i:')) return Number(String(key).slice(2));
+  return Number(key);                                   // 예전 방식(숫자)도 그대로 읽음
+}
+function buildDecoData(){
+  const data = { savedAt: Date.now(), effects: Array.from(activeEffects), scenes: {} };
+  data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
+  data.scenes['end']   = collectSlideDecorations(getSlideKeyEl('end'));
+  for (let i=0;i<TOTAL;i++) data.scenes[decoKeyOf(i)] = collectSlideDecorations(getSlideKeyEl(i));
+  return data;
+}
+/* 이 기기 저장 칸 — 반·학생마다 따로 (같은 컴퓨터를 여러 학생이 써도 섞이지 않게) */
+function decoLocalKey(){
+  if (ROOM_CTX.teacher && ROOM_CTX.room)
+    return `${DECORATION_STORAGE_KEY}:${ROOM_CTX.teacher}:${ROOM_CTX.room}:${ROOM_CTX.student || (ROOM_CTX.group ? 'g'+ROOM_CTX.group : 'all')}`;
+  return DECORATION_STORAGE_KEY;
+}
+function saveDecorations(showConfirm){
+  const data = buildDecoData();
+  let localOk = true;
+  try { localStorage.setItem(decoLocalKey(), JSON.stringify(data)); } catch(e) { localOk = false; }
+  if (roomLinked() && !isTeacherView()) {
+    if (showConfirm) showToast('⏳ 저장 중... 학급 서버에 올리고 있어요');
+    pushDecoToRoom(data, showConfirm);
+  } else if (showConfirm) {
+    if (!localOk) showToast('❌ 이 기기 저장 공간이 부족해 저장하지 못했어요');
+    else if (isTeacherView()) showToast('✅ 이 기기에만 저장했어요 (선생님 보기 화면은 학생 기록을 바꾸지 않아요)');
+    else showToast('✅ 이 기기에 저장했어요 — 학급 연결이 없어 다른 기기에서는 안 보여요');
+  }
+}
+
+/* ── 캐릭터 그림 줄이기 — 휴대폰 사진은 몇 MB라 서버(문서 1개 1MB 제한)에 못 올라가요 ── */
+function shrinkImageDataUrl(src, maxSide){
+  return new Promise(res => {
+    if (!src || !src.startsWith('data:image')) return res(src);
+    const im = new Image();
+    im.onload = () => {
+      const sc = Math.min(1, maxSide / Math.max(im.naturalWidth || 1, im.naturalHeight || 1));
+      const w = Math.max(1, Math.round(im.naturalWidth * sc)), h = Math.max(1, Math.round(im.naturalHeight * sc));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(im, 0, 0, w, h);
+      let out = cv.toDataURL('image/webp', 0.85);                 // 투명 배경 유지
+      if (!out.startsWith('data:image/webp')) out = cv.toDataURL('image/png');
+      res(out.length < src.length ? out : src);
+    };
+    im.onerror = () => res(src);
+    im.src = src;
+  });
+}
+async function shrinkForCloud(src){
+  let out = await shrinkImageDataUrl(src, 640);
+  if (out.length > 600000) out = await shrinkImageDataUrl(src, 420);
+  if (out.length > 600000) out = await shrinkImageDataUrl(src, 300);
+  return out;
+}
+function hashStr(str){
+  let h = 2166136261 >>> 0;
+  const step = str.length > 300000 ? 7 : 1;
+  for (let i = 0; i < str.length; i += step) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>>0; }
+  return h.toString(36) + '_' + str.length.toString(36);
+}
+
+/* ── 학급 서버로 올리기 — 다른 기기·선생님 화면에서도 보이도록 ──
+   선생님 링크가 개인·모둠·반 중 무엇으로 열릴지 모르니 해당되는 곳에 모두 올려둡니다.
+   캐릭터 그림은 배치 정보와 따로, 그림마다 한 문서(img_…)에 저장합니다. */
+function decoDocKeys(){
+  const keys = [];
+  if (ROOM_CTX.student) keys.push('s_'+ROOM_CTX.student);
+  if (ROOM_CTX.group)   keys.push('g_'+ROOM_CTX.group);
+  keys.push('room');
+  return keys;
+}
+const DECO_IMG_REF = 'ref:';
+const _decoImgKeyCache = new Map();   // 원본 그림 → 서버 문서 이름 (같은 그림은 다시 안 올림)
+let _decoFailToastAt = 0;
+async function pushDecoToRoom(data, showConfirm){
+  if (!roomLinked() || isTeacherView()) return;          // 선생님 화면에서는 올리지 않음(보기 전용)
+  try {
+    const cloud = JSON.parse(JSON.stringify(data));
+    const chars = Object.values(cloud.scenes || {}).flatMap(d => d.chars || []);
+    for (const ch of chars) {
+      if (!ch.src || !ch.src.startsWith('data:')) continue;
+      const origHash = hashStr(ch.src);
+      let key = _decoImgKeyCache.get(origHash);
+      if (!key) {
+        const small = ch.src.length > 600000 ? await shrinkForCloud(ch.src) : ch.src;
+        if (small.length > 950000) throw new Error('캐릭터 그림이 너무 커요');
+        key = 'img_' + hashStr(small);
+        await decoCol().doc(key).set({ img: small, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        _decoImgKeyCache.set(origHash, key);
+      }
+      ch.src = DECO_IMG_REF + key;
+    }
+    const payload = {
+      deco: JSON.stringify(cloud),
+      savedAt: data.savedAt || Date.now(),
+      studentNumber: ROOM_CTX.student || null,
+      groupNumber: ROOM_CTX.group || null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    await Promise.all(decoDocKeys().map(k => decoCol().doc(k).set(payload, { merge:true })));
+    if (showConfirm) showToast('✅ 저장 완료 — 다른 기기와 선생님 화면에서도 보여요');
+  } catch(e) {
+    console.warn('캐릭터·말풍선 학급 저장 실패', e);
+    if (showConfirm || Date.now() - _decoFailToastAt > 30000) {
+      _decoFailToastAt = Date.now();
+      showToast('⚠️ 학급 서버 저장 실패 — 이 기기에만 남아 있어요 (' + (e.message || '연결 확인') + ')');
+    }
+  }
+}
+async function resolveDecoImages(data){
+  const chars = Object.values(data.scenes || {}).flatMap(d => d.chars || []);
+  const keys = [...new Set(chars.map(c => c.src).filter(x => x && x.startsWith(DECO_IMG_REF)).map(x => x.slice(DECO_IMG_REF.length)))];
+  const map = {};
+  await Promise.all(keys.map(async k => {
+    try { const snap = await decoCol().doc(k).get(); if (snap.exists) map[k] = snap.data().img; } catch(e) {}
+  }));
+  chars.forEach(c => { if (c.src && c.src.startsWith(DECO_IMG_REF)) c.src = map[c.src.slice(DECO_IMG_REF.length)] || ''; });
+  return data;
+}
+async function pullDecoFromRoom(){
+  if (!roomLinked()) return null;
+  for (const k of decoDocKeys()) {
+    try {
+      const snap = await decoCol().doc(k).get();
+      if (snap.exists && snap.data().deco) {
+        const data = JSON.parse(snap.data().deco);
+        if (!data.savedAt) data.savedAt = snap.data().savedAt || (snap.data().updatedAt?.seconds || 0) * 1000;
+        return await resolveDecoImages(data);
+      }
+    } catch(e) { console.warn('캐릭터·말풍선 불러오기 실패', e); return null; }
+  }
+  return null;
+}
+function restoreCharWrap(container, item){
+  if(!item.src) return;
+  const id = 'char_' + (++charIdCounter);
+  const wrap = document.createElement('div');
+  wrap.className = 'char-wrap';
+  wrap.dataset.charId = id;
+  wrap.style.left = item.left || '30%';
+  if (item.top) wrap.style.top = item.top;
+  const img = document.createElement('img');
+  img.className = 'char-layer' + (item.loopAnim ? (' '+item.loopAnim) : '');
+  img.src = item.src; img.alt = '캐릭터';
+  img.onerror = () => { wrap.remove(); };
+  const delBtn = document.createElement('button');
+  delBtn.className = 'char-del-btn';
+  delBtn.textContent = '✕';
+  delBtn.onclick = (e) => { e.stopPropagation(); wrap.remove(); if(selectedCharId===id) selectedCharId=null; updateCharCount(); autoSaveDeco(); };
+  wrap.appendChild(img); wrap.appendChild(delBtn);
+  makeCharDraggable(wrap);
+  container.appendChild(wrap);
+}
+function restoreBubbleEl(container, item){
+  if(!item.text) return;
+  const bubble=document.createElement('div');
+  bubble.className=`speech-bubble ${item.tail||'tail-left'}`;
+  bubble.style.left=item.left||'30%';bubble.style.top=item.top||'55%';
+  bubble.innerHTML=bubbleHTML(item.name,item.text);
+  makeDraggable(bubble);
+  container.appendChild(bubble);
+}
+async function restoreDecorations(){
+  let local = null;
+  try { const raw = localStorage.getItem(decoLocalKey()); if (raw) local = JSON.parse(raw); } catch(e) {}
+  const remote = roomLinked() ? await pullDecoFromRoom() : null;
+  let data;
+  if (isTeacherView()) data = remote || local;               // 선생님 화면은 학생이 올린 것을 우선
+  else if (local && remote) data = (remote.savedAt || 0) > (local.savedAt || 0) ? remote : local;
+  else data = remote || local;
+  // 예전 방식(반·학생 구분 없는 저장 칸)에 남은 것 — 지금 장면과 짝이 맞을 때만 가져옴
+  if (!data && decoLocalKey() !== DECORATION_STORAGE_KEY) {
+    try {
+      const legacy = JSON.parse(localStorage.getItem(DECORATION_STORAGE_KEY) || 'null');
+      const matches = legacy && legacy.scenes && Object.keys(legacy.scenes).some(k => String(k).startsWith('id:') && decoIndexOf(k) !== null);
+      if (matches) data = legacy;
+    } catch(e) {}
+  }
+  if(!data || !data.scenes) return;
+  Object.keys(data.scenes).forEach(rawKey=>{
+    const key = decoIndexOf(rawKey);
+    if(key===null||key===undefined||(typeof key==='number'&&isNaN(key))) return;
+    const container = getSlideKeyEl(key);
+    if(!container) return;
+    const target = container.querySelector('.parallax-container') || container;
+    const d = data.scenes[rawKey];
+    (d.chars||[]).forEach(item=>restoreCharWrap(target, item));
+    (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
+  });
+  (data.effects||[]).forEach(type=>{
+    try{ toggleEffect(type); }catch(e){}
+  });
+  if((data.effects||[]).length) showToast('✅ 저장된 캐릭터·말풍선·효과를 불러왔어요');
+}
+
+
+
+// ══════════════════════════
+// data-tip 이 붙은 버튼 위에 설명을 띄움 (그 버튼 바로 위, 꼬리는 가운데)
+// ══════════════════════════
+function attachHoverTooltips(){
+  const tip = document.getElementById('hover-tooltip');
+  if(!tip) return;
+  let hoverEl = null;
+
+  function positionTip(el){
+    if(!el) return;
+    const b = el.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    const gap = 10, edge = 8;
+    const cx = b.left + b.width / 2;
+
+    let left = cx - t.width / 2;
+    left = Math.max(edge, Math.min(left, window.innerWidth - t.width - edge));
+
+    let top = b.top - t.height - gap;
+    const below = top < edge;
+    if(below) top = b.bottom + gap;
+    tip.classList.toggle('below', below);
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.setProperty('--tip-arrow', Math.max(12, Math.min(cx - left, t.width - 12)) + 'px');
+  }
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if(!el || el === hoverEl) return;
+    hoverEl = el;
+    tip.textContent = el.getAttribute('data-tip');
+    tip.classList.add('show');
+    positionTip(el);
+    requestAnimationFrame(() => { if(hoverEl === el) positionTip(el); });
+  });
+
+  document.addEventListener('mouseout', e => {
+    if(!hoverEl) return;
+    const related = e.relatedTarget;
+    if(related && hoverEl.contains(related)) return;
+    if(!e.target.closest('[data-tip]') || e.target.closest('[data-tip]') !== hoverEl){
+      tip.classList.remove('show');
+      hoverEl = null;
+    }
+  });
+
+  window.addEventListener('scroll', () => { if(hoverEl) positionTip(hoverEl); }, true);
+  window.addEventListener('resize', () => { if(hoverEl) positionTip(hoverEl); });
+}
+
+window.addEventListener('load', async ()=>{
+  await resolveData();
   const makerKey = localStorage.getItem('mm_teacher_api') || localStorage.getItem('eaim_gemini_key') || '';
   if (makerKey) { GEMINI_KEY = makerKey; updateStatusBadge('gemini'); }
   else { updateStatusBadge('pollinations'); }
   initSlideshow();
+  attachHoverTooltips();
 });
 
 let activeEffects = new Set();
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => showToast('⚠️ 이 브라우저에서는 전체화면을 지원하지 않아요'));
+  } else {
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-fullscreen'); if (!btn) return;
+  const isFs = !!document.fullscreenElement;
+  btn.classList.toggle('active', isFs);
+  btn.title = isFs ? '전체화면 종료' : '전체화면으로 재생';
+});
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'bubble-text-input') return;
+  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+});
 
 function toggleFxPanel(){
   document.getElementById('fx-panel').classList.toggle('open');
@@ -1277,7 +1715,7 @@ function clearEffects(){
 }
 
 // ══════════════════════════
-// 📊 PPT 다운로드 — 현재 상태(효과·캐릭터·말풍선 포함)를 슬라이드별로 캡처
+// 📊 PPT 다운로드 — 현재 화면(효과·캐릭터·말풍선 포함) 상태를 슬라이드별로 캡처
 // ══════════════════════════
 function doShowSlideInstant(idx){
   const old=getSlideEl(current);
@@ -1303,106 +1741,22 @@ function doShowSlideInstant(idx){
   mouseX=0; mouseY=0;
 }
 
-// ══════════════════════════
-// ✅ 캐릭터·말풍선·효과 저장/복원 — 새로고침해도 배치가 유지되도록
-// ══════════════════════════
-const DECORATION_STORAGE_KEY = 'eaim_mm_slideshow_decorations';
-function getSlideKeyEl(key){
-  if (key==='cover') return document.getElementById('cover-slide');
-  if (key==='end') return document.getElementById('end-slide');
-  return document.getElementById(`scene-slide-${key}`);
-}
-function collectSlideDecorations(container){
-  if(!container) return {chars:[],bubbles:[]};
-  const chars=[...container.querySelectorAll('.char-wrap')].map(wrap=>{
-    const img=wrap.querySelector('.char-layer');
-    const loopMatch=(img?.className.match(/char-anim-(float|breathe|sway)/)||[])[0]||'';
-    return { src: img?.getAttribute('src')||'', left: wrap.style.left||'', top: wrap.style.top||'', loopAnim: loopMatch };
-  });
-  const bubbles=[...container.querySelectorAll('.speech-bubble')].map(b=>{
-    const tailClass=(b.className.match(/tail-\S+/)||[])[0]||'tail-left';
-    const nameEl=b.querySelector('.bubble-name');
-    const textEl=b.querySelector('span');
-    return { name: nameEl?nameEl.textContent:'', text: textEl?textEl.textContent:'', tail: tailClass, left: b.style.left||'', top: b.style.top||'' };
-  });
-  return { chars, bubbles };
-}
-function saveDecorations(showConfirm){
-  const data = { effects: Array.from(activeEffects), scenes: {} };
-  data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
-  data.scenes['end'] = collectSlideDecorations(getSlideKeyEl('end'));
-  for (let i=0;i<TOTAL;i++) data.scenes[i] = collectSlideDecorations(getSlideKeyEl(i));
-  try{
-    localStorage.setItem(DECORATION_STORAGE_KEY, JSON.stringify(data));
-    if(showConfirm) showToast('✅ 캐릭터·말풍선·효과 저장 완료! 새로고침해도 유지돼요');
-  }catch(e){
-    if(showConfirm) showToast('❌ 저장 실패: '+e.message);
-  }
-}
-function restoreCharToSlide(container, item){
-  if(!item || !item.src) return;
-  const target = container.querySelector('.parallax-container') || container;
-  const id = 'char_' + (++charIdCounter);
-  const wrap = document.createElement('div');
-  wrap.className = 'char-wrap';
-  wrap.dataset.charId = id;
-  wrap.style.left = item.left || '30%';
-  if (item.top) wrap.style.top = item.top;
-  const img = document.createElement('img');
-  img.className = 'char-layer' + (item.loopAnim ? (' '+item.loopAnim) : '');
-  img.src = item.src; img.alt = '캐릭터';
-  img.onerror = () => { wrap.remove(); };
-  const delBtn = document.createElement('button');
-  delBtn.className = 'char-del-btn';
-  delBtn.textContent = '✕';
-  delBtn.onclick = (e) => { e.stopPropagation(); wrap.remove(); if(selectedCharId===id) selectedCharId=null; updateCharCount(); };
-  wrap.appendChild(img); wrap.appendChild(delBtn);
-  makeCharDraggable(wrap);
-  target.appendChild(wrap);
-}
-function restoreBubbleEl(container, item){
-  if(!item.text) return;
-  const bubble=document.createElement('div');
-  bubble.className=`speech-bubble ${item.tail||'tail-left'}`;
-  bubble.style.left=item.left||'30%';bubble.style.top=item.top||'55%';
-  bubble.innerHTML=`${item.name?`<div class="bubble-name">${item.name}</div>`:''}<span>${item.text}</span><button class="bubble-del" onclick="this.parentElement.remove()">✕</button>`;
-  makeDraggable(bubble);
-  container.appendChild(bubble);
-}
-function restoreDecorations(){
-  let raw; try{ raw = localStorage.getItem(DECORATION_STORAGE_KEY); }catch(e){ return; }
-  if(!raw) return;
-  let data; try{ data = JSON.parse(raw); }catch(e){ return; }
-  if(!data || !data.scenes) return;
-  Object.keys(data.scenes).forEach(key=>{
-    const container = getSlideKeyEl(key);
-    if(!container) return;
-    const d = data.scenes[key];
-    (d.chars||[]).forEach(item=>restoreCharToSlide(container, item));
-    (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
-  });
-  (data.effects||[]).forEach(type=>{
-    try{ toggleEffect(type); }catch(e){}
-  });
-  if((data.effects||[]).length) showToast('✅ 저장된 캐릭터·말풍선·효과를 불러왔어요');
-}
-
 async function downloadPPTX(){
   if (typeof html2canvas === 'undefined' || typeof PptxGenJS === 'undefined') {
     showToast('⚠️ PPT 도구를 불러오지 못했어요. 인터넷 연결을 확인해주세요');
     return;
   }
   const progressEl=document.getElementById('ppt-progress'), progressText=document.getElementById('ppt-progress-text');
-  const wasAuto=autoPlay; if(wasAuto) toggleAuto();
+  stopAutoIfPlaying();
   deselectAllChars();
   const startSlide=current;
 
   document.getElementById('controls').style.display='none';
   document.getElementById('key-hint').style.display='none';
   document.getElementById('back-btn').style.display='none';
-  document.getElementById('api-status').style.display='none';
-  document.getElementById('signal-indicator').style.display='none';
-  ['char-panel','char-anim-panel','bubble-panel','fx-panel'].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove('show','open');});
+  const apiStatusEl=document.getElementById('api-status'); if(apiStatusEl) apiStatusEl.style.display='none';
+  const signalEl=document.getElementById('signal-indicator'); if(signalEl) signalEl.style.display='none';
+  ['bubble-panel','char-panel','fx-panel'].forEach(id=>{const el=document.getElementById(id); if(el) el.classList.remove('show','open');});
   progressEl.classList.add('show');
   progressText.textContent='PPT 생성 준비 중...';
 
@@ -1431,7 +1785,8 @@ async function downloadPPTX(){
     }
 
     progressText.textContent='PPT 파일 저장 중...';
-    await pptx.writeFile({ fileName:`${SHOW_TITLE}_EAIM.pptx` });
+    const title = (DATA.title && DATA.title.trim()) ? DATA.title.trim() : '미디어픽쳐';
+    await pptx.writeFile({ fileName:`${title}_EAIM.pptx` });
     showToast('✅ PPT 다운로드 완료!');
   }catch(e){
     console.error(e);
@@ -1440,70 +1795,12 @@ async function downloadPPTX(){
     progressEl.classList.remove('show');
     document.getElementById('controls').style.display='flex';
     document.getElementById('key-hint').style.display='block';
-    document.getElementById('api-status').style.display='flex';
+    if(apiStatusEl) apiStatusEl.style.display='flex';
     doShowSlideInstant(startSlide);
     updateControls();
   }
 }
-
-// ══════════════════════════
-// 🗨 커서 호버 말풍선 툴팁
-// data-tip 속성이 붙은 요소에 마우스를 올리면
-// 커서를 따라다니는 말풍선으로 설명을 보여줌
-// ══════════════════════════
-function attachHoverTooltips(){
-  const tip = document.getElementById('hover-tooltip');
-  if(!tip) return;
-  let hoverEl = null;
-
-  /* 설명은 그 버튼 바로 위에, 꼬리는 버튼 가운데를 가리키게.
-     예전에는 커서 오른쪽 14px 에 띄워서 늘 옆 버튼을 가리켰다. */
-  function positionTip(el){
-    if(!el) return;
-    const b = el.getBoundingClientRect();
-    const t = tip.getBoundingClientRect();
-    const gap = 10, edge = 8;
-    const cx = b.left + b.width / 2;
-
-    let left = cx - t.width / 2;
-    left = Math.max(edge, Math.min(left, window.innerWidth - t.width - edge));
-
-    let top = b.top - t.height - gap;
-    const below = top < edge;
-    if(below) top = b.bottom + gap;
-    tip.classList.toggle('below', below);
-
-    tip.style.left = left + 'px';
-    tip.style.top = top + 'px';
-    tip.style.setProperty('--tip-arrow', Math.max(12, Math.min(cx - left, t.width - 12)) + 'px');
-  }
-
-  document.addEventListener('mouseover', e => {
-    const el = e.target.closest('[data-tip]');
-    if(!el || el === hoverEl) return;
-    hoverEl = el;
-    tip.textContent = el.getAttribute('data-tip');
-    tip.classList.add('show');
-    positionTip(el);                 // 글자가 바뀌면 폭도 바뀌므로 한 번 더 잰다
-    requestAnimationFrame(() => { if(hoverEl === el) positionTip(el); });
-  });
-
-  window.addEventListener('scroll', () => { if(hoverEl) positionTip(hoverEl); }, true);
-  window.addEventListener('resize', () => { if(hoverEl) positionTip(hoverEl); });
-
-  document.addEventListener('mouseout', e => {
-    if(!hoverEl) return;
-    const related = e.relatedTarget;
-    if(related && hoverEl.contains(related)) return;
-    if(!hoverEl.contains(e.target) && e.target !== hoverEl) {}
-    if(!e.target.closest('[data-tip]') || e.target.closest('[data-tip]') !== hoverEl){
-      tip.classList.remove('show');
-      hoverEl = null;
-    }
-  });
-}
 </script>
 <script src="slideshow-rec.js"></script>
-<script src="slideshow-dialogue.js"></script>
 </body>
 </html>
