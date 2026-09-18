@@ -13,13 +13,10 @@
   'use strict';
 
   // ── 모델 (2026-09 기준 문서 확인) ─────────────────────────
-  const MODELS = {
-    image:   'gemini-3.1-flash-lite-image', // 가장 저렴·빠름, 1K 고정
-    imageHQ: 'gemini-3.1-flash-image',      // 고품질 (텍스트 렌더링 등)
-    clip:    'lyria-3-clip-preview',        // 30초 미리듣기
-    song:    'lyria-3-pro-preview',         // 전체 곡 (2분 내외)
-  };
-  const API = 'https://generativelanguage.googleapis.com/v1beta/models/';
+  /* 모델은 서버(api/ai)가 별칭으로 고릅니다 — 키를 브라우저에 두지 않기 위해 (2026-09-17)
+     image=gemini-3.1-flash-lite-image · imageHQ=gemini-3.1-flash-image · clip=lyria-3-clip-preview · song=lyria-3-pro-preview */
+  const MODELS = { image:'image-lite', imageHQ:'image', clip:'music', song:'music-full' };
+  const AI_URL = 'api/ai';
 
   // ── 스타일 (본체 CSS 변수 재사용) ───────────────────────────
   const css = document.createElement('style');
@@ -51,7 +48,6 @@
   // ── 공용 유틸 ───────────────────────────────────────────────
   const $ = (id) => document.getElementById(id);
   const toast = (m) => (typeof showToast === 'function' ? showToast(m) : console.log(m));
-  const key = () => ((typeof settings !== 'undefined' && settings.apiKey) || '').trim();
   const mediaOn = () => (typeof settings === 'undefined' ? true : settings.mediaOn !== false);
   const limitOf = (k) => (typeof settings === 'undefined' ? 0 : (Number(settings[k]) || 0)); // 0 = 무제한
   const isStudent = () => (typeof isStudentMode !== 'undefined' && isStudentMode);
@@ -170,19 +166,22 @@
 
   // ── Gemini 미디어 호출 (이미지·음악 공용) ───────────────────
   async function geminiMedia(model, parts, generationConfig, onWait) {
-    const k = key();
-    if (!k) throw new Error('API 키가 설정되지 않았어요. 선생님께 문의하세요.');
-    const body = { contents: [{ parts }] };
+    const q = new URLSearchParams(location.search);
+    const uid = (typeof teacherUid !== 'undefined' && teacherUid) || q.get('teacher') || '';
+    const demo = q.get('demo') || '';
+    if (!uid && !demo) throw new Error('선생님 초대 링크로 들어와야 AI를 쓸 수 있어요.');
+    const body = { teacher: uid, demo, model, contents: [{ parts }] };
     if (generationConfig) body.generationConfig = generationConfig;
     return queued(async () => {
-    const res = await withRetry(() => fetch(API + model + ':generateContent', {
+    const res = await withRetry(() => fetch(AI_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }), onWait);
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      const msg = res.status === 429 ? '지금 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요 (모둠별로 순서대로 누르면 좋아요).' : (e?.error?.message || `오류 ${res.status}`);
+      const msg = res.status === 429 ? '지금 요청이 몰려 있어요. 1분쯤 뒤에 다시 눌러주세요 (모둠별로 순서대로 누르면 좋아요).'
+        : res.status === 404 ? 'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.' : (e?.error?.message || `오류 ${res.status}`);
       const err = new Error(msg); err.status = res.status; throw err;
     }
     const data = await res.json();

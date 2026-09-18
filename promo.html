@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📢 홍보팀 | EAIM 프로덕션</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 :root{--paper:#fdfbf6;--ink:#170f22;--sub:#5a4f70;--line:rgba(124,58,237,.22);--gold:#7a5312;--gold2:#d4a843;--purple:#7c3aed;--pink:#c778dd;--blue:#5DADE2;--green:#2e7d4f;--slate:#1f1730}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -140,18 +138,26 @@ textarea.in{min-height:70px;resize:vertical;line-height:1.7}
 
 <script>
 'use strict';
-/* ── 키: 허브/메이커에서 넘어온 teacher UID로 설정 읽기, 없으면 메이커가 남긴 로컬 키 ── */
-const FIREBASE_CONFIG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-classroom.firebaseapp.com",projectId:"eaim-classroom",storageBucket:"eaim-classroom.firebasestorage.app",messagingSenderId:"294479576192",appId:"1:294479576192:web:c60e994e319dbd2f11ba65"};
+/* ── AI 중계: 키를 브라우저에 두지 않고 서버 함수(api/ai)로 부릅니다 (2026-09-17) ── */
 const P=new URLSearchParams(location.search);
-let apiKey=localStorage.getItem('mm_teacher_api')||'';
-let mediaOn=true;
-(function(){
-  const t=P.get('teacher'); if(!t) return setKey(apiKey);
-  try{ firebase.initializeApp(FIREBASE_CONFIG);
-    firebase.firestore().collection('teachers').doc(t).collection('meta').doc('settings').onSnapshot(s=>{ const d=s.data()||{}; mediaOn=d.mediaOn!==false; setKey(d.apiKey||apiKey); },()=>setKey(apiKey));
-  }catch(e){ setKey(apiKey); }
+const TEACHER=P.get('teacher')||'', DEMO=P.get('demo')||'';
+let aiReady=false;
+(async function(){
+  const el=document.getElementById('keydot'), tx=document.getElementById('keytext');
+  if(!TEACHER&&!DEMO){ tx.textContent='선생님 초대 링크(QR)로 들어와야 그림을 만들 수 있어요'; return; }
+  try{
+    const r=await fetch(`api/ai?action=ping&teacher=${encodeURIComponent(TEACHER)}${DEMO?'&demo='+encodeURIComponent(DEMO):''}`,{cache:'no-store'});
+    const d=await r.json().catch(()=>({}));
+    aiReady=!!d.ok; el.classList.toggle('on',aiReady);
+    tx.textContent=aiReady?'생성 준비됨':(d.reason||(r.status===404?'AI 서버 함수(api/ai)가 아직 배포되지 않았어요':'AI를 쓸 수 없어요'));
+  }catch(e){ tx.textContent='AI 서버에 연결하지 못했어요'; }
 })();
-function setKey(k){ apiKey=(k||'').trim(); const el=document.getElementById('keydot'); el.classList.toggle('on',!!apiKey); document.getElementById('keytext').textContent=apiKey?(mediaOn?'생성 준비됨':'선생님이 생성을 꺼두었어요'):'API 키 없음 — 뮤지컬메이커를 먼저 열어주세요'; }
+async function aiCall(model,contents,generationConfig){
+  if(!TEACHER&&!DEMO) throw new Error('선생님 초대 링크(QR)로 들어와야 AI를 쓸 수 있어요.');
+  const res=await fetch('api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teacher:TEACHER,demo:DEMO,model,contents,generationConfig})});
+  if(!res.ok){ const e=await res.json().catch(()=>({})); const err=new Error(e?.error?.message||(res.status===404?'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.':'오류 '+res.status)); err.status=res.status; throw err; }
+  return res.json();
+}
 
 /* ── 뮤지컬메이커 작품 정보 채우기 ── */
 (function prefill(){
@@ -191,25 +197,23 @@ function buildPrompt(){
 
 /* ── Gemini 이미지 ── */
 async function geminiImage(prompt,aspect){
-  if(!apiKey) throw new Error('API 키가 없어요. 뮤지컬메이커(대본팀)를 먼저 열어 로그인하거나 초대 링크로 들어오세요.');
-  if(!mediaOn) throw new Error('선생님이 그림 생성을 꺼두었어요.');
   const cfgs=[{responseModalities:['IMAGE'],responseFormat:{image:{aspectRatio:aspect}}},{responseModalities:['IMAGE'],imageConfig:{aspectRatio:aspect}},{responseModalities:['IMAGE']}];
   let last;
   for(const cfg of cfgs){
-    const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:cfg})});
-    if(!res.ok){ const e=await res.json().catch(()=>({})); last=new Error(e?.error?.message||('오류 '+res.status)); if(res.status===400) continue; throw last; }
-    const data=await res.json(); const ps=data.candidates?.[0]?.content?.parts||[];
+    let data;
+    try{ data=await aiCall('image',[{parts:[{text:prompt}]}],cfg); }
+    catch(e){ last=e; if(e.status===400) continue; throw e; }
+    { const ps=data.candidates?.[0]?.content?.parts||[];
     const img=ps.filter(p=>p.inlineData&&!p.thought).pop();
     if(!img) throw new Error('그림이 나오지 않았어요'+(data.candidates?.[0]?.finishReason?` (${data.candidates[0].finishReason})`:'')+'. 장면 설명을 조금 바꿔보세요.');
     return `data:${img.inlineData.mimeType};base64,${img.inlineData.data}`;
+    }
   }
   throw last||new Error('생성 실패');
 }
 async function geminiText(prompt){
-  if(!apiKey) throw new Error('API 키가 없어요.');
-  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.9,maxOutputTokens:1024}})});
-  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||('오류 '+res.status)); }
-  const d=await res.json(); return d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  const d=await aiCall('text',[{parts:[{text:prompt}]}],{temperature:.9,maxOutputTokens:1024});
+  return d.candidates?.[0]?.content?.parts?.filter(p=>p.text&&!p.thought).map(p=>p.text).join('')||'';
 }
 
 /* ── 보관함 ── */

@@ -560,16 +560,16 @@ setInterval(() => {
   });
 }, 30);
 
-let GEMINI_KEY = localStorage.getItem('mm_teacher_api') || localStorage.getItem('eaim_gemini_key') || '';
+/* AI 중계: 키를 브라우저에 두지 않고 서버 함수(api/ai)로 부릅니다 (2026-09-17)
+   GEMINI_KEY 는 '쓸 수 있는지' 표시용 값일 뿐, 실제 키가 아닙니다 */
+const AI_Q = new URLSearchParams(location.search);
+const AI_TEACHER = AI_Q.get('teacher') || '', AI_DEMO = AI_Q.get('demo') || '';
+let GEMINI_KEY = (AI_TEACHER || AI_DEMO) ? 'relay' : '';
 const imgCache = {};
-function confirmApiKey() {
-  const key = document.getElementById('api-key-input').value.trim(); if (!key) return;
-  GEMINI_KEY = key;
-  if (document.getElementById('save-key').checked) { localStorage.setItem('eaim_gemini_key', key); localStorage.setItem('mm_teacher_api', key); }
-  document.getElementById('api-modal').classList.add('hidden'); updateStatusBadge('gemini');
-}
-function skipApiKey() { GEMINI_KEY=''; document.getElementById('api-modal').classList.add('hidden'); updateStatusBadge('pollinations'); }
-function resetApiKey() { GEMINI_KEY=''; localStorage.removeItem('eaim_gemini_key'); location.reload(); }
+/* 키를 직접 넣던 창은 더 쓰지 않습니다 — AI 그림은 선생님 초대 링크로 열었을 때만 (2026-09-17) */
+function confirmApiKey() { document.getElementById('api-modal').classList.add('hidden'); }
+function skipApiKey() { document.getElementById('api-modal').classList.add('hidden'); updateStatusBadge('pollinations'); }
+function resetApiKey() { location.reload(); }
 function updateStatusBadge(mode) {
   const el = document.getElementById('api-status');
   el.className = 'api-status ' + mode;
@@ -577,10 +577,10 @@ function updateStatusBadge(mode) {
 }
 async function fetchGeminiImage(prompt) {
   if (imgCache[prompt]) return imgCache[prompt];
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GEMINI_KEY}`;
-  const res = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({contents:[{parts:[{text:prompt+', 2.5D style, semi-3D illustration, cinematic, theatrical, dramatic lighting, 16:9'}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})});
-  if (!res.ok) throw new Error('Gemini '+res.status);
+  if (!AI_TEACHER && !AI_DEMO) throw new Error('선생님 초대 링크로 열어야 AI 그림을 만들 수 있어요');
+  const res = await fetch('api/ai', {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({teacher:AI_TEACHER,demo:AI_DEMO,model:'image',contents:[{parts:[{text:prompt+', 2.5D style, semi-3D illustration, cinematic, theatrical, dramatic lighting, 16:9'}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}})});
+  if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||('AI 오류 '+res.status)); }
   const data = await res.json();
   const imgPart = (data?.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData);
   if (!imgPart) throw new Error('no image');
@@ -1602,9 +1602,7 @@ function attachHoverTooltips(){
 
 window.addEventListener('load', async ()=>{
   await resolveData();
-  const makerKey = localStorage.getItem('mm_teacher_api') || localStorage.getItem('eaim_gemini_key') || '';
-  if (makerKey) { GEMINI_KEY = makerKey; updateStatusBadge('gemini'); }
-  else { updateStatusBadge('pollinations'); }
+  updateStatusBadge(GEMINI_KEY ? 'gemini' : 'pollinations');
   initSlideshow();
   attachHoverTooltips();
 });

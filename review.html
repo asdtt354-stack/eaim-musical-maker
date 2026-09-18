@@ -191,10 +191,16 @@ textarea.in{min-height:80px;resize:vertical}
 'use strict';
 const P=new URLSearchParams(location.search);
 const FIREBASE_CONFIG={apiKey:"AIzaSyBalg0f5x0ydfHxn_nzgZ1pAELvJw6PzoY",authDomain:"eaim-classroom.firebaseapp.com",projectId:"eaim-classroom",storageBucket:"eaim-classroom.firebasestorage.app",messagingSenderId:"294479576192",appId:"1:294479576192:web:c60e994e319dbd2f11ba65"};
-let apiKey=localStorage.getItem('mm_teacher_api')||'', db=null, teacherUid=P.get('teacher')||'';
-(function(){ try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.firestore(); }catch{}
-  if(teacherUid&&db){ db.collection('teachers').doc(teacherUid).collection('meta').doc('settings').onSnapshot(s=>setKey((s.data()||{}).apiKey||apiKey),()=>setKey(apiKey)); } else setKey(apiKey); })();
-function setKey(k){ apiKey=(k||'').trim(); const el=document.getElementById('keydot'); el.classList.toggle('on',!!apiKey); el.textContent=apiKey?'AI 다듬기 준비됨':'API 키 없음 — AI 다듬기 없이도 감상문은 쓸 수 있어요'; }
+/* AI 중계: 키를 브라우저에 두지 않고 서버 함수(api/ai)로 부릅니다 (2026-09-17) */
+let db=null, teacherUid=P.get('teacher')||'';
+const DEMO=P.get('demo')||'';
+(async function(){ try{ firebase.initializeApp(FIREBASE_CONFIG); db=firebase.firestore(); }catch{}
+  const el=document.getElementById('keydot');
+  if(!teacherUid&&!DEMO){ el.textContent='선생님 초대 링크로 들어오면 AI 다듬기를 쓸 수 있어요 (없이도 감상문은 써집니다)'; return; }
+  try{ const r=await fetch(`api/ai?action=ping&teacher=${encodeURIComponent(teacherUid)}${DEMO?'&demo='+encodeURIComponent(DEMO):''}`,{cache:'no-store'});
+    const d=await r.json().catch(()=>({})); el.classList.toggle('on',!!d.ok);
+    el.textContent=d.ok?'AI 다듬기 준비됨':(d.reason||(r.status===404?'AI 서버 함수(api/ai)가 아직 배포되지 않았어요':'AI 다듬기를 쓸 수 없어요'))+' — 없이도 감상문은 써집니다';
+  }catch(e){ el.textContent='AI 서버에 연결하지 못했어요 — 없이도 감상문은 써집니다'; } })();
 
 /* ── 감정·색 ── */
 const E1=['설레는','기대되는','평온한','피곤한','심심한','긴장된','우울한','상쾌한','졸린','걱정되는','짜증난','행복한'];
@@ -256,10 +262,10 @@ function makeDraft(){
 
 /* ── Gemini ── */
 async function gemini(prompt){
-  if(!apiKey) throw new Error('API 키가 없어요. 프로덕션 대문에서 들어오거나 선생님께 초대 링크를 받으세요.');
-  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.4,maxOutputTokens:2048}})});
-  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||('오류 '+res.status)); }
-  const d=await res.json(); return d.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  if(!teacherUid&&!DEMO) throw new Error('선생님 초대 링크로 들어와야 AI 다듬기를 쓸 수 있어요.');
+  const res=await fetch('api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teacher:teacherUid,demo:DEMO,model:'text',contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.4,maxOutputTokens:2048}})});
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||(res.status===404?'AI 서버 함수(api/ai)가 아직 배포되지 않았어요.':'오류 '+res.status)); }
+  const d=await res.json(); return d.candidates?.[0]?.content?.parts?.filter(p=>p.text&&!p.thought).map(p=>p.text).join('')||'';
 }
 function busy(on,msg,err){ document.getElementById('polishBtn').disabled=on; document.getElementById('bar').classList.toggle('show',on); const s=document.getElementById('st'); s.textContent=msg||''; s.classList.toggle('err',!!err); }
 async function polish(){
