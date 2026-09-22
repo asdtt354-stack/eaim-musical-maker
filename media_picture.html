@@ -1487,7 +1487,9 @@ function logToSheet(activity, title, detail, note){
     fetch(url, {
       method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
-        name: document.getElementById('scene-characters')?.value.trim() || (STUDENT_NUMBER? STUDENT_NUMBER+'번' : ''),
+        // 이름 칸에는 학생 번호만 (예전엔 장면의 '등장인물' 칸이 들어가 학생별로 묶이지 않았음 — 2026-09-21 수정)
+        // 등장인물은 '장면추가'의 상세 칸에 이미 함께 기록됩니다
+        name: STUDENT_NUMBER ? (/번$/.test(String(STUDENT_NUMBER).trim()) ? String(STUDENT_NUMBER).trim() : String(STUDENT_NUMBER).trim()+'번') : '번호 없음',
         group: currentRoom?.name || '', app: '뮤직미디어레터', activity, title: title || '', detail: detail || '', note: note || ''
       })
     });
