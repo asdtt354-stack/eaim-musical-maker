@@ -25,7 +25,7 @@
   body.rec-clean #signal-indicator, body.rec-clean #rec-indicator, body.rec-clean #music-upload-bar,
   body.rec-clean #char-panel, body.rec-clean #char-anim-panel, body.rec-clean #bubble-panel,
   body.rec-clean #fx-panel, body.rec-clean #dialogue-bar, body.rec-clean #hover-tooltip, body.rec-clean #pm-menu,
-  body.rec-clean #back-btn, body.rec-clean #toast-msg, body.rec-clean #ppt-progress,
+  body.rec-clean #back-btn, body.rec-clean #end-btns, body.rec-clean #dlg-panel, body.rec-clean #toast-msg, body.rec-clean #ppt-progress,
   body.rec-clean .lyrics-toggle-btn, body.rec-clean .char-del-btn, body.rec-clean .bubble-del,
   body.rec-clean [id^="src-badge-"] { display: none !important; }
   body.rec-clean .char-wrap.selected { outline: none !important; }
@@ -175,7 +175,7 @@
   function sceneKind(i) {      // i: 1..N
     const S = (typeof SCENES !== 'undefined') ? SCENES : [];
     const sc = S[i - 1] || {};
-    if (sc.clean) return { kind: 'clean', sec: CLEAN_SEC };
+    if (sc.clean) return { kind: 'clean', sec: (Number(sc.sec) > 0 ? Number(sc.sec) : CLEAN_SEC) };   // 막 전환 화면은 슬라이드쇼가 정한 초(🗨 설정)를 따른다 (v2.3)
     if (sc.dialogue || sc.clonedFrom !== undefined) {
       const chars = (sc.bubbles || []).reduce((s, b) => s + String(b.text || '').length, 0);
       return { kind: 'dialogue', sec: Math.max(MIN_DIALOGUE, chars / READ_CPS + 1.5) };
