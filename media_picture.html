@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!-- EAIM 미디어픽쳐 media_picture.html v3.0 (2026-09-25) — 뮤지컬메이커·미디어레터 공용 한 벌 (음악 부록 2-8)
+     · 뮤지컬메이커 사본(AI 중계 api/ai, 시트 이름 칸 = 학생 번호)을 바탕으로
+     · 미디어레터 사본의 📄 활동지 버튼(worksheet/index.html)을 합침 — 활동지 폴더가 없는 저장소에서는 버튼이 저절로 숨음
+     · 슬라이드쇼에 종류 값 kind=picture 를 넘김(slideshow.html v2.0) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -593,6 +597,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <button class="btn btn-primary" id="btn-open-newspaper" onclick="openNewspaper()" style="background:#C9A84C;color:#1a1a1a" disabled>📰 음악 신문 만들기</button>
       <button class="btn btn-primary" id="btn-open-letter" onclick="openLetter()" style="background:#E94560" disabled>💌 음악 편지 쓰기</button>
       <button class="btn btn-primary" id="btn-open-interview" onclick="openInterview()" style="background:#7C4DFF" disabled>🎤 음악 인터뷰</button>
+      <button class="btn btn-primary worksheet-btn" id="btn-open-worksheet" onclick="openWorksheets()" style="background:#2E7D8F;display:none">📄 활동지 (쓰기 · 인쇄)</button>
       <button class="btn btn-secondary" onclick="clearScenes()">🗑 전체 초기화</button>
     </div>
   </div>
@@ -1160,6 +1165,7 @@ function renderDashContent(){
         </label>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
           <button class="btn btn-secondary" style="flex:1;min-width:120px" onclick="toggleRoomExpand('${r.id}')">${isOpen?'▲ 접기':'👥 학생현황 · 초대 QR'}</button>
+          <button class="btn btn-secondary worksheet-btn" onclick="openWorksheets()" style="display:${WORKSHEET_OK?'':'none'}">📄 활동지</button>
           <button class="btn btn-secondary" style="background:rgba(255,107,157,.12);color:var(--accent2)" onclick="deleteRoomUI('${r.id}')">🗑️ 삭제</button>
         </div>
         ${isOpen ? `
@@ -1271,7 +1277,7 @@ function closeStudentView(){ document.getElementById('student-view-modal').style
 
 function renderStudentView({ scenes, npScenes = [], newspaper, letter, interview, room, studentData, rId, studentId }){
   const scope = room.shareScope || 'room';
-  let slideshowUrl = `slideshow.html?mode=teacher&teacher=${teacherUid}&room=${rId}&v=${Date.now()}`;
+  let slideshowUrl = `slideshow.html?mode=teacher&kind=picture&teacher=${teacherUid}&room=${rId}&v=${Date.now()}`;
   let scopeNote = '';
   if (scope === 'individual') { slideshowUrl += `&student=${studentId}`; }
   else if (scope === 'group') {
@@ -2186,6 +2192,7 @@ function saveScenesToStorage() {
   const data = {
     title,
     school: '',
+    kind: 'picture',          // 슬라이드쇼 종류 값 (slideshow.html v2.0)
     scenes: collectedScenes,
   };
   localStorage.setItem(SLIDESHOW_STORAGE_KEY, JSON.stringify(data));
@@ -2297,6 +2304,20 @@ async function clearScenes() {
   showToast('🗑 전체 초기화됐어요');
 }
 
+// 📄 음악 활동지(worksheet/ 폴더) — 장면이 없어도 언제든 열려요 (쓰기·인쇄 모두 됩니다)
+//    활동지 폴더가 없는 저장소(뮤지컬메이커)에서는 버튼을 숨깁니다. 한 파일을 두 저장소가 함께 쓰기 때문.
+let WORKSHEET_OK = false;
+(async () => {
+  try {
+    const r = await fetch('worksheet/index.html', { method: 'HEAD', cache: 'no-store' });
+    WORKSHEET_OK = r.ok;
+  } catch(e) { WORKSHEET_OK = false; }
+  document.querySelectorAll('.worksheet-btn').forEach(b => { b.style.display = WORKSHEET_OK ? '' : 'none'; });
+})();
+function openWorksheets(){
+  window.open('worksheet/index.html?v=' + Date.now(), '_blank');
+  try{ logToSheet('활동지열기', '음악 활동지', ''); }catch(e){}
+}
 function goToSlideshow() {
   if (collectedScenes.length === 0) { showToast('⚠️ 먼저 장면을 하나 이상 추가해주세요'); return; }
   saveScenesToStorage();
@@ -2306,6 +2327,7 @@ function goToSlideshow() {
   if (roomId)     q.push('room='    + encodeURIComponent(roomId));
   if (STUDENT_NUMBER) q.push('student=' + encodeURIComponent(STUDENT_NUMBER));
   if (typeof STUDENT_GROUP !== 'undefined' && STUDENT_GROUP) q.push('group=' + encodeURIComponent(STUDENT_GROUP));
+  q.push('kind=picture');      // 미디어픽쳐 슬라이드쇼 — 커튼콜 없이 끝 카드 (slideshow.html v2.0)
   q.push('v=' + Date.now());   // 휴대폰 브라우저가 예전 슬라이드쇼를 붙잡고 있지 않도록 매번 새로 받기
   location.href = 'slideshow.html?' + q.join('&');
 }
