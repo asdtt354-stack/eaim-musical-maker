@@ -551,6 +551,7 @@
         const m = media[id] || {};
         if (m.imageUrl) s.imageUrl = m.imageUrl;
         if (m.audioUrl) s.audioUrl = m.audioUrl;
+        if (m.audioLyrics) s.audioLyrics = m.audioLyrics;   // 노래가 실제로 부른 가사 → 슬라이드쇼 자막 (v2.6)
         if (m.imageLocal) s.imageLocal = m.imageLocal;
         if (m.audioLocal) s.audioLocal = m.audioLocal;
         if (m.mrUrl) s.mrUrl = m.mrUrl;
@@ -560,6 +561,7 @@
       });
       if (media.curtain?.imageUrl) data.curtainImageUrl = media.curtain.imageUrl;
       if (media.curtain?.audioUrl) data.curtainAudioUrl = media.curtain.audioUrl;
+      if (media.curtain?.audioLyrics) data.curtainAudioLyrics = media.curtain.audioLyrics;
       if (media.curtain?.imageLocal) data.curtainImageLocal = media.curtain.imageLocal;
       if (media.curtain?.audioLocal) data.curtainAudioLocal = media.curtain.audioLocal;
       ['intro','transition','ending'].forEach(k => { const m = media['stage_' + k] || {}; if (m.bgmUrl) data['stage_' + k + 'Url'] = m.bgmUrl; if (m.bgmLocal) data['stage_' + k + 'Local'] = m.bgmLocal; });

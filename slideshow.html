@@ -95,6 +95,9 @@ body.rec-clean #end-btns{display:none!important}
 #dlg-panel .dlg-row button.quiet{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6)}
 body.rec-clean #dlg-panel{display:none!important}
 .slide.dialogue-scene .song-badge{display:none}
+.song-cut-btn{bottom:84px}
+.song-cut-btn.is-cut{color:#FFD700;border-color:rgba(255,215,0,.5)}
+body.rec-clean .song-cut-btn{display:none!important}
 .transition-scene .trans-body{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:0 40px;z-index:5}
 .transition-scene .trans-act{font-size:clamp(14px,1.8vw,20px);letter-spacing:8px;color:rgba(255,255,255,.55);text-transform:uppercase}
 .transition-scene .trans-title{font-size:clamp(26px,4.5vw,52px);font-weight:900;color:#fff;line-height:1.3;text-shadow:0 0 40px rgba(255,255,255,.15);word-break:keep-all}
@@ -459,7 +462,9 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.5 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.6 (2026-09-25)
+   · v2.6: 넘버 자막은 노래가 실제로 부른 가사(audioLyrics, Lyria가 돌려준 것)를 우선 씀. 긴 노래는 "✂ 여기서 끊기"로 끊는 지점을 정해 두면
+           그 지점에서 노래가 서서히 줄어들며 다음 화면으로 넘어감(장면마다 저장).
    · v2.5: 넘버 화면의 가사 자막이 노래 진행에 맞춰 저절로 넘어감(녹화 애드온이 넘버를 틀면 그 시간에 맞춤, 아니면 한 줄 5초). ↑↓·W·S 로 손으로 넘기면 그 장면은 손 모드.
            막 전환 화면은 정한 초(기본 10초)가 지나기 전에는 자동 진행이 넘기지 못함.
    · v2.4: 대사 말풍선의 이름·대사를 학생이 고칠 수 있음(✎ 버튼 또는 더블클릭). 고친 글은 장면마다 저장.
@@ -1157,7 +1162,7 @@ function buildTransitionScene(scene, idx) {
 function buildScene(scene, idx) {
   if (scene.transition) return buildTransitionScene(scene, idx);
   const C=getColor(scene.emotion);
-  const lyricLines=(scene.lyrics||'').split('\n').filter(Boolean);
+  const lyricLines=lyricLinesOf(scene);
   const chars=(scene.characters||'').split(/[,，、]/).map(c=>c.replace(/[\(（][^\)）]*[\)）]/g,'').trim()).filter(Boolean);   // 괄호 설명은 빼고 이름만
   const div=document.createElement('div');
   div.id=`scene-slide-${idx}`; div.className='slide hidden';
@@ -1194,6 +1199,7 @@ function buildScene(scene, idx) {
         </div>
       </div>
       <button class="lyrics-toggle-btn" id="lyr-toggle-${idx}" onclick="toggleLyricsBar(${idx})">가사 숨기기</button>
+      ${(!isPicture() && (scene.audioUrl||scene.audioLocal))?`<button class="lyrics-toggle-btn song-cut-btn" id="cut-${idx}" onclick="toggleSongCut(${idx})" title="노래가 길면 여기서 끊어요 — 노래가 흐를 때 누른 지점부터 서서히 줄어들며 다음 화면으로">✂ 여기서 끊기</button>`:''}
     `:''}
     ${scene.dialogue?(scene.bubbles||[]).map((b,bi)=>`<div class="speech-bubble auto-dialogue-bubble ${b.tail||'tail-left'}" data-k="${bi}" style="left:${b.left};top:${b.top}">${b.name?`<div class="bubble-name">${escHtml(b.name)}</div>`:''}${b.cue?`<div class="bubble-cue">(${escHtml(b.cue)})</div>`:''}<span>${escHtml(b.text)}</span><div class="bubble-tools"><button title="대사 고치기" onclick="editAutoBubble(this)">✎</button><button title="작게" onclick="scaleBubble(this,-1)">A−</button><button title="크게" onclick="scaleBubble(this,1)">A+</button><button title="숨기기" onclick="hideBubble(this)">✕</button></div></div>`).join(''):''}
     <div class="progress-bar"><div class="progress-fill" style="width:${((idx+1)/TOTAL)*100}%;background:linear-gradient(to right,${C.accent},${C.lyric})"></div></div>`;
@@ -1294,7 +1300,7 @@ function doShowSlide(idx) {
       const mc=document.getElementById(`mc-${si}`),lp=document.getElementById(`lp-${si}`);
       if(mc){mc.classList.remove('hidden');mc.classList.add('visible');}
       if(lp){lp.classList.remove('hidden');lp.classList.add('visible');}
-      const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
+      const lines=lyricLinesOf(SCENES[si]);
       lines.forEach((_,i)=>{ const ll=document.getElementById(`ll-${si}-${i}`);if(ll)ll.style.opacity='1'; });
     },350);
   }
@@ -1464,8 +1470,18 @@ document.getElementById('btn-auto').onclick=toggleAuto;
 document.getElementById('btn-exit').onclick=safeExit;
 
 const lyricLineState={};
+/* 넘버 자막에 쓸 가사 줄: 노래가 있고 노래가 부른 가사(audioLyrics)가 있으면 그것, 아니면 대본 가사.
+   [Verse]·(코러스) 같은 구역 표시 줄과 빈 줄은 뺀다. */
+function lyricLinesOf(sc){
+  if (!sc) return [];
+  const hasSong = !!(sc.audioUrl || sc.audioLocal);
+  const raw = (hasSong && sc.audioLyrics && String(sc.audioLyrics).trim()) ? sc.audioLyrics : (sc.lyrics || '');
+  return String(raw).split('\n').map(l => l.trim()).filter(l => l && !/^[\[\(（【].*[\]\)）】]$/.test(l));
+}
+const _songCut = {};   // si → 초. 노래를 여기서 끊는다
+let _sceneAudioEl = null, _sceneAudioSi = -1, _cutFired = false;
 function initLyricBar(si){ lyricLineState[si]=0; updateLyricBar(si); }
-function nextLyricLine(si){ _lyricManual[si]=true; stopLyricAuto(); const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean); const cur=lyricLineState[si]||0; if(cur<lines.length-1){lyricLineState[si]=cur+1;updateLyricBar(si);} }
+function nextLyricLine(si){ _lyricManual[si]=true; stopLyricAuto(); const lines=lyricLinesOf(SCENES[si]); const cur=lyricLineState[si]||0; if(cur<lines.length-1){lyricLineState[si]=cur+1;updateLyricBar(si);} }
 function prevLyricLine(si){ _lyricManual[si]=true; stopLyricAuto(); const cur=lyricLineState[si]||0; if(cur>0){lyricLineState[si]=cur-1;updateLyricBar(si);} }
 /* ── 가사 자막 자동 넘김 (v2.5) ──
    녹화 애드온이 넘버를 틀면 pmOnSceneAudio 로 알려 주고, 그 노래의 진행 시간에 맞춰 줄이 넘어간다.
@@ -1476,7 +1492,7 @@ function stopLyricAuto(){ clearInterval(_lyricT); _lyricT = null; if (_lyricAudi
 function startLyricAuto(si, totalSec, audio){
   stopLyricAuto();
   const sc = SCENES[si]; if (!sc || sc.dialogue || sc.transition || _lyricManual[si]) return;
-  const lines = (sc.lyrics||'').split('\n').filter(Boolean); if (lines.length < 2) return;
+  const lines = lyricLinesOf(sc); if (lines.length < 2) return;
   if (audio) {
     _lyricAudio = audio;
     _lyricHandler = () => {
@@ -1498,9 +1514,35 @@ window.pmOnSceneAudio = function(audio, idx){   // 녹화 애드온이 넘버를
   const si = idx - 1; if (si < 0 || si >= TOTAL) return;
   lyricLineState[si] = 0; updateLyricBar(si);
   startLyricAuto(si, 0, audio);
+  _sceneAudioEl = audio; _sceneAudioSi = si; _cutFired = false;
+  audio.addEventListener('timeupdate', () => {
+    const cut = _songCut[si]; if (!cut || _cutFired || current !== si + 1 || audio.paused) return;
+    if (audio.currentTime >= cut) {
+      _cutFired = true;
+      const v0 = audio.volume, t0 = Date.now(), FADE = 1500;
+      const f = setInterval(() => {
+        const k = Math.min(1, (Date.now() - t0) / FADE); audio.volume = v0 * (1 - k);
+        if (k >= 1) { clearInterval(f); try { audio.pause(); } catch(e) {} audio.volume = v0;
+          if (typeof window._pmSceneAudioEnded === 'function' && current === si + 1) window._pmSceneAudioEnded(); }   // 자동 진행 중이면 다음 화면
+      }, 60);
+    }
+  });
 };
+function fmtSec(sec){ sec = Math.round(sec); return `${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`; }
+function updateCutBtn(si){
+  const b = document.getElementById(`cut-${si}`); if (!b) return;
+  const c = _songCut[si];
+  b.textContent = c ? `✂ ${fmtSec(c)}에서 끊김 · 해제` : '✂ 여기서 끊기';
+  b.classList.toggle('is-cut', !!c);
+}
+function toggleSongCut(si){
+  if (_songCut[si]) { delete _songCut[si]; updateCutBtn(si); autoSaveDeco(); showToast('노래를 끝까지 틀어요'); return; }
+  if (!_sceneAudioEl || _sceneAudioSi !== si || _sceneAudioEl.paused) { showToast('노래가 나오는 중에 눌러 주세요 — 그 지점에서 끊어요'); return; }
+  _songCut[si] = Math.max(3, Math.round(_sceneAudioEl.currentTime)); updateCutBtn(si); autoSaveDeco();
+  showToast(`✂ ${fmtSec(_songCut[si])}에서 노래를 끊어요 — 다음 재생부터 그 지점에서 서서히 줄어들며 넘어가요`);
+}
 function updateLyricBar(si){
-  const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
+  const lines=lyricLinesOf(SCENES[si]);
   const cur=lyricLineState[si]||0;
   const ce=document.getElementById(`nlb-cur-${si}`),ne=document.getElementById(`nlb-next-${si}`);
   if(ce)ce.textContent=lines[cur]||''; if(ne)ne.textContent=lines[cur+1]||'';
@@ -1720,7 +1762,7 @@ function buildDecoData(){
   const data = { savedAt: Date.now(), effects: Array.from(activeEffects), scenes: {} };
   data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
   data.scenes['end']   = collectSlideDecorations(getSlideKeyEl('end'));
-  for (let i=0;i<TOTAL;i++) { const d = collectSlideDecorations(getSlideKeyEl(i)); d.sig = sceneSig(i); data.scenes[decoKeyOf(i)] = d; }
+  for (let i=0;i<TOTAL;i++) { const d = collectSlideDecorations(getSlideKeyEl(i)); d.sig = sceneSig(i); if (_songCut[i]) d.songCut = _songCut[i]; data.scenes[decoKeyOf(i)] = d; }
   return data;
 }
 /* 이 기기 저장 칸 — 반·학생마다 따로 (같은 컴퓨터를 여러 학생이 써도 섞이지 않게) */
@@ -1917,6 +1959,7 @@ async function restoreDecorationsInner(){
     (d.chars||[]).forEach(item=>restoreCharWrap(target, item));
     (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
     if (d.auto) applyAutoBubbleState(container, d.auto);
+    if (typeof key === 'number' && d.songCut) { _songCut[key] = d.songCut; updateCutBtn(key); }
     used.add(String(key));
     return true;
   };
@@ -2123,7 +2166,7 @@ function doShowSlideInstant(idx){
     const mc=document.getElementById(`mc-${si}`),lp=document.getElementById(`lp-${si}`);
     if(mc){mc.classList.remove('hidden');mc.classList.add('visible');}
     if(lp){lp.classList.remove('hidden');lp.classList.add('visible');}
-    const lines=(SCENES[si].lyrics||'').split('\n').filter(Boolean);
+    const lines=lyricLinesOf(SCENES[si]);
     lines.forEach((_,li)=>{ const ll=document.getElementById(`ll-${si}-${li}`);if(ll)ll.style.opacity='1'; });
   }
   if (idx===TOTAL+1) {
