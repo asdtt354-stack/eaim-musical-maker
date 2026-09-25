@@ -456,6 +456,7 @@
               readDuration(sceneAudio, (D) => { if (D) window.pmRetimeEnding(D); });
             }
             sceneAudio.addEventListener('play', () => duck(true));
+            if (typeof window.pmOnSceneAudio === 'function') { try { window.pmOnSceneAudio(sceneAudio, myIdx); } catch {} }   // 슬라이드쇼가 가사 자막을 노래에 맞춰 넘기게 (v2.5)
             sceneAudio.addEventListener('ended', () => { duck(false); if (window._pmSceneAudioEnded) window._pmSceneAudioEnded(); }, { once: true });
             sceneAudio.play().catch(() => {});
           })();
