@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- EAIM 미디어픽쳐 media_picture.html v3.0 (2026-09-25) — 뮤지컬메이커·미디어레터 공용 한 벌 (음악 부록 2-8)
+<!-- EAIM 미디어픽쳐 media_picture.html v3.1 (2026-09-25) — ❓ 사용법 버튼(guide.html) 추가
+     v3.0 — 뮤지컬메이커·미디어레터 공용 한 벌 (음악 부록 2-8)
      · 뮤지컬메이커 사본(AI 중계 api/ai, 시트 이름 칸 = 학생 번호)을 바탕으로
      · 미디어레터 사본의 📄 활동지 버튼(worksheet/index.html)을 합침 — 활동지 폴더가 없는 저장소에서는 버튼이 저절로 숨음
      · 슬라이드쇼에 종류 값 kind=picture 를 넘김(slideshow.html v2.0) -->
@@ -335,6 +336,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <div class="dash-header">
     <div style="display:flex;align-items:center;gap:12px">
       <a href="index.html" class="hub-link">🏠 허브</a>
+      <a href="guide.html" target="_blank" class="hub-link" title="선생님용 사용 가이드 (새 탭)">❓ 사용법</a>
       <h1>🎵 미디어픽쳐 · 교사</h1>
     </div>
     <button class="dash-logout" onclick="teacherLogout()">로그아웃</button>
@@ -351,7 +353,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="container">
 
   <div class="header">
-    <a href="index.html" style="display:inline-block;margin-bottom:14px;font-size:11px;color:var(--text2);text-decoration:none;letter-spacing:1px">← 에임뮤직-미디어-레터</a>
+    <div style="display:flex;justify-content:center;gap:18px;margin-bottom:14px">
+      <a href="index.html" style="font-size:11px;color:var(--text2);text-decoration:none;letter-spacing:1px">← 에임뮤직-미디어-레터</a>
+      <a href="guide.html#student" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;letter-spacing:1px;border:1px solid rgba(93,173,226,.4);border-radius:12px;padding:2px 10px" title="사용법 (새 탭)">❓ 사용법</a>
+    </div>
     <div class="header-badge">🎵 EAIM · Musical Maker</div>
     <div class="header-title">미디어픽쳐</div>
     <div class="header-sub">음악을 듣고 · 느끼고 · 그림으로 표현하다</div>
