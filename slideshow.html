@@ -98,6 +98,9 @@ body.rec-clean #dlg-panel{display:none!important}
 .slide .lyrics-toggle-btn.song-cut-btn{bottom:132px!important}
 .slide .lyrics-toggle-btn.lyrics-edit-btn{bottom:164px!important}   /* 녹화 애드온이 가사 버튼을 100px 로 올리므로 그 위에 */
 .slide.has-lyrics .main-content{max-width:33%}
+.main-content.meta-off{display:none}
+.scene-title-small{position:absolute;top:84px;right:24px;z-index:11;font-size:clamp(11px,1.1vw,14px);font-weight:600;color:rgba(255,255,255,.72);letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.8);max-width:40%;text-align:right;word-break:keep-all}
+.slide.has-lyrics .lyrics-full{top:54%}
 .slide.has-lyrics .scene-title{font-size:clamp(20px,2.6vw,34px)}
 .lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:3%;max-height:80%;overflow:hidden;z-index:25;pointer-events:none;text-align:center;padding:22px 18px;border-radius:18px;background:rgba(0,0,0,.42);backdrop-filter:blur(3px)}
 .lyrics-full .number-lyrics-title{margin-bottom:10px}
@@ -488,7 +491,8 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.10 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.11 (2026-09-25)
+   · v2.11: 뮤지컬의 대사·넘버 화면에서는 큰 제목을 없애고 오른쪽 위에 작게. 큰 제목은 오프닝과 막 전환 화면에만.
    · v2.10: 등장인물·감정·노래 느낌 표시는 오프닝 화면에만. 대사·넘버 화면은 제목(과 넘버 제목)만 남겨 화면을 비움.
    · v2.9: 넘버 가사 전체를 줄 강조 없이 또렷한 흰색으로(어두운 바탕 깔림, 줄 수에 따라 글자 크기 자동). 가사 앞의 [:] 같은 표시 제거.
    · v2.8: 넘버 화면은 한 줄 자막 대신 가사 전체를 화면에 보여 줌(지금 부르는 줄은 노랗게). "✎ 가사 다듬기"로 쓰는 만큼만 남기고 지울 수 있음(장면마다 저장).
@@ -1213,8 +1217,9 @@ function buildScene(scene, idx) {
       <div class="eaim-label">EAIM 🎵</div>
     </div>
     <div id="src-badge-${idx}" style="display:none;position:absolute;top:56px;right:24px;font-size:9px;color:rgba(255,255,255,.3);background:rgba(0,0,0,.35);border-radius:8px;padding:2px 8px;z-index:11"></div>
-    <div class="main-content hidden" id="mc-${idx}">
-      <div class="scene-title">${scene.title}</div>
+    ${!showMeta?`<div class="scene-title-small">${escHtml(scene.title||'')}</div>`:''}
+    <div class="main-content hidden${showMeta?'':' meta-off'}" id="mc-${idx}">
+      ${showMeta?`<div class="scene-title">${scene.title}</div>`:''}
       ${scene.songTitle?`<div class="song-badge" style="background:${C.accent}20;border:1px solid ${C.accent}60;margin-bottom:14px"><span style="font-size:14px">🎼</span><span class="song-title-text" style="color:${C.accent}">♪ ${scene.songTitle}</span></div>`:''}
       ${(showMeta&&chars.length)?`<div class="chars-label">등장인물</div><div class="chars-list">${chars.map(c=>`<span class="char-chip">👤 ${c.trim()}</span>`).join('')}</div>`:''}
       ${showMeta?`<div class="tags">
