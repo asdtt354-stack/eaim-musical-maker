@@ -70,8 +70,8 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 #curtain-phase{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 60px;transition:opacity 1s ease}
 .curtain-label{font-size:11px;color:#FFD700;letter-spacing:4px;margin-bottom:8px;text-transform:uppercase}
 .curtain-song{font-size:clamp(16px,2.5vw,22px);color:#C778DD;font-weight:700;letter-spacing:1px;margin-bottom:28px;font-style:italic}
-.curtain-lyrics-wrap{text-align:center;max-width:600px}
-.curtain-lyric-line{font-size:clamp(16px,2.5vw,24px);line-height:1.9;font-style:italic;font-weight:500;text-shadow:0 0 20px rgba(255,215,0,.3)}
+.curtain-lyrics-wrap{text-align:center;max-width:min(760px,86vw);font-size:clamp(16px,2.5vw,24px)}
+.curtain-lyric-line{font-size:inherit;line-height:1.75;font-style:italic;font-weight:500;text-shadow:0 0 20px rgba(255,215,0,.3)}
 #credits-phase{position:absolute;inset:0;overflow:hidden;transition:opacity 1.2s ease}
 .credits-mask-top{position:absolute;top:0;left:0;right:0;height:120px;z-index:2;background:linear-gradient(to bottom,#0D1B2A,transparent)}
 .credits-mask-bot{position:absolute;bottom:0;left:0;right:0;height:160px;z-index:2;background:linear-gradient(to top,#000,transparent)}
@@ -102,13 +102,13 @@ body.rec-clean #dlg-panel{display:none!important}
 .scene-title-small{position:absolute;top:84px;right:24px;z-index:11;font-size:clamp(13px,1.3vw,17px);font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9);max-width:40%;text-align:right;word-break:keep-all}
 /* 가사 판 자리: 위 표시줄(약 110px)과 아래 조작줄(약 120px) 사이 가운데. 제목·등장인물이 없는 화면(대사·넘버)은 좌우도 가운데 */
 .slide.has-lyrics .lyrics-full{top:110px;bottom:120px;transform:none;max-height:none;display:flex;flex-direction:column;justify-content:center}
-.slide.has-lyrics.no-meta .lyrics-full{left:12%;right:12%}
+.slide.has-lyrics.no-meta .lyrics-full{left:7%;right:7%}
 body.rec-clean .slide.has-lyrics .lyrics-full{bottom:40px}
 .slide.has-lyrics .scene-title{font-size:clamp(20px,2.6vw,34px)}
-.lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:3%;max-height:80%;overflow:hidden;box-sizing:border-box;z-index:25;pointer-events:none;text-align:center;padding:22px 18px;border-radius:18px;background:rgba(0,0,0,.42);backdrop-filter:blur(3px)}
+.lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:3%;max-height:80%;overflow:hidden;box-sizing:border-box;z-index:25;pointer-events:none;text-align:center;padding:14px 16px;border-radius:18px;background:rgba(0,0,0,.42);backdrop-filter:blur(3px)}
 .lyrics-full .number-lyrics-title{margin-bottom:10px}
-.lyrics-full-lines{display:flex;flex-direction:column;gap:1px;font-size:min(clamp(15px,2.1vw,24px),calc(64vh / var(--n,8) / 1.55))}
-.lf-line{font-weight:700;line-height:1.55;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.95);word-break:keep-all}
+.lyrics-full-lines{display:flex;flex-direction:column;gap:0;font-size:min(clamp(16px,2.7vw,30px),calc(74vh / var(--n,8) / 1.42))}
+.lf-line{font-weight:700;line-height:1.42;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.95);word-break:keep-all}
 #lyrics-edit-modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
 #lyrics-edit-modal.show{display:flex}
 #lyrics-edit-box{width:min(560px,92vw);background:rgba(18,14,28,.98);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:16px;color:#fff;font-size:13px}
@@ -494,7 +494,9 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.13 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.15 (2026-09-25)
+   · v2.15: 넘버 가사 글자를 키움(판을 넓히고 줄 간격을 줄여 기본 크기 30px까지, 안 들어갈 때만 줄임).
+   · v2.14: 가사 정리 강화(홀로 남은 ] [ 같은 줄 제거, 줄 끝 괄호 제거). 커튼콜 가사도 길면 글자를 줄여 한 화면에.
    · v2.13: 커튼콜은 노래가 끝날 때까지 가사를 보여 주고 나서 막 내림 크레딧으로. 커튼콜 가사도 노래가 부른 가사 우선.
            끝 화면 버튼(처음 장면으로·저장하고 나가기)은 크레딧이 다 올라간 뒤에만. 같은 막 안(대사↔대사↔넘버)에서는 검은 화면 없이 바로 넘어감.
    · v2.12: 가사 판이 화면 가운데(위 표시줄과 아래 조작줄 사이)에 오고, 가사가 길면 글자를 줄여서 한 판에 다 들어감(잘리지 않음). 오른쪽 위 작은 제목은 진한 흰색.
@@ -1377,7 +1379,7 @@ function showSignalIndicator(scene, idx) {
 function hideSignalIndicator() { const el=document.getElementById('signal-indicator');if(el)el.style.display='none'; }
 function curtainLyricLines(){
   const raw = ((DATA.curtainAudioUrl||DATA.curtainAudioLocal) && DATA.curtainAudioLyrics && String(DATA.curtainAudioLyrics).trim()) ? DATA.curtainAudioLyrics : (DATA.curtainLyrics||'');
-  return String(raw).split('\n').map(l=>l.trim().replace(/^(\[[^\]]*\]|\([^\)]*\))\s*/,'').trim()).filter(l=>l && !/^[\[\(（【].*[\]\)）】]$/.test(l));
+  return cleanLyricLines(raw);
 }
 let _endingT = null, _endingDone = false;
 function goToCredits(){
@@ -1388,6 +1390,14 @@ function goToCredits(){
     const dur=(typeof window._pmCreditsDur==='number'&&window._pmCreditsDur>0)?window._pmCreditsDur:Math.max(12,(DATA.credits||[]).length*2.2+10);
     setTimeout(showEndButtons, dur*1000+600);   // 크레딧이 다 올라간 뒤에 버튼
   },1000);
+}
+function fitCurtainLyrics(){
+  const cp=document.getElementById('curtain-phase'), wrap=cp&&cp.querySelector('.curtain-lyrics-wrap'); if(!cp||!wrap)return;
+  wrap.style.fontSize=''; wrap.querySelectorAll('.curtain-lyric-line').forEach(l=>{ l.style.fontSize='inherit'; l.style.lineHeight='1.6'; });
+  const others=[...cp.children].filter(el=>el!==wrap).reduce((h,el)=>h+el.offsetHeight,0);
+  const avail=cp.clientHeight-others-80; if(avail<=0)return;
+  let fs=parseFloat(getComputedStyle(wrap).fontSize)||22;
+  for(let k=0;k<40&&wrap.scrollHeight>avail&&fs>10;k++){ fs-=1; wrap.style.fontSize=fs+'px'; }
 }
 function showEndButtons(){ if (current===TOTAL+1) document.getElementById('end-btns').style.display='flex'; }
 window.pmRetimeEnding = function(D){ if (D>0 && !_endingDone) { clearTimeout(_endingT); _endingT=setTimeout(goToCredits, D*1000+800); } };   // 녹화 애드온이 커튼콜 곡 길이를 알려 줄 때
@@ -1401,6 +1411,7 @@ function startEnding() {
     return;
   }
   const lyricLines=curtainLyricLines();
+  fitCurtainLyrics();
   setTimeout(()=>{ lyricLines.forEach((_,i)=>setTimeout(()=>{ const el=document.getElementById(`cl-${i}`);if(el)el.style.opacity='1'; },i*250)); },300);
   const hasSong = !!(DATA.curtainAudioUrl||DATA.curtainAudioLocal);
   // 커튼콜 곡이 있으면 곡이 끝날 때(ended) 크레딧으로 — pmOnSceneAudio 가 처리. 곡 길이를 알면 pmRetimeEnding 이 예비 시계를 맞춘다.
@@ -1535,12 +1546,22 @@ document.getElementById('btn-exit').onclick=safeExit;
 const lyricLineState={};
 /* 넘버 자막에 쓸 가사 줄: 노래가 있고 노래가 부른 가사(audioLyrics)가 있으면 그것, 아니면 대본 가사.
    [Verse]·(코러스) 같은 구역 표시 줄과 빈 줄은 뺀다. */
+/* Lyria 가 돌려주는 가사에는 [Verse]·[:]·홀로 남은 ] 같은 표시가 섞여 온다. 자막용으로 정리 */
+function cleanLyricLines(raw){
+  return String(raw||'').split('\n').map(l => l.trim()
+      .replace(/^(\[[^\]]*\]|\([^\)]*\))\s*/, '')      // 줄 앞 [Chorus]·[:]·(코러스)
+      .replace(/^[\[\]\(\)（）【】:：\s]+/, '')             // 줄 앞에 남은 괄호·콜론
+      .replace(/[\[\]\(\)（）【】\s]+$/, '')                // 줄 끝에 남은 괄호
+      .trim())
+    .filter(l => l && /[가-힣A-Za-z0-9]/.test(l))            // 글자가 없는 줄(] 만 있는 줄 등)은 뺀다
+    .filter(l => !/^(chorus|verse|bridge|intro|outro|pre-?chorus|hook|refrain|interlude|instrumental|solo|ending|coda|후렴|절)\s*\d*$/i.test(l));   // 구역 이름만 남은 줄
+}
 function lyricLinesOf(sc){
   if (!sc) return [];
   const hasSong = !!(sc.audioUrl || sc.audioLocal);
   const raw = (sc.lyricsEdit !== undefined && sc.lyricsEdit !== null) ? sc.lyricsEdit
             : (hasSong && sc.audioLyrics && String(sc.audioLyrics).trim()) ? sc.audioLyrics : (sc.lyrics || '');
-  return String(raw).split('\n').map(l => l.trim().replace(/^(\[[^\]]*\]|\([^\)]*\))\s*/, '').trim()).filter(l => l && !/^[\[\(（【].*[\]\)）】]$/.test(l));   // 줄 앞의 [:]·[Verse] 표시는 뗀다
+  return cleanLyricLines(raw);
 }
 const _songCut = {};   // si → 초. 노래를 여기서 끊는다
 let _sceneAudioEl = null, _sceneAudioSi = -1, _cutFired = false;
@@ -1628,7 +1649,7 @@ function fitLyrics(si){
   const box=document.getElementById(`nlb-${si}`), wrap=document.getElementById(`nlb-lines-${si}`); if(!box||!wrap)return;
   wrap.style.fontSize='';                                   // CSS 기본값(줄 수 기준)에서 시작
   const titleH=(box.querySelector('.number-lyrics-title')||{}).offsetHeight||0;
-  const avail=box.clientHeight-titleH-44;                   // 안쪽 여백
+  const avail=box.clientHeight-titleH-30;                   // 안쪽 여백
   if(avail<=0)return;
   let fs=parseFloat(getComputedStyle(wrap).fontSize)||20;
   for(let k=0;k<40&&wrap.scrollHeight>avail&&fs>9;k++){ fs-=1; wrap.style.fontSize=fs+'px'; }
