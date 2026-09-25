@@ -84,6 +84,17 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .credit-name{font-size:clamp(14px,2vw,17px);color:#fff;font-weight:600;line-height:1.5}
 .credits-footer{text-align:center;margin-top:56px;padding-bottom:40px}
 body.rec-clean #end-btns{display:none!important}
+#dlg-panel{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:210;width:300px;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;display:none;color:#fff;font-size:12px}
+#dlg-panel.show{display:block}
+#dlg-panel h4{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:8px}
+#dlg-panel .dlg-info{color:rgba(255,255,255,.5);font-size:11px;line-height:1.6;margin-bottom:10px}
+#dlg-panel label{display:flex;align-items:center;gap:8px;padding:6px 0}
+#dlg-panel input[type=number]{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:2px 6px;font-family:inherit}
+#dlg-panel .dlg-row{display:flex;gap:6px;margin-top:8px}
+#dlg-panel .dlg-row button{flex:1;padding:7px;border-radius:8px;border:1px solid rgba(93,173,226,.4);background:rgba(93,173,226,.18);color:#5DADE2;cursor:pointer;font-family:inherit}
+#dlg-panel .dlg-row button.quiet{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6)}
+body.rec-clean #dlg-panel{display:none!important}
+.slide.dialogue-scene .song-badge{display:none}
 #end-btns{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:200;display:none;gap:10px}
 #end-exit-btn{padding:10px 22px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.8);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px)}
 #back-btn{padding:10px 28px;border-radius:8px;background:rgba(93,173,226,.15);border:1px solid rgba(93,173,226,.5);color:#5DADE2;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px)}
@@ -317,6 +328,14 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="mu-hide-btn" onclick="toggleMusicBar()">숨기기</button>
 </div>
 
+<div id="dlg-panel">
+  <h4>🗨 대사 화면</h4>
+  <div class="dlg-info">대본이 있는 막을 <b>대사 화면 → 넘버 화면</b>으로 나눠요. 대사 화면에는 말풍선이 자동으로 놓이고 넘버 대신 배경음악만 흘러요.</div>
+  <label><input type="checkbox" id="dlg-on"> 대사 화면 나누기 켜기</label>
+  <label>한 화면에 대사 <input type="number" id="dlg-per" min="1" max="6" style="width:46px"> 줄</label>
+  <div class="dlg-row"><button onclick="applyDlgSettings()">적용 (다시 열림)</button><button class="quiet" onclick="document.getElementById('dlg-panel').classList.remove('show')">닫기</button></div>
+</div>
+
 <div id="char-panel">
   <h4>🎭 캐릭터 레이어</h4>
   <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px">추가된 캐릭터: <span id="char-count">0</span>/3</div>
@@ -412,6 +431,7 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-auto" data-tip="⏱ 설정대로 자동 진행해요 (음악에 맞춰 넘어갑니다)">⏵</button>
   <button class="ctrl-btn" id="btn-bubble" onclick="toggleBubblePanel()" data-tip="그림 위에 대사 말풍선을 올려요">💬</button>
   <button class="ctrl-btn" id="btn-char" onclick="toggleCharPanel()" data-tip="캐릭터 그림을 무대에 올려요">🎭</button>
+  <button class="ctrl-btn" id="btn-dlg" onclick="toggleDlgPanel()" data-tip="대사 화면 나누기 (뮤지컬)" style="display:none">🗨</button>
   <button class="ctrl-btn" id="btn-rec" onclick="toggleRecording()" data-tip="버튼 없이 깨끗한 영상으로 녹화해요">⏺</button>
   <button class="ctrl-btn" onclick="toggleFxPanel()" data-tip="안개·비·눈 같은 배경 효과를 켜요">🎆</button>
   <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullscreen()" data-tip="전체화면으로 크게 봐요">⛶</button>
@@ -422,7 +442,9 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.0 (2026-09-25) — 뮤지컬메이커·미디어레터 공용 한 파일 (음악 부록 4-2)
+/* EAIM 슬라이드쇼 slideshow.html v2.1 (2026-09-25)
+   · v2.1: 뮤지컬(kind=musical)은 대본이 있는 막을 "대사 화면 → 넘버 화면"으로 자동으로 나눔 (음악 부록 4-2의 4번, 방식 A).
+           대사 화면은 대본을 말풍선으로 자동 배치, 가사·넘버 없이 배경음악만. 🗨 버튼에서 켜고 끄기·한 화면 줄 수. — 뮤지컬메이커·미디어레터 공용 한 파일 (음악 부록 4-2)
    · 종류 값 KIND: 'musical'(커튼콜·막 내림 크레딧) / 'picture'(미디어레터: 간단한 끝 카드)
    · 단축키는 한 곳에서만 처리 — 글 쓰는 중에는 동작하지 않음 (공통규칙 3번)
    · "처음 장면으로"는 첫 장면으로만, 나가기는 저장을 끝낸 뒤 (음악 부록 4-1의 2번)
@@ -461,6 +483,67 @@ function getColor(emotion) {
 const stage = document.getElementById('stage');
 let SCENES = [];
 let TOTAL = 0;
+/* ── 대사 화면 자동 나누기 (뮤지컬만) ──
+   대본("인물: 대사" 줄)이 있는 막마다 대사 화면을 앞에 끼워 넣는다. 저장하지 않고 열 때마다 새로 만드므로
+   뮤지컬메이커에서 다시 열어도 그대로다. 캐릭터·말풍선 꾸밈은 대사 화면마다 따로 저장된다(id 로 짝지음). */
+const DLG_KEY = 'eaim_music_slideshow_dialogue';
+let DLG = { on: true, per: 2 };
+try { DLG = { ...DLG, ...JSON.parse(localStorage.getItem(DLG_KEY) || '{}') }; } catch(e) {}
+const DLG_POS = [   // 왼쪽 제목·등장인물 자리를 피해 오른쪽 넓은 곳에 놓는다
+  { left: '32%', top: '62%', tail: 'tail-left' },
+  { left: '44%', top: '32%', tail: 'tail-left' },
+  { left: '64%', top: '32%', tail: 'tail-right' },
+  { left: '72%', top: '62%', tail: 'tail-right' },
+];
+function parseScriptLines(text){
+  if (!text) return [];
+  const out = [], who = {};
+  String(text).split('\n').forEach(raw => {
+    const line = raw.trim();
+    if (!line || line.startsWith('[') || line.startsWith('(') || line.startsWith('（')) return;   // 지문은 건너뜀
+    const m = line.match(/^([^:：]{1,14})[:：]\s*(.+)$/); if (!m) return;
+    const speaker = m[1].trim(), t = m[2].trim(); if (!t) return;
+    if (!(speaker in who)) who[speaker] = Object.keys(who).length % DLG_POS.length;
+    out.push({ speaker, text: t, posIdx: who[speaker] });
+  });
+  return out;
+}
+function expandDialogueScenes(src){
+  const out = [];
+  src.forEach((sc, i) => {
+    const actNo = i + 1;
+    const baseId = sc.id || ('act' + actNo);
+    const lines = parseScriptLines(sc.script);
+    if (lines.length) {
+      const per = Math.max(1, Number(DLG.per) || 1);
+      const groups = []; for (let k = 0; k < lines.length; k += per) groups.push(lines.slice(k, k + per));
+      groups.forEach((g, gi) => {
+        const c = JSON.parse(JSON.stringify(sc));
+        c.id = baseId + '-d' + (gi + 1);
+        c.dialogue = true; c.clonedFrom = i; c.cut = gi + 1; c.cuts = groups.length; c.actNo = actNo;
+        c.lyrics = ''; c.songTitle = '';                      // 가사·넘버 없음
+        delete c.audioUrl; delete c.audioLocal; delete c.mrUrl; // 넘버는 틀지 않음, 배경음악(bgm)만 이어짐
+        c.bubbles = g.map((l, k) => {
+          const p = DLG_POS[l.posIdx]; const same = g.slice(0, k).filter(x => x.posIdx === l.posIdx).length;
+          return { name: l.speaker, text: l.text, tail: p.tail, left: p.left, top: (parseFloat(p.top) + same * 14) + '%' };
+        });
+        out.push(c);
+      });
+      const n = JSON.parse(JSON.stringify(sc)); n.actNo = actNo; n.hasDialogue = true; if (!n.id) n.id = baseId;
+      out.push(n);
+    } else {
+      const n = JSON.parse(JSON.stringify(sc)); n.actNo = actNo; out.push(n);
+    }
+  });
+  return out;
+}
+function sceneLabel(idx){   // idx: 1..TOTAL
+  const sc = SCENES[idx - 1] || {};
+  const no = String(sc.actNo || idx).padStart(2, '0');
+  if (sc.dialogue) return `Scene ${no} · 대사 ${sc.cut}/${sc.cuts}`;
+  if (sc.hasDialogue) return `Scene ${no} · 넘버`;
+  return `Scene ${no}`;
+}
 let current = 0, autoPlay = false, autoTimer = null;
 
 // ══════════════════════════
@@ -542,7 +625,9 @@ async function resolveData() {
   if (!DATA) DATA = defaultDemoData();
   KIND = detectKind();
   document.body.dataset.kind = KIND;
+  const dlgBtn = document.getElementById('btn-dlg'); if (dlgBtn) dlgBtn.style.display = (KIND === 'musical') ? '' : 'none';
   SCENES = DATA.scenes || [];
+  if (KIND === 'musical' && DLG.on) SCENES = expandDialogueScenes(SCENES);
   TOTAL = SCENES.length;
 }
 
@@ -1036,7 +1121,7 @@ function buildScene(scene, idx) {
     </div>
     <div class="bg-overlay"></div>
     <div class="top-bar">
-      <div class="scene-badge" style="background:${C.accent}25;border:1.5px solid ${C.accent}90;color:${C.accent}">SCENE ${String(idx+1).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}</div>
+      <div class="scene-badge" style="background:${C.accent}25;border:1.5px solid ${C.accent}90;color:${C.accent}">${scene.actNo?`SCENE ${String(scene.actNo).padStart(2,'0')}${scene.dialogue?` · 대사 ${scene.cut}/${scene.cuts}`:(scene.hasDialogue?' · 넘버':'')}`:`SCENE ${String(idx+1).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}`}</div>
       <div class="eaim-label">EAIM 🎵</div>
     </div>
     <div id="src-badge-${idx}" style="display:none;position:absolute;top:56px;right:24px;font-size:9px;color:rgba(255,255,255,.3);background:rgba(0,0,0,.35);border-radius:8px;padding:2px 8px;z-index:11"></div>
@@ -1066,7 +1151,9 @@ function buildScene(scene, idx) {
       </div>
       <button class="lyrics-toggle-btn" id="lyr-toggle-${idx}" onclick="toggleLyricsBar(${idx})">가사 숨기기</button>
     `:''}
+    ${scene.dialogue?(scene.bubbles||[]).map(b=>`<div class="speech-bubble auto-dialogue-bubble ${b.tail||'tail-left'}" style="left:${b.left};top:${b.top}">${b.name?`<div class="bubble-name">${escHtml(b.name)}</div>`:''}<span>${escHtml(b.text)}</span></div>`).join(''):''}
     <div class="progress-bar"><div class="progress-fill" style="width:${((idx+1)/TOTAL)*100}%;background:linear-gradient(to right,${C.accent},${C.lyric})"></div></div>`;
+  if (scene.dialogue) div.classList.add('dialogue-scene');
   stage.appendChild(div);
 }
 
@@ -1137,7 +1224,7 @@ function showSlide(idx) {
   const needsBlackout=(current!==idx)&&!(current===0&&idx===0);
   if (needsBlackout) {
     isTransitioning=true;
-    const label=idx===TOTAL+1?(isPicture()?'끝':'막 내림'):idx===0?'':`Scene ${String(idx).padStart(2,'0')}`;
+    const label=idx===TOTAL+1?(isPicture()?'끝':'막 내림'):idx===0?'':sceneLabel(idx);
     blackout(label,()=>doShowSlide(idx));
   } else { doShowSlide(idx); }
 }
@@ -1262,8 +1349,23 @@ function toggleAuto() {
 function isTypingTarget(el){
   return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
 }
+function toggleDlgPanel(){
+  const p = document.getElementById('dlg-panel');
+  if (p.classList.contains('show')) { p.classList.remove('show'); return; }
+  document.getElementById('dlg-on').checked = !!DLG.on;
+  document.getElementById('dlg-per').value = DLG.per || 2;
+  p.classList.add('show');
+}
+function applyDlgSettings(){
+  DLG.on = document.getElementById('dlg-on').checked;
+  DLG.per = Math.max(1, Math.min(6, Number(document.getElementById('dlg-per').value) || 2));
+  try { localStorage.setItem(DLG_KEY, JSON.stringify(DLG)); } catch(e) {}
+  showToast('🗨 설정을 적용하고 다시 열어요');
+  reloadAfterSave(0);
+}
 function closeOpenPanels(){
   let closed = false;
+  const dp = document.getElementById('dlg-panel'); if (dp && dp.classList.contains('show')) { dp.classList.remove('show'); closed = true; }
   if (bubblePanelOpen) { toggleBubblePanel(); closed = true; }
   const cp = document.getElementById('char-panel'); if (cp && cp.classList.contains('show')) { toggleCharPanel(); closed = true; }
   const ap = document.getElementById('char-anim-panel'); if (ap && ap.classList.contains('show')) { ap.classList.remove('show'); closed = true; }
@@ -1282,9 +1384,9 @@ document.addEventListener('keydown', e => {
   } else if (k === 'ArrowLeft') {
     e.preventDefault(); stopAutoIfPlaying(); if (current > 0) showSlide(current-1);
   } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
-    const si = current-1; if (si >= 0 && si < TOTAL) { e.preventDefault(); prevLyricLine(si); }
+    const si = current-1; if (si >= 0 && si < TOTAL && !SCENES[si].dialogue) { e.preventDefault(); prevLyricLine(si); }
   } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
-    const si = current-1; if (si >= 0 && si < TOTAL) { e.preventDefault(); nextLyricLine(si); }
+    const si = current-1; if (si >= 0 && si < TOTAL && !SCENES[si].dialogue) { e.preventDefault(); nextLyricLine(si); }
   } else if (k === 'f' || k === 'F') {
     toggleFullscreen();
   } else if (k === 'Escape') {
@@ -1353,8 +1455,15 @@ function addBubble(){
 let _autoSaveT=null;
 function autoSaveDeco(){ if(_restoringDeco) return; _decoDirty=true; clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ saveDecorations(false).catch(()=>{}); },600); }
 /* 저장 안 된 변경이 있으면 창 닫기 경고 (공통규칙 5-4) */
+let _reloading = false;
+async function reloadAfterSave(jumpTo){
+  _reloading = true;
+  try { await Promise.race([saveDecorations(false), new Promise(r => setTimeout(r, 4000))]); } catch(e) {}
+  try { localStorage.setItem('eaim_slide_jump', String(jumpTo == null ? current : jumpTo)); } catch(e) {}
+  location.reload();
+}
 window.addEventListener('beforeunload', e => {
-  if (!_decoDirty || _exiting) return;
+  if (!_decoDirty || _exiting || _reloading) return;
   saveDecorations(false).catch(()=>{});
   e.preventDefault(); e.returnValue = '';
 });
@@ -1374,7 +1483,7 @@ function makeDraggable(el){
     document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);
   });
 }
-function clearBubbles(){const s=getCurrentSlideEl();if(s)s.querySelectorAll('.speech-bubble').forEach(b=>b.remove());autoSaveDeco();}
+function clearBubbles(){const s=getCurrentSlideEl();if(s)s.querySelectorAll('.speech-bubble:not(.auto-dialogue-bubble)').forEach(b=>b.remove());autoSaveDeco();}
 let subtitleVisible=false;
 function toggleSubtitleEdit(){
   const bar=document.getElementById('subtitle-bar');
@@ -1445,7 +1554,7 @@ let _decoDirty = false;        // 저장 안 된 변경이 있는지
 let _restoringDeco = false;    // 불러오는 중에는 자동 저장하지 않음
 /* 장면 id 는 바뀔 수 있다(미디어픽쳐가 장면을 먼저 local_… 로 만들고, 학급 서버에 올라가면 서버 id 로 바뀜).
    그래서 장면 내용으로 만든 표시(sig)를 함께 저장해, id 로 못 찾으면 이것으로 다시 짝짓는다. */
-function sceneSig(i){ const sc = SCENES[i] || {}; return [sc.title||'', sc.songTitle||'', sc.characters||'', sc.sourceTitle||''].join('|'); }
+function sceneSig(i){ const sc = SCENES[i] || {}; return [sc.title||'', sc.dialogue ? '' : (sc.songTitle||''), sc.characters||'', sc.sourceTitle||'', sc.dialogue ? ('d'+sc.cut) : ''].join('|'); }
 function getSlideKeyEl(key){
   if (key==='cover') return document.getElementById('cover-slide');
   if (key==='end') return document.getElementById('end-slide');
@@ -1458,7 +1567,7 @@ function collectSlideDecorations(container){
     const animClass=(img?.className.match(/char-anim-\S+/g)||[]).filter(c=>['char-anim-float','char-anim-breathe','char-anim-sway','char-anim-nod','char-anim-sparkle','char-anim-bounce'].includes(c));
     return { src: img?.getAttribute('src')||'', left: wrap.style.left||'', top: wrap.style.top||'', loopAnim: animClass[0]||'' };
   });
-  const bubbles=[...container.querySelectorAll('.speech-bubble')].map(b=>{
+  const bubbles=[...container.querySelectorAll('.speech-bubble:not(.auto-dialogue-bubble)')].map(b=>{
     const tailClass=(b.className.match(/tail-\S+/)||[])[0]||'tail-left';
     const nameEl=b.querySelector('.bubble-name');
     const textEl=b.querySelector('span');
@@ -1756,6 +1865,11 @@ window.addEventListener('load', async ()=>{
   updateStatusBadge(GEMINI_KEY ? 'gemini' : 'pollinations');
   initSlideshow();
   attachHoverTooltips();
+  // 설정을 바꿔 다시 열었을 때 보던 자리로
+  try {
+    const j = localStorage.getItem('eaim_slide_jump');
+    if (j !== null) { localStorage.removeItem('eaim_slide_jump'); const idx = Math.max(0, Math.min(Number(j) || 0, TOTAL + 1)); if (idx > 0) setTimeout(() => showSlide(idx), 400); }
+  } catch(e) {}
 });
 
 let activeEffects = new Set();
