@@ -83,7 +83,10 @@ body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:#0D1B2A;
 .credit-sep{width:1px;height:14px;background:rgba(255,255,255,.2);flex-shrink:0}
 .credit-name{font-size:clamp(14px,2vw,17px);color:#fff;font-weight:600;line-height:1.5}
 .credits-footer{text-align:center;margin-top:56px;padding-bottom:40px}
-#back-btn{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:200;padding:10px 28px;border-radius:8px;background:rgba(93,173,226,.15);border:1px solid rgba(93,173,226,.5);color:#5DADE2;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px);display:none}
+body.rec-clean #end-btns{display:none!important}
+#end-btns{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:200;display:none;gap:10px}
+#end-exit-btn{padding:10px 22px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.8);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px)}
+#back-btn{padding:10px 28px;border-radius:8px;background:rgba(93,173,226,.15);border:1px solid rgba(93,173,226,.5);color:#5DADE2;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;backdrop-filter:blur(8px)}
 #api-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
 #rec-checklist-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px}
 #rec-checklist-modal.hidden{display:none}
@@ -415,12 +418,25 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="ctrl-btn" id="btn-save-deco" onclick="saveDecorations(true)" data-tip="지금 배치를 저장해요 (자동 저장도 되고 있어요)" style="color:#69f0ae">✅</button>
   <button class="ctrl-btn" id="btn-ppt" onclick="downloadPPTX()" data-tip="지금 화면을 PPT 파일로 저장해요">📊</button>
 </div>
-<div id="key-hint">← → 키보드 | F 전체화면 | ESC 종료</div>
-<button id="back-btn" onclick="goBack()">↩ 처음으로</button>
+<div id="key-hint">← → 스페이스 장면 넘기기 | F 전체화면 | 글 쓰는 중엔 단축키 쉼</div>
+<div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
+/* EAIM 슬라이드쇼 slideshow.html v2.0 (2026-09-25) — 뮤지컬메이커·미디어레터 공용 한 파일 (음악 부록 4-2)
+   · 종류 값 KIND: 'musical'(커튼콜·막 내림 크레딧) / 'picture'(미디어레터: 간단한 끝 카드)
+   · 단축키는 한 곳에서만 처리 — 글 쓰는 중에는 동작하지 않음 (공통규칙 3번)
+   · "처음 장면으로"는 첫 장면으로만, 나가기는 저장을 끝낸 뒤 (음악 부록 4-1의 2번)
+   · 캐릭터·말풍선 저장: 이 기기(IndexedDB) + 학급 서버, 장면 id가 바뀌어도 장면 내용으로 다시 짝지음 */
 'use strict';
 let DATA = null;
+let KIND = 'musical';
+function detectKind(){
+  const k = String(new URLSearchParams(location.search).get('kind') || (DATA && DATA.kind) || '').toLowerCase();
+  if (k === 'picture' || k === 'musical') return k;
+  // 종류 값이 없는 예전 자료: 뮤지컬메이커 자료에는 커튼콜 정보가 있다
+  return (DATA && ('curtainLyrics' in DATA || 'curtainSongTitle' in DATA || Array.isArray(DATA.credits))) ? 'musical' : 'picture';
+}
+const isPicture = () => KIND === 'picture';
 
 const EMOTION_COLORS = {
   default:{from:'#0D1B2A',to:'#16213e',accent:'#5DADE2',lyric:'#AED6F1'},
@@ -524,6 +540,8 @@ async function resolveData() {
     if (raw) { try { DATA = JSON.parse(raw); } catch(e) {} }
   }
   if (!DATA) DATA = defaultDemoData();
+  KIND = detectKind();
+  document.body.dataset.kind = KIND;
   SCENES = DATA.scenes || [];
   TOTAL = SCENES.length;
 }
@@ -764,6 +782,7 @@ function clearAllChars() {
   selectedCharId = null;
   updateCharCount();
   showToast('🗑 모든 캐릭터 제거됨');
+  autoSaveDeco();
 }
 
 function toggleAnimPanel() {
@@ -990,12 +1009,12 @@ function buildCover() {
     <div class="cover-orb" style="width:380px;height:380px;left:-100px;top:-100px;background:radial-gradient(circle,#5DADE220,transparent 70%)"></div>
     <div class="cover-orb" style="width:260px;height:260px;right:-70px;top:80px;background:radial-gradient(circle,#C778DD20,transparent 70%)"></div>
     <div class="cover-inner">
-      <div class="cover-emoji">🎭</div>
-      <div class="cover-eyebrow">Musical Maker · EAIM</div>
-      <div class="cover-title">${DATA.title||'뮤지컬 스토리보드'}</div>
+      <div class="cover-emoji">${isPicture()?'🎵':'🎭'}</div>
+      <div class="cover-eyebrow">${isPicture()?'Music Media Letter · EAIM':'Musical Maker · EAIM'}</div>
+      <div class="cover-title">${DATA.title||(isPicture()?'우리의 음악 감상':'뮤지컬 스토리보드')}</div>
       <div class="cover-sub">${DATA.school||''}</div>
       <div class="cover-count">총 ${TOTAL}개 장면</div>
-      <div class="cover-hint">▶ → 키보드로 시작</div>
+      <div class="cover-hint">▶ 버튼 또는 → 키로 시작</div>
     </div>`;
   stage.appendChild(div);
 }
@@ -1052,6 +1071,7 @@ function buildScene(scene, idx) {
 }
 
 function buildEnding() {
+  if (isPicture()) return buildPictureEnding();
   const div=document.createElement('div'); div.id='end-slide'; div.className='slide hidden';
   const stars=Array.from({length:28},(_,i)=>`<div class="star" style="left:${(i*37+5)%100}%;top:${(i*23+10)%100}%;width:${i%5===0?3:2}px;height:${i%5===0?3:2}px;background:${i%3===0?'#FFD700':i%3===1?'#C778DD':'#5DADE2'};opacity:${.3+(i%4)*.15};animation-duration:${2+(i%3)}s"></div>`).join('');
   const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
@@ -1084,6 +1104,23 @@ function buildEnding() {
   stage.appendChild(div);
 }
 
+/* 미디어레터(미디어픽쳐) 끝 카드 — 커튼콜·크레딧 없이 제목과 EAIM 표시만 (음악 부록 4-1의 5번) */
+function buildPictureEnding() {
+  const div=document.createElement('div'); div.id='end-slide'; div.className='slide hidden';
+  div.innerHTML=`
+    <div class="parallax-container" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px">
+      <div style="font-size:44px;margin-bottom:14px">🎵</div>
+      <div style="font-size:12px;color:#FFD700;letter-spacing:4px;margin-bottom:12px">✦ THE END ✦</div>
+      <div style="font-size:clamp(22px,4vw,38px);font-weight:900;color:#fff;line-height:1.35;text-shadow:0 0 30px rgba(93,173,226,.45)">${escHtml(DATA.title||'우리의 음악 감상')}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.55);margin-top:14px">함께 감상해 주셔서 고마워요</div>
+      <div style="margin-top:40px">
+        <div style="font-size:13px;color:#5DADE2;letter-spacing:5px;margin-bottom:6px">EAIM</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);letter-spacing:2px">Emotion · Artscape · Interactive · Musicalization</div>
+      </div>
+    </div>`;
+  stage.appendChild(div);
+}
+
 let isTransitioning = false;
 function blackout(text, cb) {
   const bl=document.getElementById('blackout'),bt=document.getElementById('blackout-text');
@@ -1100,7 +1137,7 @@ function showSlide(idx) {
   const needsBlackout=(current!==idx)&&!(current===0&&idx===0);
   if (needsBlackout) {
     isTransitioning=true;
-    const label=idx===TOTAL+1?'막 내림':idx===0?'':`Scene ${String(idx).padStart(2,'0')}`;
+    const label=idx===TOTAL+1?(isPicture()?'끝':'막 내림'):idx===0?'':`Scene ${String(idx).padStart(2,'0')}`;
     blackout(label,()=>doShowSlide(idx));
   } else { doShowSlide(idx); }
 }
@@ -1122,12 +1159,12 @@ function doShowSlide(idx) {
   }
   if (idx===TOTAL+1) {
     document.getElementById('controls').style.display='none';
-    document.getElementById('back-btn').style.display='block';
+    document.getElementById('end-btns').style.display='flex';
     document.getElementById('key-hint').style.display='none';
     startEnding();
   } else {
     document.getElementById('controls').style.display='flex';
-    document.getElementById('back-btn').style.display='none';
+    document.getElementById('end-btns').style.display='none';
     document.getElementById('key-hint').style.display='block';
   }
   updateControls(); emitSlideSignal(idx); mouseX=0; mouseY=0;
@@ -1147,6 +1184,12 @@ function showSignalIndicator(scene, idx) {
 }
 function hideSignalIndicator() { const el=document.getElementById('signal-indicator');if(el)el.style.display='none'; }
 function startEnding() {
+  if (isPicture()) {
+    // 끝 카드는 잠깐 보여 주고 끝. 녹화 애드온은 startCreditsScroll 을 기다렸다가 녹화를 마치므로 짧은 시간으로 불러 준다
+    window._pmCreditsDur = 4;
+    setTimeout(()=>{ try{ startCreditsScroll(); }catch(e){} }, 1000);
+    return;
+  }
   const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
   setTimeout(()=>{ lyricLines.forEach((_,i)=>setTimeout(()=>{ const el=document.getElementById(`cl-${i}`);if(el)el.style.opacity='1'; },i*600)); },300);
   const delay=Math.max(3000,lyricLines.length*700+1800);
@@ -1174,7 +1217,26 @@ function updateControls() {
   document.getElementById('btn-prev').disabled=current===0;
   document.getElementById('btn-next').disabled=current===TOTAL+1;
 }
-function goBack() { window.close(); if(!window.closed) history.back(); }
+/* ⏮ 처음 장면으로 — 슬라이드쇼 안에서 표지로만 간다. 나가지 않는다. */
+function goFirst() { stopAutoIfPlaying(); showSlide(0); }
+/* ✕ 나가기 — 캐릭터·말풍선 저장을 끝낸 뒤에 나간다 (예전엔 바로 나가서 방금 올린 것이 사라졌음) */
+let _exiting = false;
+async function safeExit() {
+  if (_exiting) return; _exiting = true;
+  stopAutoIfPlaying();
+  showToast('⏳ 저장하고 나가는 중...');
+  let ok = false;
+  try { ok = await Promise.race([saveDecorations(false), new Promise(r => setTimeout(() => r(false), 6000))]); } catch(e) { ok = false; }
+  if (!ok && _decoDirty && !confirm('캐릭터·말풍선을 저장하지 못했어요.\n그래도 나갈까요? (취소를 누르면 이 화면에 남아요)')) { _exiting = false; return; }
+  _decoDirty = false;
+  window.close();
+  setTimeout(() => {
+    if (window.closed) return;
+    if (history.length > 1) history.back();
+    else { _exiting = false; showToast('✅ 저장했어요 — 이 창(탭)을 닫아도 돼요'); }
+  }, 150);
+}
+function goBack() { return safeExit(); }   // 예전 이름 — 다른 파일이 부를 때를 위해 남겨 둠
 function updateAutoBtn() {
   const btn = document.getElementById('btn-auto'); if (!btn) return;
   btn.textContent = autoPlay ? '⏸' : '⏵';
@@ -1194,10 +1256,40 @@ function toggleAuto() {
   clearInterval(autoTimer);
   if(autoPlay){ autoTimer=setInterval(()=>{ if(current>=TOTAL){autoPlay=false;clearInterval(autoTimer);updateAutoBtn();return;} showSlide(current+1); },7000); }
 }
-document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowRight'||e.key===' '){ stopAutoIfPlaying(); if(current<TOTAL+1)showSlide(current+1); }
-  else if(e.key==='ArrowLeft'){ stopAutoIfPlaying(); if(current>0)showSlide(current-1); }
-  else if(e.key==='Escape'){ goBack(); }
+/* ── 단축키는 여기 한 곳에서만 (공통규칙 3번) ──
+   글을 쓰는 중(입력칸·글상자·선택칸·글 편집 중)에는 어떤 단축키도 동작하지 않는다.
+   → 말풍선에 글을 쓸 때 스페이스바는 띄어쓰기, 방향키는 커서 이동이 된다. */
+function isTypingTarget(el){
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+}
+function closeOpenPanels(){
+  let closed = false;
+  if (bubblePanelOpen) { toggleBubblePanel(); closed = true; }
+  const cp = document.getElementById('char-panel'); if (cp && cp.classList.contains('show')) { toggleCharPanel(); closed = true; }
+  const ap = document.getElementById('char-anim-panel'); if (ap && ap.classList.contains('show')) { ap.classList.remove('show'); closed = true; }
+  const fp = document.getElementById('fx-panel'); if (fp && fp.classList.contains('open')) { fp.classList.remove('open'); closed = true; }
+  return closed;
+}
+document.addEventListener('keydown', e => {
+  if (e.isComposing || e.keyCode === 229) return;            // 한글 조합 중
+  if (isTypingTarget(e.target) || isTypingTarget(document.activeElement)) return;   // 글 쓰는 중이면 단축키 없음
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'ArrowRight' || k === ' ' || e.code === 'Space') {
+    e.preventDefault();                                        // 눌려 있던 버튼이 다시 눌리거나 화면이 밀리지 않게
+    if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur();
+    stopAutoIfPlaying(); if (current < TOTAL+1) showSlide(current+1);
+  } else if (k === 'ArrowLeft') {
+    e.preventDefault(); stopAutoIfPlaying(); if (current > 0) showSlide(current-1);
+  } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+    const si = current-1; if (si >= 0 && si < TOTAL) { e.preventDefault(); prevLyricLine(si); }
+  } else if (k === 'ArrowDown' || k === 's' || k === 'S') {
+    const si = current-1; if (si >= 0 && si < TOTAL) { e.preventDefault(); nextLyricLine(si); }
+  } else if (k === 'f' || k === 'F') {
+    toggleFullscreen();
+  } else if (k === 'Escape') {
+    closeOpenPanels();                                         // Esc 는 열린 창만 닫는다. 슬라이드쇼를 나가지 않는다.
+  }
 });
 function stopAutoIfPlaying() {
   if (typeof window.pmStopAutoRun === 'function') window.pmStopAutoRun();
@@ -1209,7 +1301,7 @@ function stopAutoIfPlaying() {
 document.getElementById('btn-prev').onclick=()=>{ stopAutoIfPlaying(); if(current>0)showSlide(current-1); };
 document.getElementById('btn-next').onclick=()=>{ stopAutoIfPlaying(); if(current<TOTAL+1)showSlide(current+1); };
 document.getElementById('btn-auto').onclick=toggleAuto;
-document.getElementById('btn-exit').onclick=goBack;
+document.getElementById('btn-exit').onclick=safeExit;
 
 const lyricLineState={};
 function initLyricBar(si){ lyricLineState[si]=0; updateLyricBar(si); }
@@ -1226,12 +1318,6 @@ function toggleLyricsBar(si){
   if(!bar)return; const hidden=bar.style.display==='none'; bar.style.display=hidden?'block':'none';
   btn.textContent=hidden?'가사 숨기기':'가사 보기';
 }
-document.addEventListener('keydown',e=>{
-  if(e.target.id==='bubble-text-input')return;
-  const si=current-1; if(si<0||si>=TOTAL)return;
-  if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){e.preventDefault();prevLyricLine(si);}
-  if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){e.preventDefault();nextLyricLine(si);}
-});
 let bubblePanelOpen=false;
 function toggleBubblePanel(){
   bubblePanelOpen=!bubblePanelOpen;
@@ -1265,7 +1351,13 @@ function addBubble(){
 }
 /* ✅ 를 누르지 않아도 저장되도록 — 학생이 잃어버리지 않게 */
 let _autoSaveT=null;
-function autoSaveDeco(){ clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ try{ saveDecorations(false); }catch(e){} },600); }
+function autoSaveDeco(){ if(_restoringDeco) return; _decoDirty=true; clearTimeout(_autoSaveT); _autoSaveT=setTimeout(()=>{ saveDecorations(false).catch(()=>{}); },600); }
+/* 저장 안 된 변경이 있으면 창 닫기 경고 (공통규칙 5-4) */
+window.addEventListener('beforeunload', e => {
+  if (!_decoDirty || _exiting) return;
+  saveDecorations(false).catch(()=>{});
+  e.preventDefault(); e.returnValue = '';
+});
 function makeDraggable(el){
   let sx,sy,sl,st;
   el.addEventListener('pointerdown',e=>{
@@ -1326,6 +1418,34 @@ function initSlideshow() {
 // ✅ 캐릭터·말풍선·효과 저장/복원 — 새로고침·재접속해도 배치가 유지되도록
 // ══════════════════════════
 const DECORATION_STORAGE_KEY = 'eaim_slideshow_decorations';
+/* 이 기기 저장소 — 예전엔 localStorage(약 5MB)에 캐릭터 사진까지 넣어서, 장면 그림과 합쳐 가득 차면
+   아무 말 없이 저장이 실패했다. 이제 IndexedDB 에 넣는다(용량이 훨씬 큼). 안 되는 브라우저만 localStorage. */
+const DecoIDB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      if (this.db) return res(this.db);
+      if (!window.indexedDB) return rej(new Error('no indexedDB'));
+      const r = indexedDB.open('eaim_music_slideshow_deco', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('deco'); };
+      r.onsuccess = () => { this.db = r.result; res(this.db); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async get(key) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const q = db.transaction('deco').objectStore('deco').get(key); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); });
+  },
+  async set(key, val) {
+    const db = await this.open();
+    return new Promise((res, rej) => { const t = db.transaction('deco', 'readwrite'); t.objectStore('deco').put(val, key); t.oncomplete = () => res(true); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); });
+  }
+};
+let _decoDirty = false;        // 저장 안 된 변경이 있는지
+let _restoringDeco = false;    // 불러오는 중에는 자동 저장하지 않음
+/* 장면 id 는 바뀔 수 있다(미디어픽쳐가 장면을 먼저 local_… 로 만들고, 학급 서버에 올라가면 서버 id 로 바뀜).
+   그래서 장면 내용으로 만든 표시(sig)를 함께 저장해, id 로 못 찾으면 이것으로 다시 짝짓는다. */
+function sceneSig(i){ const sc = SCENES[i] || {}; return [sc.title||'', sc.songTitle||'', sc.characters||'', sc.sourceTitle||''].join('|'); }
 function getSlideKeyEl(key){
   if (key==='cover') return document.getElementById('cover-slide');
   if (key==='end') return document.getElementById('end-slide');
@@ -1358,7 +1478,7 @@ function buildDecoData(){
   const data = { savedAt: Date.now(), effects: Array.from(activeEffects), scenes: {} };
   data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
   data.scenes['end']   = collectSlideDecorations(getSlideKeyEl('end'));
-  for (let i=0;i<TOTAL;i++) data.scenes[decoKeyOf(i)] = collectSlideDecorations(getSlideKeyEl(i));
+  for (let i=0;i<TOTAL;i++) { const d = collectSlideDecorations(getSlideKeyEl(i)); d.sig = sceneSig(i); data.scenes[decoKeyOf(i)] = d; }
   return data;
 }
 /* 이 기기 저장 칸 — 반·학생마다 따로 (같은 컴퓨터를 여러 학생이 써도 섞이지 않게) */
@@ -1367,18 +1487,28 @@ function decoLocalKey(){
     return `${DECORATION_STORAGE_KEY}:${ROOM_CTX.teacher}:${ROOM_CTX.room}:${ROOM_CTX.student || (ROOM_CTX.group ? 'g'+ROOM_CTX.group : 'all')}`;
   return DECORATION_STORAGE_KEY;
 }
-function saveDecorations(showConfirm){
-  const data = buildDecoData();
-  let localOk = true;
-  try { localStorage.setItem(decoLocalKey(), JSON.stringify(data)); } catch(e) { localOk = false; }
+async function saveDecorations(showConfirm){
+  clearTimeout(_autoSaveT); _autoSaveT = null;
+  const data = buildDecoData();                 // 지금 화면 그대로 먼저 찍어 둔다
+  const key = decoLocalKey();
+  let localOk = false;
+  try { await DecoIDB.set(key, data); localOk = true; try { localStorage.removeItem(key); } catch(e) {} }
+  catch(e) {
+    try { localStorage.setItem(key, JSON.stringify(data)); localOk = true; } catch(e2) { localOk = false; }
+  }
+  let remoteOk = null;
   if (roomLinked() && !isTeacherView()) {
     if (showConfirm) showToast('⏳ 저장 중... 학급 서버에 올리고 있어요');
-    pushDecoToRoom(data, showConfirm);
+    remoteOk = await pushDecoToRoom(data, showConfirm);
   } else if (showConfirm) {
-    if (!localOk) showToast('❌ 이 기기 저장 공간이 부족해 저장하지 못했어요');
+    if (!localOk) showToast('❌ 저장하지 못했어요 — 이 기기 저장 공간을 확인해 주세요');
     else if (isTeacherView()) showToast('✅ 이 기기에만 저장했어요 (선생님 보기 화면은 학생 기록을 바꾸지 않아요)');
     else showToast('✅ 이 기기에 저장했어요 — 학급 연결이 없어 다른 기기에서는 안 보여요');
   }
+  const ok = localOk || remoteOk === true;
+  if (ok) _decoDirty = false;
+  else if (!showConfirm) showToast('❌ 캐릭터·말풍선을 저장하지 못했어요 — ✅ 버튼을 다시 눌러 주세요');
+  return ok;
 }
 
 /* ── 캐릭터 그림 줄이기 — 휴대폰 사진은 몇 MB라 서버(문서 1개 1MB 제한)에 못 올라가요 ── */
@@ -1452,12 +1582,14 @@ async function pushDecoToRoom(data, showConfirm){
     };
     await Promise.all(decoDocKeys().map(k => decoCol().doc(k).set(payload, { merge:true })));
     if (showConfirm) showToast('✅ 저장 완료 — 다른 기기와 선생님 화면에서도 보여요');
+    return true;
   } catch(e) {
     console.warn('캐릭터·말풍선 학급 저장 실패', e);
     if (showConfirm || Date.now() - _decoFailToastAt > 30000) {
       _decoFailToastAt = Date.now();
       showToast('⚠️ 학급 서버 저장 실패 — 이 기기에만 남아 있어요 (' + (e.message || '연결 확인') + ')');
     }
+    return false;
   }
 }
 async function resolveDecoImages(data){
@@ -1514,8 +1646,13 @@ function restoreBubbleEl(container, item){
   container.appendChild(bubble);
 }
 async function restoreDecorations(){
+  _restoringDeco = true;
+  try { await restoreDecorationsInner(); } finally { _restoringDeco = false; }
+}
+async function restoreDecorationsInner(){
   let local = null;
-  try { const raw = localStorage.getItem(decoLocalKey()); if (raw) local = JSON.parse(raw); } catch(e) {}
+  try { local = await DecoIDB.get(decoLocalKey()); } catch(e) {}
+  if (!local) { try { const raw = localStorage.getItem(decoLocalKey()); if (raw) local = JSON.parse(raw); } catch(e) {} }
   const remote = roomLinked() ? await pullDecoFromRoom() : null;
   let data;
   if (isTeacherView()) data = remote || local;               // 선생님 화면은 학생이 올린 것을 우선
@@ -1530,15 +1667,29 @@ async function restoreDecorations(){
     } catch(e) {}
   }
   if(!data || !data.scenes) return;
-  Object.keys(data.scenes).forEach(rawKey=>{
-    const key = decoIndexOf(rawKey);
-    if(key===null||key===undefined||(typeof key==='number'&&isNaN(key))) return;
+  const used = new Set(), leftovers = [];
+  const place = (key, d) => {
     const container = getSlideKeyEl(key);
-    if(!container) return;
+    if(!container) return false;
     const target = container.querySelector('.parallax-container') || container;
-    const d = data.scenes[rawKey];
     (d.chars||[]).forEach(item=>restoreCharWrap(target, item));
     (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
+    used.add(String(key));
+    return true;
+  };
+  Object.keys(data.scenes).forEach(rawKey=>{
+    const d = data.scenes[rawKey] || {};
+    let key = decoIndexOf(rawKey);
+    const badId = String(rawKey).startsWith('id:') && key === null;   // 장면 id 가 바뀐 경우
+    if(badId || key===null||key===undefined||(typeof key==='number'&&(isNaN(key)||key>=TOTAL))){ leftovers.push(d); return; }
+    const byPosition = String(rawKey).startsWith('i:') || /^\d+$/.test(String(rawKey));
+    if(byPosition && d.sig && sceneSig(key)!==d.sig){ leftovers.push(d); return; }   // 자리로만 저장된 것인데 순서가 바뀐 경우
+    place(key, d);
+  });
+  // id·순서로 못 찾은 것 → 장면 내용(sig)으로 다시 짝짓기
+  leftovers.forEach(d=>{
+    if(!d.sig) return;
+    for(let i=0;i<TOTAL;i++){ if(!used.has(String(i)) && sceneSig(i)===d.sig){ place(i, d); break; } }
   });
   (data.effects||[]).forEach(type=>{
     try{ toggleEffect(type); }catch(e){}
@@ -1622,10 +1773,6 @@ document.addEventListener('fullscreenchange', () => {
   btn.classList.toggle('active', isFs);
   btn.title = isFs ? '전체화면 종료' : '전체화면으로 재생';
 });
-document.addEventListener('keydown', e => {
-  if (e.target.id === 'bubble-text-input') return;
-  if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-});
 
 function toggleFxPanel(){
   document.getElementById('fx-panel').classList.toggle('open');
@@ -1645,6 +1792,7 @@ function toggleEffect(type){
     btn.classList.add('active');
     createEffect(type, overlay);
   }
+  autoSaveDeco();
 }
 
 function createEffect(type, overlay){
@@ -1710,6 +1858,7 @@ function clearEffects(){
   activeEffects.clear();
   document.getElementById('fx-overlay').innerHTML='';
   document.querySelectorAll('.fx-effect-btn').forEach(b=>b.classList.remove('active'));
+  autoSaveDeco();
 }
 
 // ══════════════════════════
