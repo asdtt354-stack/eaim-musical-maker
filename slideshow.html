@@ -95,7 +95,24 @@ body.rec-clean #end-btns{display:none!important}
 #dlg-panel .dlg-row button.quiet{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6)}
 body.rec-clean #dlg-panel{display:none!important}
 .slide.dialogue-scene .song-badge{display:none}
-.song-cut-btn{bottom:84px}
+.slide .lyrics-toggle-btn.song-cut-btn{bottom:132px!important}
+.slide .lyrics-toggle-btn.lyrics-edit-btn{bottom:164px!important}   /* 녹화 애드온이 가사 버튼을 100px 로 올리므로 그 위에 */
+.lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:4%;max-height:72%;overflow:hidden;z-index:25;pointer-events:none;text-align:center}
+.lyrics-full .number-lyrics-title{margin-bottom:10px}
+.lyrics-full-lines{display:flex;flex-direction:column;gap:2px}
+.lf-line{font-size:clamp(15px,2.1vw,24px);font-weight:700;line-height:1.55;color:rgba(255,255,255,.62);text-shadow:0 2px 10px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9);transition:color .35s,transform .35s;word-break:keep-all}
+.lf-line.cur{color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,.45),0 2px 8px rgba(0,0,0,.9);transform:scale(1.06)}
+.lf-line.done{color:rgba(255,255,255,.32)}
+#lyrics-edit-modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+#lyrics-edit-modal.show{display:flex}
+#lyrics-edit-box{width:min(560px,92vw);background:rgba(18,14,28,.98);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:16px;color:#fff;font-size:13px}
+#lyrics-edit-box h4{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:8px}
+#lyrics-edit-box .info{font-size:11px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:8px}
+#lyrics-edit-ta{width:100%;height:min(46vh,320px);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);border-radius:10px;color:#fff;padding:10px;font-family:inherit;font-size:14px;line-height:1.6;resize:vertical}
+#lyrics-edit-box .row{display:flex;gap:6px;margin-top:10px}
+#lyrics-edit-box .row button{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(93,173,226,.4);background:rgba(93,173,226,.18);color:#5DADE2;cursor:pointer;font-family:inherit;font-weight:700}
+#lyrics-edit-box .row button.quiet{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-weight:500}
+body.rec-clean .lyrics-edit-btn{display:none!important}
 .song-cut-btn.is-cut{color:#FFD700;border-color:rgba(255,215,0,.5)}
 body.rec-clean .song-cut-btn{display:none!important}
 .transition-scene .trans-body{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:0 40px;z-index:5}
@@ -344,6 +361,15 @@ select.bubble-ctrl-btn{padding:5px 8px}
   <button class="mu-hide-btn" onclick="toggleMusicBar()">숨기기</button>
 </div>
 
+<div id="lyrics-edit-modal">
+  <div id="lyrics-edit-box">
+    <h4>✎ 가사 다듬기</h4>
+    <div class="info">노래에서 쓰는 만큼만 남기고 나머지 줄은 지우세요. 한 줄이 화면의 한 줄이에요. 노래가 진행되면 위에서부터 차례로 노랗게 표시돼요. "원래대로"를 누르면 노래가 부른 가사로 돌아가요.</div>
+    <textarea id="lyrics-edit-ta" spellcheck="false"></textarea>
+    <div class="row"><button onclick="saveLyricsEdit()">저장</button><button class="quiet" onclick="resetLyricsEdit()">원래대로</button><button class="quiet" onclick="closeLyricsEdit()">취소</button></div>
+  </div>
+</div>
+
 <div id="dlg-panel">
   <h4>🗨 대사 화면</h4>
   <div class="dlg-info">대본이 있는 막을 <b>대사 화면 → 넘버 화면</b>으로 나눠요. 대사 화면에는 말풍선이 자동으로 놓이고 넘버 대신 배경음악만 흘러요.</div>
@@ -462,7 +488,8 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.7 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.8 (2026-09-25)
+   · v2.8: 넘버 화면은 한 줄 자막 대신 가사 전체를 화면에 보여 줌(지금 부르는 줄은 노랗게). "✎ 가사 다듬기"로 쓰는 만큼만 남기고 지울 수 있음(장면마다 저장).
    · v2.7: 노래 길이를 못 읽는 파일(길이가 Infinity 로 오는 생성 mp3)에서도 자막이 넘어감 — 받아 둔 구간 길이, 전체곡/클립 여부(2분/30초)로 어림.
    · v2.6: 넘버 자막은 노래가 실제로 부른 가사(audioLyrics, Lyria가 돌려준 것)를 우선 씀. 긴 노래는 "✂ 여기서 끊기"로 끊는 지점을 정해 두면
            그 지점에서 노래가 서서히 줄어들며 다음 화면으로 넘어감(장면마다 저장).
@@ -1191,15 +1218,13 @@ function buildScene(scene, idx) {
         ${scene.musicMood?`<div class="tag-mood">🎵 ${scene.musicMood}</div>`:''}
       </div>
     </div>
-    ${lyricLines.length?`
-      <div class="number-lyrics-bar" id="nlb-${idx}">
+    ${(lyricLines.length||scene.songTitle)?`
+      <div class="lyrics-full" id="nlb-${idx}">
         ${scene.songTitle?`<div class="number-lyrics-title">♪ ${scene.songTitle}</div>`:''}
-        <div class="number-lyrics-line" id="nlb-line-${idx}">
-          <div class="current-line" id="nlb-cur-${idx}">${lyricLines[0]||''}</div>
-          <div class="next-line" id="nlb-next-${idx}">${lyricLines[1]||''}</div>
-        </div>
+        <div class="lyrics-full-lines" id="nlb-lines-${idx}">${lyricLines.map((l,i)=>`<div class="lf-line${i===0?' cur':''}" data-i="${i}">${escHtml(l)}</div>`).join('')}</div>
       </div>
       <button class="lyrics-toggle-btn" id="lyr-toggle-${idx}" onclick="toggleLyricsBar(${idx})">가사 숨기기</button>
+      ${!isPicture()?`<button class="lyrics-toggle-btn lyrics-edit-btn" id="lyr-edit-${idx}" onclick="openLyricsEdit(${idx})" title="쓰는 만큼만 남기고 지워요">✎ 가사 다듬기</button>`:''}
       ${(!isPicture() && (scene.audioUrl||scene.audioLocal))?`<button class="lyrics-toggle-btn song-cut-btn" id="cut-${idx}" onclick="toggleSongCut(${idx})" title="노래가 길면 여기서 끊어요 — 노래가 흐를 때 누른 지점부터 서서히 줄어들며 다음 화면으로">✂ 여기서 끊기</button>`:''}
     `:''}
     ${scene.dialogue?(scene.bubbles||[]).map((b,bi)=>`<div class="speech-bubble auto-dialogue-bubble ${b.tail||'tail-left'}" data-k="${bi}" style="left:${b.left};top:${b.top}">${b.name?`<div class="bubble-name">${escHtml(b.name)}</div>`:''}${b.cue?`<div class="bubble-cue">(${escHtml(b.cue)})</div>`:''}<span>${escHtml(b.text)}</span><div class="bubble-tools"><button title="대사 고치기" onclick="editAutoBubble(this)">✎</button><button title="작게" onclick="scaleBubble(this,-1)">A−</button><button title="크게" onclick="scaleBubble(this,1)">A+</button><button title="숨기기" onclick="hideBubble(this)">✕</button></div></div>`).join(''):''}
@@ -1431,6 +1456,7 @@ function applyDlgSettings(){
 function closeOpenPanels(){
   let closed = false;
   const dp = document.getElementById('dlg-panel'); if (dp && dp.classList.contains('show')) { dp.classList.remove('show'); closed = true; }
+  const lm = document.getElementById('lyrics-edit-modal'); if (lm && lm.classList.contains('show')) { closeLyricsEdit(); closed = true; }
   if (bubblePanelOpen) { toggleBubblePanel(); closed = true; }
   const cp = document.getElementById('char-panel'); if (cp && cp.classList.contains('show')) { toggleCharPanel(); closed = true; }
   const ap = document.getElementById('char-anim-panel'); if (ap && ap.classList.contains('show')) { ap.classList.remove('show'); closed = true; }
@@ -1476,7 +1502,8 @@ const lyricLineState={};
 function lyricLinesOf(sc){
   if (!sc) return [];
   const hasSong = !!(sc.audioUrl || sc.audioLocal);
-  const raw = (hasSong && sc.audioLyrics && String(sc.audioLyrics).trim()) ? sc.audioLyrics : (sc.lyrics || '');
+  const raw = (sc.lyricsEdit !== undefined && sc.lyricsEdit !== null) ? sc.lyricsEdit
+            : (hasSong && sc.audioLyrics && String(sc.audioLyrics).trim()) ? sc.audioLyrics : (sc.lyrics || '');
   return String(raw).split('\n').map(l => l.trim()).filter(l => l && !/^[\[\(（【].*[\]\)）】]$/.test(l));
 }
 const _songCut = {};   // si → 초. 노래를 여기서 끊는다
@@ -1554,6 +1581,38 @@ function updateLyricBar(si){
   const cur=lyricLineState[si]||0;
   const ce=document.getElementById(`nlb-cur-${si}`),ne=document.getElementById(`nlb-next-${si}`);
   if(ce)ce.textContent=lines[cur]||''; if(ne)ne.textContent=lines[cur+1]||'';
+  const wrap=document.getElementById(`nlb-lines-${si}`);
+  if(wrap){
+    wrap.querySelectorAll('.lf-line').forEach((el,i)=>{ el.classList.toggle('cur',i===cur); el.classList.toggle('done',i<cur); });
+    const curEl=wrap.querySelector('.lf-line.cur'), box=wrap.parentElement;
+    if(curEl&&box){ const off=curEl.offsetTop-box.clientHeight/2+curEl.offsetHeight/2; wrap.style.transform=`translateY(${-Math.max(0,off)}px)`; wrap.style.transition='transform .4s'; }
+  }
+}
+/* ── 가사 다듬기 (넘버 화면) ── */
+let _lyricsEditSi = -1;
+function renderLyricLines(si){
+  const wrap=document.getElementById(`nlb-lines-${si}`); if(!wrap)return;
+  const lines=lyricLinesOf(SCENES[si]);
+  wrap.innerHTML=lines.map((l,i)=>`<div class="lf-line${i===0?' cur':''}" data-i="${i}">${escHtml(l)}</div>`).join('');
+  lyricLineState[si]=0; wrap.style.transform=''; updateLyricBar(si);
+}
+function openLyricsEdit(si){
+  _lyricsEditSi=si;
+  document.getElementById('lyrics-edit-ta').value=lyricLinesOf(SCENES[si]).join('\n');
+  document.getElementById('lyrics-edit-modal').classList.add('show');
+  setTimeout(()=>document.getElementById('lyrics-edit-ta').focus(),50);
+}
+function closeLyricsEdit(){ document.getElementById('lyrics-edit-modal').classList.remove('show'); _lyricsEditSi=-1; }
+function saveLyricsEdit(){
+  const si=_lyricsEditSi; if(si<0)return;
+  SCENES[si].lyricsEdit=document.getElementById('lyrics-edit-ta').value.replace(/\r/g,'');
+  renderLyricLines(si); closeLyricsEdit(); autoSaveDeco(); showToast('✎ 가사를 다듬었어요 — 이 장면에 저장돼요');
+}
+function resetLyricsEdit(){
+  const si=_lyricsEditSi; if(si<0)return;
+  delete SCENES[si].lyricsEdit;
+  document.getElementById('lyrics-edit-ta').value=lyricLinesOf(SCENES[si]).join('\n');
+  renderLyricLines(si); autoSaveDeco(); showToast('원래 가사로 돌아갔어요');
 }
 function toggleLyricsBar(si){
   const bar=document.getElementById(`nlb-${si}`),btn=document.getElementById(`lyr-toggle-${si}`);
@@ -1770,7 +1829,7 @@ function buildDecoData(){
   const data = { savedAt: Date.now(), effects: Array.from(activeEffects), scenes: {} };
   data.scenes['cover'] = collectSlideDecorations(getSlideKeyEl('cover'));
   data.scenes['end']   = collectSlideDecorations(getSlideKeyEl('end'));
-  for (let i=0;i<TOTAL;i++) { const d = collectSlideDecorations(getSlideKeyEl(i)); d.sig = sceneSig(i); if (_songCut[i]) d.songCut = _songCut[i]; data.scenes[decoKeyOf(i)] = d; }
+  for (let i=0;i<TOTAL;i++) { const d = collectSlideDecorations(getSlideKeyEl(i)); d.sig = sceneSig(i); if (_songCut[i]) d.songCut = _songCut[i]; if (SCENES[i].lyricsEdit !== undefined) d.lyricsEdit = SCENES[i].lyricsEdit; data.scenes[decoKeyOf(i)] = d; }
   return data;
 }
 /* 이 기기 저장 칸 — 반·학생마다 따로 (같은 컴퓨터를 여러 학생이 써도 섞이지 않게) */
@@ -1968,6 +2027,7 @@ async function restoreDecorationsInner(){
     (d.bubbles||[]).forEach(item=>restoreBubbleEl(container, item));
     if (d.auto) applyAutoBubbleState(container, d.auto);
     if (typeof key === 'number' && d.songCut) { _songCut[key] = d.songCut; updateCutBtn(key); }
+    if (typeof key === 'number' && d.lyricsEdit !== undefined && SCENES[key]) { SCENES[key].lyricsEdit = d.lyricsEdit; renderLyricLines(key); }
     used.add(String(key));
     return true;
   };
