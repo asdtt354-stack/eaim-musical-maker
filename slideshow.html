@@ -462,7 +462,8 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.6 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.7 (2026-09-25)
+   · v2.7: 노래 길이를 못 읽는 파일(길이가 Infinity 로 오는 생성 mp3)에서도 자막이 넘어감 — 받아 둔 구간 길이, 전체곡/클립 여부(2분/30초)로 어림.
    · v2.6: 넘버 자막은 노래가 실제로 부른 가사(audioLyrics, Lyria가 돌려준 것)를 우선 씀. 긴 노래는 "✂ 여기서 끊기"로 끊는 지점을 정해 두면
            그 지점에서 노래가 서서히 줄어들며 다음 화면으로 넘어감(장면마다 저장).
    · v2.5: 넘버 화면의 가사 자막이 노래 진행에 맞춰 저절로 넘어감(녹화 애드온이 넘버를 틀면 그 시간에 맞춤, 아니면 한 줄 5초). ↑↓·W·S 로 손으로 넘기면 그 장면은 손 모드.
@@ -1495,8 +1496,15 @@ function startLyricAuto(si, totalSec, audio){
   const lines = lyricLinesOf(sc); if (lines.length < 2) return;
   if (audio) {
     _lyricAudio = audio;
+    // 노래 길이: 실제 길이 → 받아 둔 구간 끝(blob 파일은 전체가 받아져 있음) → 전체곡 2분 / 클립 30초 어림
+    const guessD = () => {
+      if (isFinite(audio.duration) && audio.duration > 0) return audio.duration;
+      try { if (audio.buffered && audio.buffered.length) { const e = audio.buffered.end(audio.buffered.length - 1); if (isFinite(e) && e > audio.currentTime + 1) return e; } } catch(e) {}
+      if (totalSec > 0) return totalSec;
+      return sc.audioFull ? 120 : 30;
+    };
     _lyricHandler = () => {
-      const D = (isFinite(audio.duration) && audio.duration > 0) ? audio.duration : totalSec; if (!D) return;
+      const D = guessD(); if (!D) return;
       const target = Math.min(lines.length - 1, Math.floor(audio.currentTime / D * lines.length));
       if ((lyricLineState[si]||0) !== target && current === si + 1) { lyricLineState[si] = target; updateLyricBar(si); }
     };

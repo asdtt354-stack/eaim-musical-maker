@@ -552,6 +552,7 @@
         if (m.imageUrl) s.imageUrl = m.imageUrl;
         if (m.audioUrl) s.audioUrl = m.audioUrl;
         if (m.audioLyrics) s.audioLyrics = m.audioLyrics;   // 노래가 실제로 부른 가사 → 슬라이드쇼 자막 (v2.6)
+        if (m.audioFull !== undefined) s.audioFull = !!m.audioFull;   // 전체곡(약 2분)인지 클립(30초)인지 → 길이를 못 읽을 때 자막 어림 (v2.7)
         if (m.imageLocal) s.imageLocal = m.imageLocal;
         if (m.audioLocal) s.audioLocal = m.audioLocal;
         if (m.mrUrl) s.mrUrl = m.mrUrl;

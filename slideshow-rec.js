@@ -400,7 +400,12 @@
   function stopBgm() { if (bgmAudio) { const a = bgmAudio; bgmAudio = null; bgmKeyNow = ''; fade(a, 0, .35, () => a.pause()); } }
   function fade(a, to, sec, done) { if (!a) return; const from = a.volume, t0 = performance.now();
     const step = () => { const k = Math.min(1, (performance.now() - t0) / (sec * 1000)); a.volume = Math.max(0, Math.min(1, from + (to - from) * k)); if (k < 1) requestAnimationFrame(step); else done && done(); }; step(); }
-  function duck(on) { if (bgmAudio) fade(bgmAudio, on ? BGM_VOL() * .45 : BGM_VOL(), .5); }
+  // 넘버(노래)가 나오는 동안 배경음악은 완전히 멈춘다 (예전엔 45% 로 줄이기만 해서 두 음악이 겹쳤음, v2.7)
+  function duck(on) {
+    const a = bgmAudio; if (!a) return;
+    if (on) fade(a, 0, .6, () => { if (bgmAudio === a) a.pause(); });
+    else { if (a.paused) { a.volume = 0; a.play().catch(() => {}); } fade(a, BGM_VOL(), .8); }
+  }
   let bgmGen = 0;
   async function setBgm(url, lkey, key) {
     const myGen = ++bgmGen;
