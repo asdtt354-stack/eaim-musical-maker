@@ -99,10 +99,13 @@ body.rec-clean #dlg-panel{display:none!important}
 .slide .lyrics-toggle-btn.lyrics-edit-btn{bottom:164px!important}   /* 녹화 애드온이 가사 버튼을 100px 로 올리므로 그 위에 */
 .slide.has-lyrics .main-content{max-width:33%}
 .main-content.meta-off{display:none}
-.scene-title-small{position:absolute;top:84px;right:24px;z-index:11;font-size:clamp(11px,1.1vw,14px);font-weight:600;color:rgba(255,255,255,.72);letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.8);max-width:40%;text-align:right;word-break:keep-all}
-.slide.has-lyrics .lyrics-full{top:54%}
+.scene-title-small{position:absolute;top:84px;right:24px;z-index:11;font-size:clamp(13px,1.3vw,17px);font-weight:800;color:#fff;letter-spacing:1px;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9);max-width:40%;text-align:right;word-break:keep-all}
+/* 가사 판 자리: 위 표시줄(약 110px)과 아래 조작줄(약 120px) 사이 가운데. 제목·등장인물이 없는 화면(대사·넘버)은 좌우도 가운데 */
+.slide.has-lyrics .lyrics-full{top:110px;bottom:120px;transform:none;max-height:none;display:flex;flex-direction:column;justify-content:center}
+.slide.has-lyrics.no-meta .lyrics-full{left:12%;right:12%}
+body.rec-clean .slide.has-lyrics .lyrics-full{bottom:40px}
 .slide.has-lyrics .scene-title{font-size:clamp(20px,2.6vw,34px)}
-.lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:3%;max-height:80%;overflow:hidden;z-index:25;pointer-events:none;text-align:center;padding:22px 18px;border-radius:18px;background:rgba(0,0,0,.42);backdrop-filter:blur(3px)}
+.lyrics-full{position:absolute;top:50%;transform:translateY(-50%);left:36%;right:3%;max-height:80%;overflow:hidden;box-sizing:border-box;z-index:25;pointer-events:none;text-align:center;padding:22px 18px;border-radius:18px;background:rgba(0,0,0,.42);backdrop-filter:blur(3px)}
 .lyrics-full .number-lyrics-title{margin-bottom:10px}
 .lyrics-full-lines{display:flex;flex-direction:column;gap:1px;font-size:min(clamp(15px,2.1vw,24px),calc(64vh / var(--n,8) / 1.55))}
 .lf-line{font-weight:700;line-height:1.55;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.95);word-break:keep-all}
@@ -491,7 +494,10 @@ select.bubble-ctrl-btn{padding:5px 8px}
 <div id="end-btns"><button id="back-btn" onclick="goFirst()">⏮ 처음 장면으로</button><button id="end-exit-btn" onclick="safeExit()">✕ 저장하고 나가기</button></div>
 
 <script>
-/* EAIM 슬라이드쇼 slideshow.html v2.11 (2026-09-25)
+/* EAIM 슬라이드쇼 slideshow.html v2.13 (2026-09-25)
+   · v2.13: 커튼콜은 노래가 끝날 때까지 가사를 보여 주고 나서 막 내림 크레딧으로. 커튼콜 가사도 노래가 부른 가사 우선.
+           끝 화면 버튼(처음 장면으로·저장하고 나가기)은 크레딧이 다 올라간 뒤에만. 같은 막 안(대사↔대사↔넘버)에서는 검은 화면 없이 바로 넘어감.
+   · v2.12: 가사 판이 화면 가운데(위 표시줄과 아래 조작줄 사이)에 오고, 가사가 길면 글자를 줄여서 한 판에 다 들어감(잘리지 않음). 오른쪽 위 작은 제목은 진한 흰색.
    · v2.11: 뮤지컬의 대사·넘버 화면에서는 큰 제목을 없애고 오른쪽 위에 작게. 큰 제목은 오프닝과 막 전환 화면에만.
    · v2.10: 등장인물·감정·노래 느낌 표시는 오프닝 화면에만. 대사·넘버 화면은 제목(과 넘버 제목)만 남겨 화면을 비움.
    · v2.9: 넘버 가사 전체를 줄 강조 없이 또렷한 흰색으로(어두운 바탕 깔림, 줄 수에 따라 글자 크기 자동). 가사 앞의 [:] 같은 표시 제거.
@@ -1239,6 +1245,7 @@ function buildScene(scene, idx) {
     ${scene.dialogue?(scene.bubbles||[]).map((b,bi)=>`<div class="speech-bubble auto-dialogue-bubble ${b.tail||'tail-left'}" data-k="${bi}" style="left:${b.left};top:${b.top}">${b.name?`<div class="bubble-name">${escHtml(b.name)}</div>`:''}${b.cue?`<div class="bubble-cue">(${escHtml(b.cue)})</div>`:''}<span>${escHtml(b.text)}</span><div class="bubble-tools"><button title="대사 고치기" onclick="editAutoBubble(this)">✎</button><button title="작게" onclick="scaleBubble(this,-1)">A−</button><button title="크게" onclick="scaleBubble(this,1)">A+</button><button title="숨기기" onclick="hideBubble(this)">✕</button></div></div>`).join(''):''}
     <div class="progress-bar"><div class="progress-fill" style="width:${((idx+1)/TOTAL)*100}%;background:linear-gradient(to right,${C.accent},${C.lyric})"></div></div>`;
   if (lyricLines.length) div.classList.add('has-lyrics');
+  if (!showMeta) div.classList.add('no-meta');
   if (scene.dialogue) { div.classList.add('dialogue-scene'); div.querySelectorAll('.auto-dialogue-bubble').forEach(b => { makeDraggable(b); b.addEventListener('dblclick', e => { e.stopPropagation(); editAutoBubble(b); }); }); }
   stage.appendChild(div);
 }
@@ -1247,7 +1254,7 @@ function buildEnding() {
   if (isPicture()) return buildPictureEnding();
   const div=document.createElement('div'); div.id='end-slide'; div.className='slide hidden';
   const stars=Array.from({length:28},(_,i)=>`<div class="star" style="left:${(i*37+5)%100}%;top:${(i*23+10)%100}%;width:${i%5===0?3:2}px;height:${i%5===0?3:2}px;background:${i%3===0?'#FFD700':i%3===1?'#C778DD':'#5DADE2'};opacity:${.3+(i%4)*.15};animation-duration:${2+(i%3)}s"></div>`).join('');
-  const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
+  const lyricLines=curtainLyricLines();
   div.innerHTML=`
     ${stars}
     <div id="curtain-phase">
@@ -1315,7 +1322,9 @@ function showSlide(idx) {
     if (left > 0) { clearTimeout(_transHoldT); _transHoldT = setTimeout(() => { if (SCENES[current-1] && SCENES[current-1].transition) showSlide(idx); }, left); return; }
   }
   clearTimeout(_transHoldT);
-  const needsBlackout=(current!==idx)&&!(current===0&&idx===0);
+  const sameAct = current>=1 && current<=TOTAL && idx>=1 && idx<=TOTAL && SCENES[current-1] && SCENES[idx-1]
+    && !SCENES[current-1].transition && !SCENES[idx-1].transition && SCENES[current-1].actNo && SCENES[current-1].actNo===SCENES[idx-1].actNo;
+  const needsBlackout=(current!==idx)&&!(current===0&&idx===0)&&!sameAct;   // 같은 막 안(대사↔넘버)은 검은 화면 없이 바로
   if (needsBlackout) {
     isTransitioning=true;
     const label=idx===TOTAL+1?(isPicture()?'끝':'막 내림'):idx===0?'':sceneLabel(idx);
@@ -1329,7 +1338,7 @@ function doShowSlide(idx) {
   const el=getSlideEl(idx); if (!el) return;
   el.className=el.className.replace('hidden','visible');
   if (idx>=1&&idx<=TOTAL) {
-    const si=idx-1; initLyricBar(si);
+    const si=idx-1; initLyricBar(si); requestAnimationFrame(()=>fitLyrics(si));
     if (SCENES[si].transition) _transHoldUntil = Date.now() + (Number(SCENES[si].sec) || 10) * 1000;
     startLyricAuto(si, 0);
     setTimeout(()=>{
@@ -1342,7 +1351,7 @@ function doShowSlide(idx) {
   }
   if (idx===TOTAL+1) {
     document.getElementById('controls').style.display='none';
-    document.getElementById('end-btns').style.display='flex';
+    document.getElementById('end-btns').style.display='none';   // 크레딧이 끝난 뒤 showEndButtons() 가 보여 줌
     document.getElementById('key-hint').style.display='none';
     startEnding();
   } else {
@@ -1366,21 +1375,38 @@ function showSignalIndicator(scene, idx) {
   el.style.display='flex'; clearTimeout(el._timer); el._timer=setTimeout(hideSignalIndicator,3000);
 }
 function hideSignalIndicator() { const el=document.getElementById('signal-indicator');if(el)el.style.display='none'; }
+function curtainLyricLines(){
+  const raw = ((DATA.curtainAudioUrl||DATA.curtainAudioLocal) && DATA.curtainAudioLyrics && String(DATA.curtainAudioLyrics).trim()) ? DATA.curtainAudioLyrics : (DATA.curtainLyrics||'');
+  return String(raw).split('\n').map(l=>l.trim().replace(/^(\[[^\]]*\]|\([^\)]*\))\s*/,'').trim()).filter(l=>l && !/^[\[\(（【].*[\]\)）】]$/.test(l));
+}
+let _endingT = null, _endingDone = false;
+function goToCredits(){
+  if (_endingDone) return; _endingDone = true; clearTimeout(_endingT);
+  const cp=document.getElementById('curtain-phase'),cr=document.getElementById('credits-phase');
+  if(cp)cp.style.opacity='0';
+  setTimeout(()=>{ if(cp)cp.style.pointerEvents='none'; if(cr){cr.style.opacity='1';cr.style.pointerEvents='auto';} startCreditsScroll();
+    const dur=(typeof window._pmCreditsDur==='number'&&window._pmCreditsDur>0)?window._pmCreditsDur:Math.max(12,(DATA.credits||[]).length*2.2+10);
+    setTimeout(showEndButtons, dur*1000+600);   // 크레딧이 다 올라간 뒤에 버튼
+  },1000);
+}
+function showEndButtons(){ if (current===TOTAL+1) document.getElementById('end-btns').style.display='flex'; }
+window.pmRetimeEnding = function(D){ if (D>0 && !_endingDone) { clearTimeout(_endingT); _endingT=setTimeout(goToCredits, D*1000+800); } };   // 녹화 애드온이 커튼콜 곡 길이를 알려 줄 때
 function startEnding() {
+  _endingDone = false; clearTimeout(_endingT);
   if (isPicture()) {
     // 끝 카드는 잠깐 보여 주고 끝. 녹화 애드온은 startCreditsScroll 을 기다렸다가 녹화를 마치므로 짧은 시간으로 불러 준다
     window._pmCreditsDur = 4;
     setTimeout(()=>{ try{ startCreditsScroll(); }catch(e){} }, 1000);
+    setTimeout(showEndButtons, 1500);
     return;
   }
-  const lyricLines=(DATA.curtainLyrics||'').split('\n').filter(Boolean);
-  setTimeout(()=>{ lyricLines.forEach((_,i)=>setTimeout(()=>{ const el=document.getElementById(`cl-${i}`);if(el)el.style.opacity='1'; },i*600)); },300);
-  const delay=Math.max(3000,lyricLines.length*700+1800);
-  setTimeout(()=>{
-    const cp=document.getElementById('curtain-phase'),cr=document.getElementById('credits-phase');
-    if(cp)cp.style.opacity='0';
-    setTimeout(()=>{ if(cp)cp.style.pointerEvents='none'; if(cr){cr.style.opacity='1';cr.style.pointerEvents='auto';} startCreditsScroll(); },1000);
-  },delay);
+  const lyricLines=curtainLyricLines();
+  setTimeout(()=>{ lyricLines.forEach((_,i)=>setTimeout(()=>{ const el=document.getElementById(`cl-${i}`);if(el)el.style.opacity='1'; },i*250)); },300);
+  const hasSong = !!(DATA.curtainAudioUrl||DATA.curtainAudioLocal);
+  // 커튼콜 곡이 있으면 곡이 끝날 때(ended) 크레딧으로 — pmOnSceneAudio 가 처리. 곡 길이를 알면 pmRetimeEnding 이 예비 시계를 맞춘다.
+  // 곡이 없거나 5분 안에 아무 신호가 없으면 가사 길이 기준으로 넘어간다.
+  const delay = hasSong ? 5*60*1000 : Math.max(3000, lyricLines.length*1500+2500);
+  _endingT = setTimeout(goToCredits, delay);
 }
 function startCreditsScroll() {
   const s=document.getElementById('credits-scroll');if(!s)return;
@@ -1556,6 +1582,10 @@ function startLyricAuto(si, totalSec, audio){
   }, per * 1000);
 }
 window.pmOnSceneAudio = function(audio, idx){   // 녹화 애드온이 넘버를 틀 때 불러 줌
+  if (idx === TOTAL + 1) {   // 커튼콜 곡: 끝나면 크레딧으로
+    audio.addEventListener('ended', () => { if (current === TOTAL + 1) goToCredits(); }, { once: true });
+    return;
+  }
   const si = idx - 1; if (si < 0 || si >= TOTAL) return;
   lyricLineState[si] = 0; updateLyricBar(si);
   startLyricAuto(si, 0, audio);
@@ -1593,6 +1623,17 @@ function updateLyricBar(si){
   if(ce)ce.textContent=lines[cur]||''; if(ne)ne.textContent=lines[cur+1]||'';
   // 가사 전체 판은 줄을 강조하지 않는다 (노래와 가사 진행이 정확히 맞지 않으므로, v2.9)
 }
+/* 가사가 길면 글자를 줄여 판 안에 다 들어가게 (v2.12) */
+function fitLyrics(si){
+  const box=document.getElementById(`nlb-${si}`), wrap=document.getElementById(`nlb-lines-${si}`); if(!box||!wrap)return;
+  wrap.style.fontSize='';                                   // CSS 기본값(줄 수 기준)에서 시작
+  const titleH=(box.querySelector('.number-lyrics-title')||{}).offsetHeight||0;
+  const avail=box.clientHeight-titleH-44;                   // 안쪽 여백
+  if(avail<=0)return;
+  let fs=parseFloat(getComputedStyle(wrap).fontSize)||20;
+  for(let k=0;k<40&&wrap.scrollHeight>avail&&fs>9;k++){ fs-=1; wrap.style.fontSize=fs+'px'; }
+}
+window.addEventListener('resize',()=>{ const si=current-1; if(si>=0&&si<TOTAL)fitLyrics(si); });
 /* ── 가사 다듬기 (넘버 화면) ── */
 let _lyricsEditSi = -1;
 function renderLyricLines(si){
@@ -1600,7 +1641,7 @@ function renderLyricLines(si){
   const lines=lyricLinesOf(SCENES[si]);
   wrap.style.setProperty('--n', Math.max(1,lines.length));
   wrap.innerHTML=lines.map((l,i)=>`<div class="lf-line" data-i="${i}">${escHtml(l)}</div>`).join('');
-  lyricLineState[si]=0; updateLyricBar(si);
+  lyricLineState[si]=0; updateLyricBar(si); fitLyrics(si);
 }
 function openLyricsEdit(si){
   _lyricsEditSi=si;
